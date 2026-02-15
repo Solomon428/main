@@ -1,0 +1,12 @@
+export enum LogSeverity {
+  DEBUG = 'DEBUG',
+  INFO = 'INFO',
+  WARN = 'WARN',
+  ERROR = 'ERROR',
+  FATAL = 'FATAL',
+  CRITICAL = 'CRITICAL',
+  AUDIT = 'AUDIT',
+  SECURITY = 'SECURITY',
+  COMPLIANCE = 'COMPLIANCE',
+  WARNING = 'WARNING',
+}

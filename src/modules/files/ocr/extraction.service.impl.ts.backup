@@ -1,0 +1,1188 @@
+import { z } from 'zod';
+import { parse, format, isValid, parseISO, differenceInDays, isAfter, isBefore } from 'date-fns';
+import { Decimal } from 'decimal.js';
+import { v4 as uuidv4 } from 'uuid';
+
+import { prisma } from '../../../lib/prisma';
+import { systemLogger } from '../../../observability/logger';
+import { metrics } from '../../../observability/metrics';
+import { formatDate, parseDate, addBusinessDays, isBusinessDay } from '../../../utils/dates';
+import { formatCurrency, convertCurrency, calculateVAT, roundMoney, validateCurrency, getCurrencySymbol, getCurrencyPrecision } from '../../../utils/money';
+import { validateEmail, validateVAT, validateBankAccount, validateInvoiceNumber, validateTaxId } from '../../../utils/validation';
+import { generateId } from '../../../utils/ids';
+
+import { Currency } from '../../../domain/enums/Currency';
+import { TaxType } from '../../../domain/enums/TaxType';
+import { DocumentType } from '../../../domain/enums/DocumentType';
+import { InvoiceStatus } from '../../../domain/enums/InvoiceStatus';
+import { ComplianceStatus } from '../../../domain/enums/ComplianceStatus';
+import { RiskLevel } from '../../../domain/enums/RiskLevel';
+import type { Invoice } from '../../../domain/models/Invoice';
+import type { InvoiceLineItem } from '../../../domain/models/InvoiceLineItem';
+import type { Supplier } from '../../../domain/models/Supplier';
+
+export interface ExtractedInvoiceData {
+  invoiceNumber?: string;
+  referenceNumber?: string;
+  issueDate?: Date;
+  dueDate?: Date;
+  currency?: Currency;
+  totalAmount?: Decimal;
+  subtotalAmount?: Decimal;
+  taxAmount?: Decimal;
+  discountAmount?: Decimal;
+  shippingAmount?: Decimal;
+  supplierName?: string;
+  supplierAddress?: string;
+  supplierVatNumber?: string;
+  supplierEmail?: string;
+  supplierPhone?: string;
+  buyerName?: string;
+  buyerAddress?: string;
+  buyerVatNumber?: string;
+  paymentTerms?: string;
+  notes?: string;
+  lineItems: ExtractedLineItem[];
+  confidence: number;
+  extractionMethod: 'regex' | 'ml' | 'hybrid' | 'manual';
+  metadata: Record<string, any>;
+  warnings: string[];
+  errors: string[];
+}
+
+export interface ExtractedLineItem {
+  lineNumber: number;
+  description: string;
+  quantity: Decimal;
+  unitPrice: Decimal;
+  unitOfMeasure?: string;
+  taxRate?: Decimal;
+  taxType?: TaxType;
+  taxAmount?: Decimal;
+  discountRate?: Decimal;
+  discountAmount?: Decimal;
+  totalAmount: Decimal;
+  glAccountCode?: string;
+  costCenter?: string;
+  projectCode?: string;
+  departmentCode?: string;
+  confidence: number;
+  extractedText: string;
+}
+
+export interface ExtractionConfig {
+  confidenceThreshold: number;
+  dateFormats: string[];
+  currencySymbols: Record<string, Currency>;
+  defaultCurrency: Currency;
+  defaultTaxRate: Decimal;
+  language: string;
+  useMachineLearning: boolean;
+  mlModelPath?: string;
+  regexPatterns: {
+    invoiceNumber: RegExp[];
+    date: RegExp[];
+    amount: RegExp[];
+    vatNumber: RegExp[];
+    email: RegExp[];
+    phone: RegExp[];
+    lineItem: RegExp[];
+  };
+}
+
+export interface ExtractionResult {
+  success: boolean;
+  data: ExtractedInvoiceData;
+  processingTime: number;
+  pagesProcessed: number;
+  textLength: number;
+  validation: {
+    isValid: boolean;
+    score: number;
+    issues: Array<{ type: 'error' | 'warning'; message: string; field?: string }>;
+  };
+}
+
+export interface ExtractionProgress {
+  stage: 'parsing' | 'validating' | 'matching' | 'enriching' | 'completed' | 'failed';
+  progress: number;
+  message: string;
+  details?: Record<string, any>;
+  timestamp: Date;
+}
+
+export class ExtractionServiceError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public context?: Record<string, any>,
+    public cause?: Error
+  ) {
+    super(message);
+    this.name = 'ExtractionServiceError';
+  }
+}
+
+export class ExtractionValidationError extends ExtractionServiceError {
+  constructor(message: string, context?: Record<string, any>, cause?: Error) {
+    super(message, 'VALIDATION_ERROR', context, cause);
+    this.name = 'ExtractionValidationError';
+  }
+}
+
+export class ExtractionParsingError extends ExtractionServiceError {
+  constructor(message: string, context?: Record<string, any>, cause?: Error) {
+    super(message, 'PARSING_ERROR', context, cause);
+    this.name = 'ExtractionParsingError';
+  }
+}
+
+export class ExtractionEnrichmentError extends ExtractionServiceError {
+  constructor(message: string, context?: Record<string, any>, cause?: Error) {
+    super(message, 'ENRICHMENT_ERROR', context, cause);
+    this.name = 'ExtractionEnrichmentError';
+  }
+}
+
+export class ExtractionService {
+  private readonly logger: typeof systemLogger;
+  private readonly metrics: typeof metrics;
+  private readonly config: ExtractionConfig;
+  private readonly schemas: {
+    invoiceNumber: z.ZodString;
+    date: z.ZodDate;
+    amount: z.ZodString;
+    vatNumber: z.ZodString;
+    email: z.ZodString;
+    phone: z.ZodString;
+  };
+
+  constructor(
+    config?: Partial<ExtractionConfig>,
+    logger?: typeof systemLogger,
+    metricsInstance?: typeof metrics
+  ) {
+    this.logger = logger || systemLogger;
+    this.metrics = metricsInstance || metrics;
+
+    this.config = {
+      confidenceThreshold: config?.confidenceThreshold || 70,
+      dateFormats: config?.dateFormats || [
+        'dd/MM/yyyy',
+        'MM/dd/yyyy',
+        'yyyy-MM-dd',
+        'dd-MM-yyyy',
+        'MM-dd-yyyy',
+        'yyyy/MM/dd',
+        'dd.MM.yyyy',
+        'MM.dd.yyyy'
+      ],
+      currencySymbols: config?.currencySymbols || {
+        '$': Currency.USD,
+        '€': Currency.EUR,
+        '£': Currency.GBP,
+        '¥': Currency.JPY,
+        '₹': Currency.INR,
+        'R': Currency.ZAR,
+        'C$': Currency.CAD,
+        'A$': Currency.AUD,
+      },
+      defaultCurrency: config?.defaultCurrency || Currency.USD,
+      defaultTaxRate: config?.defaultTaxRate ? new Decimal(config.defaultTaxRate.toString()) : new Decimal('0.15'),
+      language: config?.language || 'en',
+      useMachineLearning: config?.useMachineLearning || false,
+      mlModelPath: config?.mlModelPath,
+      regexPatterns: config?.regexPatterns || {
+        invoiceNumber: [
+          /invoice\s*(?:no|number|#)?\s*[:#]?\s*([A-Z0-9\-_\/]+)/i,
+          /(?:invoice|inv)\.?\s*([A-Z0-9\-_\/]+)/i,
+          /(?:#|no\.?)\s*([A-Z0-9\-_\/]+)/i
+        ],
+        date: [
+          /(?:date|issued|invoice date)\s*[:]\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+          /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/,
+          /(?:due\s*date)\s*[:]\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i
+        ],
+        amount: [
+          /(?:total|amount|balance|grand total)\s*[:]\s*([$€£¥₹]\s*\d+[\.,]\d{2}|\d+[\.,]\d{2}\s*[$€£¥₹])/i,
+          /(?:subtotal|sub-total)\s*[:]\s*([$€£¥₹]\s*\d+[\.,]\d{2}|\d+[\.,]\d{2}\s*[$€£¥₹])/i,
+          /(?:tax|vat|gst)\s*[:]\s*([$€£¥₹]\s*\d+[\.,]\d{2}|\d+[\.,]\d{2}\s*[$€£¥₹])/i
+        ],
+        vatNumber: [
+          /(?:vat|gst|tax)\s*(?:id|number|no|#)?\s*[:]\s*([A-Z0-9\-]+)/i,
+          /(?:registration\s*number)\s*[:]\s*([A-Z0-9\-]+)/i
+        ],
+        email: [
+          /[\w\.-]+@[\w\.-]+\.\w+/i
+        ],
+        phone: [
+          /(?:\+?\d{1,3}[\s\-]?)?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/,
+          /\d{3}[\-\.]\d{3}[\-\.]\d{4}/
+        ],
+        lineItem: [
+          /(\d+)\s+(.+?)\s+(\d+[\.,]\d{2})\s+(\d+[\.,]\d{2})\s+(\d+[\.,]\d{2})/,
+          /(.+?)\s+(\d+)\s+(\d+[\.,]\d{2})\s+(\d+[\.,]\d{2})/,
+          /(\d+)\.\s+(.+?)\s+(\d+[\.,]\d{2})\s+(\d+[\.,]\d{2})/
+        ]
+      }
+    };
+
+    this.schemas = {
+      invoiceNumber: z.string().min(1).max(50),
+      date: z.date(),
+      amount: z.string().regex(/^\d+[\.,]\d{2}$/),
+      vatNumber: z.string().min(5).max(20),
+      email: z.string().email(),
+      phone: z.string().min(8).max(20)
+    };
+  }
+
+  async parseInvoice(
+    extractedText: string,
+    fileId?: string,
+    organizationId?: string,
+    progressCallback?: (progress: ExtractionProgress) => void
+  ): Promise<ExtractionResult> {
+    const startTime = Date.now();
+    const jobId = generateId();
+
+    try {
+      this.logger.info('Starting invoice parsing', {
+        jobId,
+        fileId,
+        organizationId,
+        textLength: extractedText.length
+      });
+
+      this.updateProgress(progressCallback, {
+        stage: 'parsing',
+        progress: 10,
+        message: 'Starting invoice data extraction',
+        timestamp: new Date()
+      });
+
+      const extractedData = await this.extractWithRegex(extractedText);
+
+      this.updateProgress(progressCallback, {
+        stage: 'parsing',
+        progress: 40,
+        message: 'Basic data extracted, now validating',
+        details: {
+          invoiceNumber: extractedData.invoiceNumber,
+          totalAmount: extractedData.totalAmount?.toString(),
+          lineItems: extractedData.lineItems.length
+        },
+        timestamp: new Date()
+      });
+
+      const validation = await this.validateExtractedData(extractedData);
+
+      this.updateProgress(progressCallback, {
+        stage: 'validating',
+        progress: 60,
+        message: 'Data validated, now matching with existing records',
+        details: {
+          validationScore: validation.score,
+          issues: validation.issues.length
+        },
+        timestamp: new Date()
+      });
+
+      if (organizationId) {
+        extractedData.lineItems = await this.enrichLineItems(
+          extractedData.lineItems,
+          organizationId
+        );
+      }
+
+      this.updateProgress(progressCallback, {
+        stage: 'enriching',
+        progress: 80,
+        message: 'Data enriched, finalizing extraction',
+        timestamp: new Date()
+      });
+
+      if (extractedData.lineItems.length > 0) {
+        extractedData.lineItems = this.calculateMissingAmounts(extractedData.lineItems);
+      }
+
+      const overallConfidence = this.calculateOverallConfidence(extractedData, validation);
+
+      const processingTime = Date.now() - startTime;
+      const result: ExtractionResult = {
+        success: overallConfidence >= this.config.confidenceThreshold,
+        data: {
+          ...extractedData,
+          confidence: overallConfidence
+        },
+        processingTime,
+        pagesProcessed: 1,
+        textLength: extractedText.length,
+        validation
+      };
+
+      await this.logExtraction({
+        jobId,
+        fileId,
+        organizationId,
+        success: result.success,
+        confidence: overallConfidence,
+        processingTime,
+        invoiceNumber: extractedData.invoiceNumber,
+        totalAmount: extractedData.totalAmount?.toString(),
+        lineItemsCount: extractedData.lineItems.length,
+        validationScore: validation.score,
+        issuesCount: validation.issues.length
+      });
+
+      this.metrics.incrementCounter('invoice.extractions.completed', 1, {
+        success: result.success,
+        method: extractedData.extractionMethod,
+        confidence: Math.floor(overallConfidence)
+      });
+
+      this.updateProgress(progressCallback, {
+        stage: 'completed',
+        progress: 100,
+        message: result.success 
+          ? `Invoice extraction completed with ${overallConfidence.toFixed(1)}% confidence`
+          : `Invoice extraction completed with low confidence (${overallConfidence.toFixed(1)}%)`,
+        details: {
+          success: result.success,
+          confidence: overallConfidence,
+          invoiceNumber: extractedData.invoiceNumber,
+          lineItems: extractedData.lineItems.length
+        },
+        timestamp: new Date()
+      });
+
+      this.logger.info('Invoice parsing completed', {
+        jobId,
+        success: result.success,
+        confidence: overallConfidence,
+        processingTime,
+        invoiceNumber: extractedData.invoiceNumber
+      });
+
+      return result;
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.logger.error('Failed to parse invoice', {
+        jobId,
+        fileId,
+        processingTime,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+
+      this.updateProgress(progressCallback, {
+        stage: 'failed',
+        progress: 100,
+        message: `Invoice parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date()
+      });
+
+      this.metrics.incrementCounter('invoice.extractions.failed', 1, {
+        errorType: error instanceof ExtractionServiceError ? error.code : 'UNKNOWN'
+      });
+
+      if (error instanceof ExtractionServiceError) {
+        throw error;
+      }
+
+      throw new ExtractionParsingError(
+        'Failed to parse invoice',
+        'PARSING_FAILED',
+        { fileId, processingTime },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  async validateExtractedData(
+    extractedData: ExtractedInvoiceData
+  ): Promise<{
+    isValid: boolean;
+    score: number;
+    issues: Array<{ type: 'error' | 'warning'; message: string; field?: string }>;
+  }> {
+    try {
+      const issues: Array<{ type: 'error' | 'warning'; message: string; field?: string }> = [];
+      let score = 100;
+
+      if (extractedData.invoiceNumber) {
+        try {
+          this.schemas.invoiceNumber.parse(extractedData.invoiceNumber);
+        } catch (error) {
+          issues.push({
+            type: 'warning',
+            message: `Invalid invoice number: ${extractedData.invoiceNumber}`,
+            field: 'invoiceNumber'
+          });
+          score -= 10;
+        }
+      } else {
+        issues.push({
+          type: 'error',
+          message: 'Invoice number is missing',
+          field: 'invoiceNumber'
+        });
+        score -= 20;
+      }
+
+      if (extractedData.issueDate) {
+        try {
+          this.schemas.date.parse(extractedData.issueDate);
+        } catch (error) {
+          issues.push({
+            type: 'warning',
+            message: `Invalid issue date`,
+            field: 'issueDate'
+          });
+          score -= 5;
+        }
+      }
+
+      if (extractedData.dueDate) {
+        try {
+          this.schemas.date.parse(extractedData.dueDate);
+          if (extractedData.issueDate && isAfter(extractedData.issueDate, extractedData.dueDate)) {
+            issues.push({
+              type: 'warning',
+              message: 'Due date is before issue date',
+              field: 'dueDate'
+            });
+            score -= 5;
+          }
+        } catch (error) {
+          issues.push({
+            type: 'warning',
+            message: `Invalid due date`,
+            field: 'dueDate'
+          });
+          score -= 5;
+        }
+      }
+
+      if (extractedData.totalAmount) {
+        try {
+          if (extractedData.totalAmount.lte(0)) {
+            issues.push({
+              type: 'error',
+              message: 'Total amount must be greater than 0',
+              field: 'totalAmount'
+            });
+            score -= 15;
+          }
+        } catch (error) {
+          issues.push({
+            type: 'error',
+            message: 'Invalid total amount format',
+            field: 'totalAmount'
+          });
+          score -= 15;
+        }
+      } else {
+        issues.push({
+          type: 'error',
+          message: 'Total amount is missing',
+          field: 'totalAmount'
+        });
+        score -= 20;
+      }
+
+      if (extractedData.currency) {
+        try {
+          validateCurrency(extractedData.currency);
+        } catch (error) {
+          issues.push({
+            type: 'warning',
+            message: `Unsupported currency: ${extractedData.currency}`,
+            field: 'currency'
+          });
+          score -= 5;
+        }
+      }
+
+      if (extractedData.lineItems.length === 0) {
+        issues.push({
+          type: 'error',
+          message: 'No line items found',
+          field: 'lineItems'
+        });
+        score -= 25;
+      } else {
+        extractedData.lineItems.forEach((item, index) => {
+          if (!item.description || item.description.trim().length === 0) {
+            issues.push({
+              type: 'error',
+              message: `Line item ${index + 1}: Description is missing`,
+              field: `lineItems[${index}].description`
+            });
+            score -= 5;
+          }
+
+          if (item.quantity.lte(0)) {
+            issues.push({
+              type: 'error',
+              message: `Line item ${index + 1}: Quantity must be greater than 0`,
+              field: `lineItems[${index}].quantity`
+            });
+            score -= 5;
+          }
+
+          if (item.unitPrice.lt(0)) {
+            issues.push({
+              type: 'error',
+              message: `Line item ${index + 1}: Unit price cannot be negative`,
+              field: `lineItems[${index}].unitPrice`
+            });
+            score -= 5;
+          }
+        });
+      }
+
+      if (extractedData.supplierVatNumber) {
+        const vatValid = validateVAT(extractedData.supplierVatNumber);
+        if (!vatValid) {
+          issues.push({
+            type: 'warning',
+            message: `Supplier VAT number may be invalid`,
+            field: 'supplierVatNumber'
+          });
+          score -= 5;
+        }
+      }
+
+      if (extractedData.supplierEmail) {
+        const emailValid = validateEmail(extractedData.supplierEmail);
+        if (!emailValid) {
+          issues.push({
+            type: 'warning',
+            message: `Supplier email may be invalid`,
+            field: 'supplierEmail'
+          });
+          score -= 3;
+        }
+      }
+
+      if (extractedData.lineItems.length > 0) {
+        const calculatedTotal = extractedData.lineItems.reduce(
+          (sum, item) => sum.plus(item.totalAmount),
+          new Decimal(0)
+        );
+
+        if (extractedData.totalAmount && !calculatedTotal.equals(extractedData.totalAmount)) {
+          const diff = calculatedTotal.minus(extractedData.totalAmount).abs();
+          const diffPercentage = diff.dividedBy(extractedData.totalAmount).times(100);
+
+          if (diffPercentage.gt(1)) {
+            issues.push({
+              type: 'warning',
+              message: `Line item total differs from invoice total by ${diffPercentage.toFixed(2)}%`,
+              field: 'totalAmount'
+            });
+            score -= 10;
+          }
+        }
+      }
+
+      score = Math.max(0, Math.min(100, score));
+
+      return {
+        isValid: score >= this.config.confidenceThreshold,
+        score,
+        issues
+      };
+
+    } catch (error) {
+      this.logger.error('Failed to validate extraction', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return {
+        isValid: false,
+        score: 0,
+        issues: [{
+          type: 'error',
+          message: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }]
+      };
+    }
+  }
+
+  async saveExtractionResult(
+    result: ExtractionResult,
+    fileAttachmentId: string,
+    userId: string,
+    organizationId: string
+  ): Promise<string> {
+    try {
+      const extractionId = generateId();
+
+      await prisma.invoiceExtraction.create({
+        data: {
+          id: extractionId,
+          fileAttachmentId,
+          organizationId,
+          userId,
+          success: result.success,
+          confidence: result.data.confidence,
+          processingTime: result.processingTime,
+          pagesProcessed: result.pagesProcessed,
+          textLength: result.textLength,
+          extractionMethod: result.data.extractionMethod,
+          validationScore: result.validation.score,
+          extractedData: result.data as any,
+          rawText: 'REDACTED',
+          metadata: {
+            validationIssues: result.validation.issues,
+            savedAt: new Date().toISOString()
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+
+      this.logger.info('Extraction result saved', {
+        extractionId,
+        fileAttachmentId,
+        confidence: result.data.confidence,
+        validationScore: result.validation.score
+      });
+
+      return extractionId;
+
+    } catch (error) {
+      this.logger.error('Failed to save extraction result', {
+        fileAttachmentId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      throw new ExtractionServiceError(
+        'Failed to save extraction result',
+        'SAVE_FAILED',
+        { fileAttachmentId },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async extractWithRegex(text: string): Promise<ExtractedInvoiceData> {
+    const extracted: ExtractedInvoiceData = {
+      lineItems: [],
+      confidence: 0,
+      extractionMethod: 'regex',
+      metadata: {},
+      warnings: [],
+      errors: []
+    };
+
+    let matchScore = 0;
+    let totalMatches = 0;
+
+    for (const pattern of this.config.regexPatterns.invoiceNumber) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        extracted.invoiceNumber = match[1].trim();
+        matchScore += 15;
+        totalMatches++;
+        break;
+      }
+    }
+
+    for (const pattern of this.config.regexPatterns.date) {
+      const matches = text.matchAll(new RegExp(pattern, 'gi'));
+      for (const match of matches) {
+        if (match[1]) {
+          const dateStr = match[1].trim();
+          const parsedDate = this.parseDateString(dateStr);
+          if (parsedDate) {
+            const context = match[0].toLowerCase();
+            if (context.includes('due') || context.includes('payment')) {
+              extracted.dueDate = parsedDate;
+            } else {
+              extracted.issueDate = extracted.issueDate || parsedDate;
+            }
+            matchScore += 10;
+            totalMatches++;
+          }
+        }
+      }
+    }
+
+    for (const pattern of this.config.regexPatterns.amount) {
+      const matches = text.matchAll(new RegExp(pattern, 'gi'));
+      for (const match of matches) {
+        if (match[1]) {
+          const amountStr = match[1].trim();
+          const { amount, currency } = this.parseAmountString(amountStr);
+          
+          if (amount) {
+            const context = match[0].toLowerCase();
+            if (context.includes('total') || context.includes('balance') || context.includes('grand')) {
+              extracted.totalAmount = extracted.totalAmount || amount;
+              if (!extracted.currency && currency) {
+                extracted.currency = currency;
+              }
+            } else if (context.includes('sub') || context.includes('sub-total')) {
+              extracted.subtotalAmount = extracted.subtotalAmount || amount;
+            } else if (context.includes('tax') || context.includes('vat') || context.includes('gst')) {
+              extracted.taxAmount = extracted.taxAmount || amount;
+            }
+            matchScore += 10;
+            totalMatches++;
+          }
+        }
+      }
+    }
+
+    for (const pattern of this.config.regexPatterns.vatNumber) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        extracted.supplierVatNumber = match[1].trim();
+        matchScore += 10;
+        totalMatches++;
+        break;
+      }
+    }
+
+    for (const pattern of this.config.regexPatterns.email) {
+      const match = text.match(pattern);
+      if (match && match[0]) {
+        extracted.supplierEmail = match[0].trim();
+        matchScore += 5;
+        totalMatches++;
+        break;
+      }
+    }
+
+    for (const pattern of this.config.regexPatterns.phone) {
+      const match = text.match(pattern);
+      if (match && match[0]) {
+        extracted.supplierPhone = match[0].trim();
+        matchScore += 5;
+        totalMatches++;
+        break;
+      }
+    }
+
+    extracted.lineItems = this.extractLineItems(text);
+    extracted.supplierName = this.extractSupplierName(text);
+
+    const maxPossibleScore = 100;
+    extracted.confidence = totalMatches > 0 ? (matchScore / maxPossibleScore) * 100 : 0;
+
+    extracted.metadata = {
+      regexMatches: totalMatches,
+      matchScore,
+      lineItemsExtracted: extracted.lineItems.length,
+      extractionTimestamp: new Date().toISOString()
+    };
+
+    return extracted;
+  }
+
+  private extractLineItems(text: string): ExtractedLineItem[] {
+    const lineItems: ExtractedLineItem[] = [];
+    const lines = text.split('\n');
+
+    let lineNumber = 1;
+    let inLineItemsSection = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      if (line.toLowerCase().includes('description') && 
+          (line.toLowerCase().includes('quantity') || line.toLowerCase().includes('amount'))) {
+        inLineItemsSection = true;
+        continue;
+      }
+
+      if (inLineItemsSection) {
+        for (const pattern of this.config.regexPatterns.lineItem) {
+          const match = line.match(pattern);
+          if (match) {
+            try {
+              const lineItem = this.parseLineItemMatch(match, lineNumber, line);
+              if (lineItem) {
+                lineItems.push(lineItem);
+                lineNumber++;
+              }
+            } catch (error) {
+              // Skip this line if parsing fails
+            }
+            break;
+          }
+        }
+
+        if (line.toLowerCase().includes('total') || line.toLowerCase().includes('subtotal') || 
+            line.toLowerCase().includes('balance') || line === '') {
+          let nextLineHasItem = false;
+          for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+            const nextLine = lines[j].trim();
+            for (const pattern of this.config.regexPatterns.lineItem) {
+              if (nextLine.match(pattern)) {
+                nextLineHasItem = true;
+                break;
+              }
+            }
+            if (nextLineHasItem) break;
+          }
+          if (!nextLineHasItem) {
+            inLineItemsSection = false;
+          }
+        }
+      }
+    }
+
+    if (lineItems.length === 0) {
+      lineItems.push(...this.extractLineItemsHeuristic(text));
+    }
+
+    return lineItems;
+  }
+
+  private parseLineItemMatch(
+    match: RegExpMatchArray,
+    lineNumber: number,
+    originalText: string
+  ): ExtractedLineItem | null {
+    try {
+      let description = '';
+      let quantity = new Decimal(1);
+      let unitPrice = new Decimal(0);
+      let totalAmount = new Decimal(0);
+
+      if (match.length >= 6) {
+        quantity = new Decimal(match[3].replace(',', '.'));
+        description = match[2].trim();
+        unitPrice = new Decimal(match[4].replace(',', '.'));
+        totalAmount = new Decimal(match[5].replace(',', '.'));
+      } else if (match.length >= 5) {
+        description = match[1].trim();
+        quantity = new Decimal(match[2]);
+        unitPrice = new Decimal(match[3].replace(',', '.'));
+        totalAmount = new Decimal(match[4].replace(',', '.'));
+      } else if (match.length >= 4) {
+        description = match[2].trim();
+        unitPrice = new Decimal(match[3].replace(',', '.'));
+        totalAmount = new Decimal(match[4].replace(',', '.'));
+        if (!unitPrice.equals(0)) {
+          quantity = totalAmount.dividedBy(unitPrice);
+        }
+      } else {
+        return null;
+      }
+
+      let confidence = 70;
+      if (description.length > 5) confidence += 10;
+      if (quantity.gt(0)) confidence += 10;
+      if (unitPrice.gt(0)) confidence += 10;
+
+      const taxRate = this.config.defaultTaxRate;
+      const taxAmount = totalAmount.minus(totalAmount.dividedBy(taxRate.plus(1)));
+
+      return {
+        lineNumber,
+        description,
+        quantity,
+        unitPrice,
+        totalAmount,
+        taxRate,
+        taxAmount,
+        confidence: Math.min(100, confidence),
+        extractedText: originalText
+      };
+
+    } catch (error) {
+      this.logger.debug('Failed to parse line item match', {
+        match: match[0],
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return null;
+    }
+  }
+
+  private extractLineItemsHeuristic(text: string): ExtractedLineItem[] {
+    const lineItems: ExtractedLineItem[] = [];
+    const lines = text.split('\n');
+
+    let lineNumber = 1;
+    let collectingDescription = false;
+    let currentDescription: string[] = [];
+    let lastAmount: Decimal | null = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      const amountMatch = line.match(/(\d+[\.,]\d{2})/);
+      if (amountMatch) {
+        const amount = new Decimal(amountMatch[1].replace(',', '.'));
+
+        if (collectingDescription && currentDescription.length > 0 && lastAmount) {
+          const description = currentDescription.join(' ').trim();
+          
+          const words = description.split(' ');
+          let quantity = new Decimal(1);
+          let unitPrice = amount;
+
+          if (words.length > 1 && !isNaN(parseFloat(words[0]))) {
+            quantity = new Decimal(words[0]);
+            unitPrice = amount.dividedBy(quantity);
+          }
+
+          const lineItem: ExtractedLineItem = {
+            lineNumber,
+            description: words.slice(1).join(' ') || description,
+            quantity,
+            unitPrice,
+            totalAmount: amount,
+            confidence: 60,
+            extractedText: line
+          };
+
+          lineItems.push(lineItem);
+          lineNumber++;
+
+          collectingDescription = false;
+          currentDescription = [];
+          lastAmount = null;
+        } else {
+          collectingDescription = true;
+          lastAmount = amount;
+        }
+      } else if (collectingDescription && line.length > 3) {
+        currentDescription.push(line);
+      }
+    }
+
+    return lineItems;
+  }
+
+  private extractSupplierName(text: string): string | undefined {
+    const lines = text.split('\n');
+    
+    const patterns = [
+      /^(?:from|supplier|vendor|billed by)[:\s]+(.+)/i,
+      /^([A-Z][A-Za-z\s&\.]+(?:Inc|Ltd|LLC|GmbH|Pty|Ltd\.?|Corp|Corporation|Company)?\.?)$/,
+      /^([A-Z][A-Za-z\s]+(?:Address|Street|Road|Ave|Avenue| Blvd|Boulevard)?)$/i
+    ];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      
+      for (const pattern of patterns) {
+        const match = trimmed.match(pattern);
+        if (match && match[1]) {
+          const name = match[1].trim();
+          if (name.length > 3 && name.length < 100 && !name.includes('@') && !name.includes('http')) {
+            return name;
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private parseDateString(dateStr: string): Date | null {
+    for (const format of this.config.dateFormats) {
+      try {
+        const parsed = parse(dateStr, format, new Date());
+        if (isValid(parsed)) {
+          return parsed;
+        }
+      } catch (error) {
+        // Try next format
+      }
+    }
+
+    try {
+      const parsed = new Date(dateStr);
+      if (isValid(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      // Parse failed
+    }
+
+    return null;
+  }
+
+  private parseAmountString(amountStr: string): { amount: Decimal | null; currency: Currency | null } {
+    try {
+      let currency: Currency | null = null;
+      let numericStr = amountStr;
+
+      for (const [symbol, curr] of Object.entries(this.config.currencySymbols)) {
+        if (amountStr.includes(symbol)) {
+          currency = curr;
+          numericStr = numericStr.replace(symbol, '').trim();
+          break;
+        }
+      }
+
+      const match = numericStr.match(/(\d+[\.,]\d{2})/);
+      if (!match) {
+        return { amount: null, currency };
+      }
+
+      const amount = new Decimal(match[1].replace(',', '.'));
+      return { amount, currency };
+
+    } catch (error) {
+      return { amount: null, currency: null };
+    }
+  }
+
+  private calculateOverallConfidence(
+    data: ExtractedInvoiceData,
+    validation: { score: number }
+  ): number {
+    const weights = {
+      invoiceNumber: 20,
+      dates: 15,
+      amounts: 25,
+      lineItems: 30,
+      validation: 10
+    };
+
+    let confidence = 0;
+
+    if (data.invoiceNumber) confidence += weights.invoiceNumber * 0.8;
+    else confidence += weights.invoiceNumber * 0.2;
+
+    if (data.issueDate && data.dueDate) confidence += weights.dates * 0.9;
+    else if (data.issueDate || data.dueDate) confidence += weights.dates * 0.5;
+    else confidence += weights.dates * 0.1;
+
+    if (data.totalAmount) confidence += weights.amounts * 0.8;
+    else confidence += weights.amounts * 0.2;
+
+    if (data.lineItems.length > 0) {
+      const avgLineItemConfidence = data.lineItems.reduce((sum, item) => sum + item.confidence, 0) / data.lineItems.length;
+      confidence += weights.lineItems * (avgLineItemConfidence / 100);
+    } else {
+      confidence += weights.lineItems * 0.1;
+    }
+
+    confidence += weights.validation * (validation.score / 100);
+
+    if (data.extractionMethod === 'ml') confidence *= 1.1;
+    else if (data.extractionMethod === 'hybrid') confidence *= 1.05;
+
+    return Math.min(100, Math.max(0, confidence));
+  }
+
+  private async enrichLineItems(
+    lineItems: ExtractedLineItem[],
+    organizationId: string
+  ): Promise<ExtractedLineItem[]> {
+    return lineItems;
+  }
+
+  private calculateMissingAmounts(lineItems: ExtractedLineItem[]): ExtractedLineItem[] {
+    return lineItems.map(item => {
+      const calculatedItem = { ...item };
+
+      if (!calculatedItem.totalAmount || calculatedItem.totalAmount.equals(0)) {
+        if (calculatedItem.quantity && calculatedItem.unitPrice) {
+          calculatedItem.totalAmount = calculatedItem.quantity.times(calculatedItem.unitPrice);
+          
+          if (calculatedItem.discountAmount) {
+            calculatedItem.totalAmount = calculatedItem.totalAmount.minus(calculatedItem.discountAmount);
+          } else if (calculatedItem.discountRate) {
+            const discount = calculatedItem.totalAmount.times(calculatedItem.discountRate.dividedBy(100));
+            calculatedItem.totalAmount = calculatedItem.totalAmount.minus(discount);
+            calculatedItem.discountAmount = discount;
+          }
+        }
+      }
+
+      if (!calculatedItem.unitPrice || calculatedItem.unitPrice.equals(0)) {
+        if (calculatedItem.quantity && calculatedItem.totalAmount) {
+          calculatedItem.unitPrice = calculatedItem.totalAmount.dividedBy(calculatedItem.quantity);
+        }
+      }
+
+      if (!calculatedItem.quantity || calculatedItem.quantity.equals(0)) {
+        if (calculatedItem.unitPrice && calculatedItem.totalAmount) {
+          calculatedItem.quantity = calculatedItem.totalAmount.dividedBy(calculatedItem.unitPrice);
+        }
+      }
+
+      if (!calculatedItem.taxAmount && calculatedItem.taxRate) {
+        calculatedItem.taxAmount = calculatedItem.totalAmount
+          .times(calculatedItem.taxRate.dividedBy(100));
+      }
+
+      let completenessScore = 0;
+      if (calculatedItem.description) completenessScore += 25;
+      if (calculatedItem.quantity && calculatedItem.quantity.gt(0)) completenessScore += 25;
+      if (calculatedItem.unitPrice && calculatedItem.unitPrice.gt(0)) completenessScore += 25;
+      if (calculatedItem.totalAmount && calculatedItem.totalAmount.gt(0)) completenessScore += 25;
+
+      calculatedItem.confidence = Math.min(100, (calculatedItem.confidence + completenessScore) / 2);
+
+      return calculatedItem;
+    });
+  }
+
+  private updateProgress(
+    callback: ((progress: ExtractionProgress) => void) | undefined,
+    progress: ExtractionProgress
+  ): void {
+    if (callback) {
+      try {
+        callback(progress);
+      } catch (error) {
+        this.logger.warn('Failed to call progress callback', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+  }
+
+  private async logExtraction(logData: {
+    jobId: string;
+    fileId?: string;
+    organizationId?: string;
+    success: boolean;
+    confidence: number;
+    processingTime: number;
+    invoiceNumber?: string;
+    totalAmount?: string;
+    lineItemsCount: number;
+    validationScore: number;
+    issuesCount: number;
+  }): Promise<void> {
+    try {
+      await prisma.extractionAuditLog.create({
+        data: {
+          id: generateId(),
+          jobId: logData.jobId,
+          fileId: logData.fileId,
+          organizationId: logData.organizationId,
+          success: logData.success,
+          confidence: logData.confidence,
+          processingTime: logData.processingTime,
+          invoiceNumber: logData.invoiceNumber,
+          totalAmount: logData.totalAmount,
+          lineItemsCount: logData.lineItemsCount,
+          validationScore: logData.validationScore,
+          issuesCount: logData.issuesCount,
+          createdAt: new Date()
+        }
+      });
+    } catch (error) {
+      this.logger.error('Failed to log extraction audit', {
+        jobId: logData.jobId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+}
+
+export default ExtractionService;

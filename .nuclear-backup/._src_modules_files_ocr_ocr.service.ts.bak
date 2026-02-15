@@ -1,0 +1,1580 @@
+import { createWorker, type Worker, type PSM, type OEM } from 'tesseract.js';
+import { Vision } from '@google-cloud/vision';
+import { TextractClient, AnalyzeDocumentCommand, FeatureType } from '@aws-sdk/client-textract';
+import { PDFDocument, type PDFPage } from 'pdf-lib';
+import { fromBuffer } from 'file-type';
+import sharp from 'sharp';
+import { Readable } from 'stream';
+import { promisify } from 'util';
+import { pipeline } from 'stream';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import crypto from 'crypto';
+
+import { prisma } from '../../../lib/prisma';
+import { systemLogger } from '../../../observability/logger';
+import { metrics } from '../../../observability/metrics';
+import { encrypt, decrypt } from '../../../security/crypto';
+import { formatDate, parseDate } from '../../../utils/dates';
+import { roundMoney, validateCurrency } from '../../../utils/money';
+import { validateEmail, validateVAT, validateInvoiceNumber } from '../../../utils/validation';
+import { generateId } from '../../../utils/ids';
+
+import { StorageProvider } from '../../../domain/enums/StorageProvider';
+import { DocumentType } from '../../../domain/enums/DocumentType';
+import type { FileAttachment } from '../../../domain/models/FileAttachment';
+
+const pipelineAsync = promisify(pipeline);
+
+export interface OcrConfig {
+  provider: 'tesseract' | 'google-vision' | 'aws-textract';
+  language: string;
+  pageSegmentationMode: PSM;
+  ocrEngineMode: OEM;
+  confidenceThreshold: number;
+  maxFileSize: number;
+  allowedMimeTypes: string[];
+  timeout: number;
+  retryAttempts: number;
+}
+
+export interface OcrResult {
+  success: boolean;
+  text: string;
+  confidence: number;
+  pages: number;
+  language: string;
+  processingTime: number;
+  provider: string;
+  metadata: Record<string, any>;
+  errors?: string[];
+  warnings?: string[];
+}
+
+export interface OcrProgress {
+  stage: 'initializing' | 'preprocessing' | 'extracting' | 'postprocessing' | 'completed' | 'failed';
+  progress: number;
+  message: string;
+  details?: Record<string, any>;
+  timestamp: Date;
+}
+
+export interface DocumentImage {
+  pageNumber: number;
+  imageBuffer: Buffer;
+  width: number;
+  height: number;
+  dpi: number;
+  format: string;
+  preprocessing?: {
+    deskewed: boolean;
+    denoised: boolean;
+    binarized: boolean;
+    enhanced: boolean;
+  };
+}
+
+export class OcrServiceError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public context?: Record<string, any>,
+    public cause?: Error
+  ) {
+    super(message);
+    this.name = 'OcrServiceError';
+  }
+}
+
+export class OcrValidationError extends OcrServiceError {
+  constructor(message: string, context?: Record<string, any>, cause?: Error) {
+    super(message, 'VALIDATION_ERROR', context, cause);
+    this.name = 'OcrValidationError';
+  }
+}
+
+export class OcrProcessingError extends OcrServiceError {
+  constructor(message: string, context?: Record<string, any>, cause?: Error) {
+    super(message, 'PROCESSING_ERROR', context, cause);
+    this.name = 'OcrProcessingError';
+  }
+}
+
+export class OcrTimeoutError extends OcrServiceError {
+  constructor(message: string, context?: Record<string, any>, cause?: Error) {
+    super(message, 'TIMEOUT_ERROR', context, cause);
+    this.name = 'OcrTimeoutError';
+  }
+}
+
+export class OcrService {
+  private readonly logger: typeof systemLogger;
+  private readonly metrics: typeof metrics;
+  private tesseractWorker: Worker | null = null;
+  private googleVisionClient: Vision.ImageAnnotatorClient | null = null;
+  private awsTextractClient: TextractClient | null = null;
+  private readonly config: OcrConfig;
+  private readonly tempDir: string;
+  private activeProcesses: Map<string, {
+    jobId: string;
+    startTime: Date;
+    progressCallback?: (progress: OcrProgress) => void;
+    timeout?: NodeJS.Timeout;
+  }> = new Map();
+
+  constructor(
+    config?: Partial<OcrConfig>,
+    logger?: typeof systemLogger,
+    metricsInstance?: typeof metrics
+  ) {
+    this.logger = logger || systemLogger;
+    this.metrics = metricsInstance || metrics;
+    
+    this.config = {
+      provider: config?.provider || 'tesseract',
+      language: config?.language || 'eng',
+      pageSegmentationMode: config?.pageSegmentationMode || PSM.AUTO,
+      ocrEngineMode: config?.ocrEngineMode || OEM.DEFAULT,
+      confidenceThreshold: config?.confidenceThreshold || 70,
+      maxFileSize: config?.maxFileSize || 50 * 1024 * 1024, // 50MB
+      allowedMimeTypes: config?.allowedMimeTypes || [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/tiff',
+        'image/bmp',
+        'image/webp'
+      ],
+      timeout: config?.timeout || 300000, // 5 minutes
+      retryAttempts: config?.retryAttempts || 3
+    };
+
+    this.tempDir = path.join(os.tmpdir(), 'creditorflow-ocr');
+    this.ensureTempDirectory();
+  }
+
+  async initialize(): Promise<void> {
+    try {
+      this.logger.info('Initializing OCR service', { config: this.config });
+
+      switch (this.config.provider) {
+        case 'tesseract':
+          await this.initializeTesseract();
+          break;
+        case 'google-vision':
+          await this.initializeGoogleVision();
+          break;
+        case 'aws-textract':
+          await this.initializeAwsTextract();
+          break;
+        default:
+          throw new OcrServiceError(`Unsupported OCR provider: ${this.config.provider}`, 'INIT_ERROR');
+      }
+
+      this.logger.info('OCR service initialized successfully', { provider: this.config.provider });
+      this.metrics.setGauge('ocr.service.initialized', 1);
+
+    } catch (error) {
+      this.logger.error('Failed to initialize OCR service', {
+        provider: this.config.provider,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      throw new OcrServiceError(
+        'Failed to initialize OCR service',
+        'INIT_FAILED',
+        { provider: this.config.provider },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  async shutdown(): Promise<void> {
+    try {
+      this.logger.info('Shutting down OCR service');
+
+      // Terminate all active processes
+      for (const [jobId, process] of this.activeProcesses.entries()) {
+        if (process.timeout) {
+          clearTimeout(process.timeout);
+        }
+        this.logger.warn('Terminating active OCR process', { jobId });
+      }
+      this.activeProcesses.clear();
+
+      // Clean up resources based on provider
+      switch (this.config.provider) {
+        case 'tesseract':
+          await this.shutdownTesseract();
+          break;
+        case 'google-vision':
+          await this.shutdownGoogleVision();
+          break;
+        case 'aws-textract':
+          await this.shutdownAwsTextract();
+          break;
+      }
+
+      // Clean up temp directory
+      await this.cleanupTempDirectory();
+
+      this.logger.info('OCR service shutdown completed');
+      this.metrics.setGauge('ocr.service.initialized', 0);
+
+    } catch (error) {
+      this.logger.error('Error during OCR service shutdown', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  async extractTextFromFile(
+    fileBuffer: Buffer,
+    fileName: string,
+    mimeType: string,
+    jobId: string = generateId(),
+    progressCallback?: (progress: OcrProgress) => void
+  ): Promise<OcrResult> {
+    const startTime = Date.now();
+    let tempFilePath: string | null = null;
+
+    try {
+      this.logger.info('Starting text extraction from file', {
+        jobId,
+        fileName,
+        mimeType,
+        fileSize: fileBuffer.length,
+        provider: this.config.provider
+      });
+
+      // Register process
+      this.registerProcess(jobId, progressCallback);
+
+      // Validate input
+      await this.validateFileInput(fileBuffer, fileName, mimeType);
+
+      // Update progress
+      this.updateProgress(jobId, {
+        stage: 'initializing',
+        progress: 5,
+        message: 'Initializing OCR engine',
+        timestamp: new Date()
+      });
+
+      // Determine document type and process accordingly
+      const fileType = await fromBuffer(fileBuffer);
+      const actualMimeType = fileType?.mime || mimeType;
+
+      let result: OcrResult;
+
+      if (actualMimeType === 'application/pdf') {
+        result = await this.processPdfFile(fileBuffer, fileName, jobId);
+      } else if (actualMimeType.startsWith('image/')) {
+        result = await this.processImageFile(fileBuffer, fileName, actualMimeType, jobId);
+      } else {
+        throw new OcrValidationError(`Unsupported file type: ${actualMimeType}`, {
+          fileName,
+          mimeType: actualMimeType
+        });
+      }
+
+      // Validate result
+      if (!result.success || result.confidence < this.config.confidenceThreshold) {
+        this.logger.warn('Low confidence OCR result', {
+          jobId,
+          confidence: result.confidence,
+          threshold: this.config.confidenceThreshold,
+          textLength: result.text.length
+        });
+
+        result.warnings = result.warnings || [];
+        result.warnings.push(`Low confidence score: ${result.confidence}% (threshold: ${this.config.confidenceThreshold}%)`);
+      }
+
+      const processingTime = Date.now() - startTime;
+      result.processingTime = processingTime;
+
+      // Update metrics
+      this.metrics.incrementCounter('ocr.extractions.completed', 1, {
+        provider: this.config.provider,
+        success: result.success,
+        pages: result.pages,
+        language: result.language
+      });
+      this.metrics.recordHistogram('ocr.processing.time', processingTime, {
+        provider: this.config.provider,
+        pages: result.pages
+      });
+      this.metrics.recordHistogram('ocr.confidence.score', result.confidence, {
+        provider: this.config.provider
+      });
+
+      // Final progress update
+      this.updateProgress(jobId, {
+        stage: 'completed',
+        progress: 100,
+        message: `Text extraction completed: ${result.pages} page(s), ${result.confidence.toFixed(2)}% confidence`,
+        details: {
+          pages: result.pages,
+          confidence: result.confidence,
+          processingTime,
+          textLength: result.text.length
+        },
+        timestamp: new Date()
+      });
+
+      this.logger.info('Text extraction completed successfully', {
+        jobId,
+        fileName,
+        pages: result.pages,
+        confidence: result.confidence,
+        processingTime,
+        textLength: result.text.length
+      });
+
+      return result;
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.logger.error('Failed to extract text from file', {
+        jobId,
+        fileName,
+        mimeType,
+        processingTime,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+
+      this.updateProgress(jobId, {
+        stage: 'failed',
+        progress: 100,
+        message: `Text extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: { error: error instanceof Error ? error.message : 'Unknown error' },
+        timestamp: new Date()
+      });
+
+      this.metrics.incrementCounter('ocr.extractions.failed', 1, {
+        provider: this.config.provider,
+        errorType: error instanceof OcrServiceError ? error.code : 'UNKNOWN'
+      });
+
+      if (error instanceof OcrServiceError) {
+        throw error;
+      }
+
+      throw new OcrProcessingError(
+        'Failed to extract text from file',
+        'EXTRACTION_FAILED',
+        { fileName, mimeType, processingTime },
+        error instanceof Error ? error : undefined
+      );
+
+    } finally {
+      this.unregisterProcess(jobId);
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (cleanupError) {
+          this.logger.warn('Failed to clean up temp file', {
+            tempFilePath,
+            error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error'
+          });
+        }
+      }
+    }
+  }
+
+  async extractTextFromUrl(
+    fileUrl: string,
+    jobId: string = generateId(),
+    progressCallback?: (progress: OcrProgress) => void
+  ): Promise<OcrResult> {
+    const startTime = Date.now();
+
+    try {
+      this.logger.info('Starting text extraction from URL', { jobId, fileUrl });
+
+      this.registerProcess(jobId, progressCallback);
+
+      this.updateProgress(jobId, {
+        stage: 'initializing',
+        progress: 5,
+        message: 'Downloading file from URL',
+        timestamp: new Date()
+      });
+
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        throw new OcrServiceError(`Failed to download file: ${response.statusText}`, 'DOWNLOAD_FAILED', {
+          url: fileUrl,
+          status: response.status,
+          statusText: response.statusText
+        });
+      }
+
+      const fileBuffer = Buffer.from(await response.arrayBuffer());
+      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+      const fileName = path.basename(new URL(fileUrl).pathname) || 'download';
+
+      this.updateProgress(jobId, {
+        stage: 'preprocessing',
+        progress: 30,
+        message: 'File downloaded, starting OCR processing',
+        details: {
+          fileSize: fileBuffer.length,
+          contentType,
+          fileName
+        },
+        timestamp: new Date()
+      });
+
+      const result = await this.extractTextFromFile(
+        fileBuffer,
+        fileName,
+        contentType,
+        jobId,
+        progressCallback
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.info('URL text extraction completed', {
+        jobId,
+        fileUrl,
+        totalTime,
+        confidence: result.confidence
+      });
+
+      return result;
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.logger.error('Failed to extract text from URL', {
+        jobId,
+        fileUrl,
+        processingTime,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      this.updateProgress(jobId, {
+        stage: 'failed',
+        progress: 100,
+        message: `URL text extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date()
+      });
+
+      if (error instanceof OcrServiceError) {
+        throw error;
+      }
+
+      throw new OcrProcessingError(
+        'Failed to extract text from URL',
+        'URL_EXTRACTION_FAILED',
+        { fileUrl, processingTime },
+        error instanceof Error ? error : undefined
+      );
+
+    } finally {
+      this.unregisterProcess(jobId);
+    }
+  }
+
+  async validateExtractionQuality(
+    extractedText: string,
+    expectedPatterns: RegExp[] = []
+  ): Promise<{
+    isValid: boolean;
+    score: number;
+    matches: Array<{ pattern: string; found: boolean; match?: string }>;
+    statistics: {
+      characterCount: number;
+      wordCount: number;
+      lineCount: number;
+      averageWordLength: number;
+      nonAlphaNumericRatio: number;
+    };
+    suggestions: string[];
+  }> {
+    try {
+      const characterCount = extractedText.length;
+      const words = extractedText.split(/\s+/).filter(word => word.length > 0);
+      const wordCount = words.length;
+      const lines = extractedText.split('\n').filter(line => line.trim().length > 0);
+      const lineCount = lines.length;
+      const averageWordLength = wordCount > 0 
+        ? words.reduce((sum, word) => sum + word.length, 0) / wordCount 
+        : 0;
+      
+      const nonAlphaNumericChars = extractedText.replace(/[a-zA-Z0-9\s]/g, '').length;
+      const nonAlphaNumericRatio = characterCount > 0 ? nonAlphaNumericChars / characterCount : 0;
+
+      const matches = expectedPatterns.map(pattern => {
+        const match = extractedText.match(pattern);
+        return {
+          pattern: pattern.toString(),
+          found: !!match,
+          match: match?.[0] || undefined
+        };
+      });
+
+      let score = 0;
+      
+      if (characterCount > 0) score += 10;
+      if (wordCount >= 10) score += 10;
+      if (lineCount >= 3) score += 10;
+      
+      const patternMatchScore = (matches.filter(m => m.found).length / expectedPatterns.length) * 30;
+      score += patternMatchScore;
+      
+      if (nonAlphaNumericRatio < 0.3) score += 20;
+      if (averageWordLength >= 3 && averageWordLength <= 10) score += 20;
+      
+      score = Math.min(100, Math.max(0, score));
+
+      const suggestions: string[] = [];
+      if (characterCount === 0) {
+        suggestions.push('No text extracted - check document quality or OCR settings');
+      }
+      if (wordCount < 10) {
+        suggestions.push('Very little text extracted - document may be blank or poor quality');
+      }
+      if (nonAlphaNumericRatio > 0.5) {
+        suggestions.push('High proportion of non-alphanumeric characters - OCR may be producing garbage');
+      }
+      if (averageWordLength < 2) {
+        suggestions.push('Average word length very short - possible character segmentation issues');
+      }
+
+      const foundPatterns = matches.filter(m => m.found).length;
+      if (expectedPatterns.length > 0 && foundPatterns === 0) {
+        suggestions.push('No expected invoice patterns found - document may not be an invoice');
+      }
+
+      return {
+        isValid: score >= 50,
+        score,
+        matches,
+        statistics: {
+          characterCount,
+          wordCount,
+          lineCount,
+          averageWordLength,
+          nonAlphaNumericRatio
+        },
+        suggestions
+      };
+
+    } catch (error) {
+      this.logger.error('Failed to validate extraction quality', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        textLength: extractedText?.length || 0
+      });
+
+      return {
+        isValid: false,
+        score: 0,
+        matches: [],
+        statistics: {
+          characterCount: 0,
+          wordCount: 0,
+          lineCount: 0,
+          averageWordLength: 0,
+          nonAlphaNumericRatio: 0
+        },
+        suggestions: ['Validation failed due to error']
+      };
+    }
+  }
+
+  async getSupportedLanguages(): Promise<Array<{
+    code: string;
+    name: string;
+    nativeName: string;
+    supported: boolean;
+  }>> {
+    try {
+      switch (this.config.provider) {
+        case 'tesseract':
+          return this.getTesseractLanguages();
+        case 'google-vision':
+          return this.getGoogleVisionLanguages();
+        case 'aws-textract':
+          return this.getAwsTextractLanguages();
+        default:
+          return [];
+      }
+    } catch (error) {
+      this.logger.error('Failed to get supported languages', {
+        provider: this.config.provider,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return [];
+    }
+  }
+
+  async getServiceStatus(): Promise<{
+    initialized: boolean;
+    provider: string;
+    language: string;
+    activeJobs: number;
+    health: 'healthy' | 'degraded' | 'unhealthy';
+    metrics: {
+      totalExtractions: number;
+      successfulExtractions: number;
+      failedExtractions: number;
+      averageProcessingTime: number;
+      averageConfidence: number;
+    };
+    limits: {
+      maxFileSize: number;
+      timeout: number;
+      allowedMimeTypes: string[];
+    };
+  }> {
+    try {
+      const extractionStats = await prisma.ocrExtractionLog.aggregate({
+        _count: { id: true },
+        _avg: { processingTime: true, confidence: true },
+        where: {
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          }
+        }
+      });
+
+      const successfulExtractions = await prisma.ocrExtractionLog.count({
+        where: {
+          success: true,
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          }
+        }
+      });
+
+      const failedExtractions = await prisma.ocrExtractionLog.count({
+        where: {
+          success: false,
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
+          }
+        }
+      });
+
+      return {
+        initialized: this.tesseractWorker !== null || 
+                    this.googleVisionClient !== null || 
+                    this.awsTextractClient !== null,
+        provider: this.config.provider,
+        language: this.config.language,
+        activeJobs: this.activeProcesses.size,
+        health: this.activeProcesses.size < 10 ? 'healthy' : 'degraded',
+        metrics: {
+          totalExtractions: extractionStats._count.id || 0,
+          successfulExtractions,
+          failedExtractions,
+          averageProcessingTime: extractionStats._avg.processingTime || 0,
+          averageConfidence: extractionStats._avg.confidence || 0
+        },
+        limits: {
+          maxFileSize: this.config.maxFileSize,
+          timeout: this.config.timeout,
+          allowedMimeTypes: this.config.allowedMimeTypes
+        }
+      };
+
+    } catch (error) {
+      this.logger.error('Failed to get service status', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return {
+        initialized: false,
+        provider: this.config.provider,
+        language: this.config.language,
+        activeJobs: this.activeProcesses.size,
+        health: 'unhealthy',
+        metrics: {
+          totalExtractions: 0,
+          successfulExtractions: 0,
+          failedExtractions: 0,
+          averageProcessingTime: 0,
+          averageConfidence: 0
+        },
+        limits: {
+          maxFileSize: this.config.maxFileSize,
+          timeout: this.config.timeout,
+          allowedMimeTypes: this.config.allowedMimeTypes
+        }
+      };
+    }
+  }
+
+  // Private methods
+  private async initializeTesseract(): Promise<void> {
+    try {
+      this.logger.info('Initializing Tesseract.js worker', {
+        language: this.config.language,
+        psm: this.config.pageSegmentationMode,
+        oem: this.config.ocrEngineMode
+      });
+
+      this.tesseractWorker = await createWorker({
+        logger: (m) => this.logger.debug('Tesseract worker log', { message: m }),
+        errorHandler: (err) => this.logger.error('Tesseract worker error', { error: err }),
+      });
+
+      await this.tesseractWorker.loadLanguage(this.config.language);
+      await this.tesseractWorker.initialize(this.config.language);
+      await this.tesseractWorker.setParameters({
+        tessedit_pageseg_mode: this.config.pageSegmentationMode.toString(),
+        tessedit_ocr_engine_mode: this.config.ocrEngineMode.toString(),
+        preserve_interword_spaces: '1',
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,$-/:()€£¥% \'"',
+      });
+
+      this.logger.info('Tesseract.js worker initialized successfully');
+
+    } catch (error) {
+      this.logger.error('Failed to initialize Tesseract.js worker', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      throw new OcrServiceError(
+        'Failed to initialize Tesseract.js',
+        'TESSERACT_INIT_FAILED',
+        { language: this.config.language },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async initializeGoogleVision(): Promise<void> {
+    try {
+      this.logger.info('Initializing Google Vision client');
+
+      if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_CLOUD_PROJECT) {
+        throw new OcrServiceError(
+          'Google Cloud credentials not configured',
+          'GOOGLE_VISION_CREDENTIALS_MISSING'
+        );
+      }
+
+      this.googleVisionClient = new Vision.ImageAnnotatorClient({
+        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+        projectId: process.env.GOOGLE_CLOUD_PROJECT
+      });
+
+      this.logger.info('Google Vision client initialized successfully');
+
+    } catch (error) {
+      this.logger.error('Failed to initialize Google Vision client', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw new OcrServiceError(
+        'Failed to initialize Google Vision',
+        'GOOGLE_VISION_INIT_FAILED',
+        {},
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async initializeAwsTextract(): Promise<void> {
+    try {
+      this.logger.info('Initializing AWS Textract client');
+
+      if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+        throw new OcrServiceError(
+          'AWS credentials not configured',
+          'AWS_TEXTRACT_CREDENTIALS_MISSING'
+        );
+      }
+
+      this.awsTextractClient = new TextractClient({
+        region: process.env.AWS_REGION || 'us-east-1',
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+        }
+      });
+
+      this.logger.info('AWS Textract client initialized successfully');
+
+    } catch (error) {
+      this.logger.error('Failed to initialize AWS Textract client', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw new OcrServiceError(
+        'Failed to initialize AWS Textract',
+        'AWS_TEXTRACT_INIT_FAILED',
+        {},
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async shutdownTesseract(): Promise<void> {
+    try {
+      if (this.tesseractWorker) {
+        this.logger.info('Terminating Tesseract.js worker');
+        await this.tesseractWorker.terminate();
+        this.tesseractWorker = null;
+        this.logger.info('Tesseract.js worker terminated');
+      }
+    } catch (error) {
+      this.logger.error('Error terminating Tesseract.js worker', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  private async shutdownGoogleVision(): Promise<void> {
+    try {
+      if (this.googleVisionClient) {
+        this.logger.info('Closing Google Vision client');
+        this.googleVisionClient = null;
+        this.logger.info('Google Vision client closed');
+      }
+    } catch (error) {
+      this.logger.error('Error closing Google Vision client', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  private async shutdownAwsTextract(): Promise<void> {
+    try {
+      if (this.awsTextractClient) {
+        this.logger.info('Destroying AWS Textract client');
+        this.awsTextractClient.destroy();
+        this.awsTextractClient = null;
+        this.logger.info('AWS Textract client destroyed');
+      }
+    } catch (error) {
+      this.logger.error('Error destroying AWS Textract client', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  private ensureTempDirectory(): void {
+    try {
+      if (!fs.existsSync(this.tempDir)) {
+        fs.mkdirSync(this.tempDir, { recursive: true });
+        this.logger.debug('Created OCR temp directory', { path: this.tempDir });
+      }
+    } catch (error) {
+      this.logger.error('Failed to create temp directory', {
+        path: this.tempDir,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw new OcrServiceError(
+        'Failed to create temp directory',
+        'TEMP_DIR_CREATION_FAILED',
+        { path: this.tempDir },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async cleanupTempDirectory(): Promise<void> {
+    try {
+      if (fs.existsSync(this.tempDir)) {
+        const files = fs.readdirSync(this.tempDir);
+        const now = Date.now();
+        const maxAge = 24 * 60 * 60 * 1000;
+
+        for (const file of files) {
+          const filePath = path.join(this.tempDir, file);
+          try {
+            const stats = fs.statSync(filePath);
+            if (now - stats.mtimeMs > maxAge) {
+              fs.unlinkSync(filePath);
+              this.logger.debug('Cleaned up old temp file', { filePath });
+            }
+          } catch (error) {
+            this.logger.warn('Failed to clean up temp file', {
+              filePath,
+              error: error instanceof Error ? error.message : 'Unknown error'
+            });
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error('Failed to clean up temp directory', {
+        path: this.tempDir,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  private async validateFileInput(
+    fileBuffer: Buffer,
+    fileName: string,
+    mimeType: string
+  ): Promise<void> {
+    const errors: string[] = [];
+
+    if (fileBuffer.length > this.config.maxFileSize) {
+      errors.push(`File size ${fileBuffer.length} bytes exceeds maximum ${this.config.maxFileSize} bytes`);
+    }
+
+    if (!this.config.allowedMimeTypes.includes(mimeType.toLowerCase())) {
+      errors.push(`MIME type ${mimeType} is not allowed`);
+    }
+
+    const extension = path.extname(fileName).toLowerCase();
+    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp', '.webp'];
+    if (!allowedExtensions.includes(extension)) {
+      errors.push(`File extension ${extension} is not allowed`);
+    }
+
+    if (!Buffer.isBuffer(fileBuffer) || fileBuffer.length === 0) {
+      errors.push('File buffer is empty or invalid');
+    }
+
+    if (mimeType.startsWith('image/')) {
+      try {
+        await sharp(fileBuffer).metadata();
+      } catch (error) {
+        errors.push('Image file appears to be corrupted or invalid');
+      }
+    }
+
+    if (mimeType === 'application/pdf') {
+      try {
+        const header = fileBuffer.slice(0, 5).toString();
+        if (!header.startsWith('%PDF-')) {
+          errors.push('File does not appear to be a valid PDF (missing PDF header)');
+        }
+      } catch (error) {
+        errors.push('Failed to validate PDF file');
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new OcrValidationError('File validation failed', {
+        fileName,
+        mimeType,
+        fileSize: fileBuffer.length,
+        errors
+      });
+    }
+  }
+
+  private async processPdfFile(
+    pdfBuffer: Buffer,
+    fileName: string,
+    jobId: string
+  ): Promise<OcrResult> {
+    try {
+      this.updateProgress(jobId, {
+        stage: 'preprocessing',
+        progress: 10,
+        message: 'Loading PDF document',
+        timestamp: new Date()
+      });
+
+      const pdfDoc = await PDFDocument.load(pdfBuffer);
+      const pageCount = pdfDoc.getPageCount();
+
+      this.updateProgress(jobId, {
+        stage: 'preprocessing',
+        progress: 20,
+        message: `PDF loaded: ${pageCount} page(s)`,
+        details: { pageCount },
+        timestamp: new Date()
+      });
+
+      let allText = '';
+      let totalConfidence = 0;
+      let processedPages = 0;
+      const errors: string[] = [];
+      const warnings: string[] = [];
+
+      for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+        try {
+          this.updateProgress(jobId, {
+            stage: 'extracting',
+            progress: 20 + Math.floor((pageIndex / pageCount) * 60),
+            message: `Processing page ${pageIndex + 1} of ${pageCount}`,
+            details: { currentPage: pageIndex + 1, totalPages: pageCount },
+            timestamp: new Date()
+          });
+
+          const page = pdfDoc.getPage(pageIndex);
+          const imageBuffer = await this.pdfPageToImage(page, pageIndex);
+
+          const pageResult = await this.processImageWithProvider(
+            imageBuffer,
+            `${fileName}_page_${pageIndex + 1}.png`,
+            'image/png',
+            jobId
+          );
+
+          if (pageResult.success && pageResult.text) {
+            allText += `\n\n--- Page ${pageIndex + 1} ---\n${pageResult.text}`;
+            totalConfidence += pageResult.confidence;
+            processedPages++;
+          } else {
+            errors.push(`Failed to extract text from page ${pageIndex + 1}`);
+          }
+
+        } catch (pageError) {
+          const errorMsg = pageError instanceof Error ? pageError.message : 'Unknown error';
+          errors.push(`Error processing page ${pageIndex + 1}: ${errorMsg}`);
+        }
+      }
+
+      const averageConfidence = processedPages > 0 ? totalConfidence / processedPages : 0;
+
+      const validation = await this.validateExtractionQuality(allText, [
+        /invoice/i,
+        /total.*\d+[\.,]\d{2}/i,
+        /date.*\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/i,
+      ]);
+
+      if (!validation.isValid) {
+        warnings.push(...validation.suggestions);
+      }
+
+      return {
+        success: errors.length === 0,
+        text: allText,
+        confidence: averageConfidence,
+        pages: pageCount,
+        language: this.config.language,
+        processingTime: 0,
+        provider: this.config.provider,
+        metadata: {
+          pageCount,
+          processedPages,
+          validationScore: validation.score,
+        },
+        errors: errors.length > 0 ? errors : undefined,
+        warnings: warnings.length > 0 ? warnings : undefined
+      };
+
+    } catch (error) {
+      throw new OcrProcessingError(
+        'Failed to process PDF file',
+        'PDF_PROCESSING_FAILED',
+        { fileName },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async processImageFile(
+    imageBuffer: Buffer,
+    fileName: string,
+    mimeType: string,
+    jobId: string
+  ): Promise<OcrResult> {
+    try {
+      this.updateProgress(jobId, {
+        stage: 'preprocessing',
+        progress: 15,
+        message: 'Preprocessing image for OCR',
+        timestamp: new Date()
+      });
+
+      const preprocessedImage = await this.preprocessImage(imageBuffer, mimeType);
+
+      this.updateProgress(jobId, {
+        stage: 'extracting',
+        progress: 40,
+        message: 'Extracting text from image',
+        timestamp: new Date()
+      });
+
+      const result = await this.processImageWithProvider(
+        preprocessedImage,
+        fileName,
+        mimeType,
+        jobId
+      );
+
+      return result;
+
+    } catch (error) {
+      throw new OcrProcessingError(
+        'Failed to process image file',
+        'IMAGE_PROCESSING_FAILED',
+        { fileName, mimeType },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async processImageWithProvider(
+    imageBuffer: Buffer,
+    fileName: string,
+    mimeType: string,
+    jobId: string
+  ): Promise<OcrResult> {
+    switch (this.config.provider) {
+      case 'tesseract':
+        return this.processWithTesseract(imageBuffer, fileName, jobId);
+      case 'google-vision':
+        return this.processWithGoogleVision(imageBuffer, fileName);
+      case 'aws-textract':
+        return this.processWithAwsTextract(imageBuffer, fileName);
+      default:
+        throw new OcrServiceError(
+          `Unsupported OCR provider: ${this.config.provider}`,
+          'UNSUPPORTED_PROVIDER'
+        );
+    }
+  }
+
+  private async processWithTesseract(
+    imageBuffer: Buffer,
+    fileName: string,
+    jobId: string
+  ): Promise<OcrResult> {
+    if (!this.tesseractWorker) {
+      throw new OcrServiceError('Tesseract worker not initialized', 'TESSERACT_NOT_INITIALIZED');
+    }
+
+    try {
+      this.updateProgress(jobId, {
+        stage: 'extracting',
+        progress: 60,
+        message: 'Running Tesseract OCR',
+        timestamp: new Date()
+      });
+
+      const startTime = Date.now();
+      const result = await this.tesseractWorker.recognize(imageBuffer);
+      const processingTime = Date.now() - startTime;
+
+      this.updateProgress(jobId, {
+        stage: 'postprocessing',
+        progress: 85,
+        message: 'Post-processing extracted text',
+        timestamp: new Date()
+      });
+
+      const confidence = result.data.confidence || 0;
+      const detectedLanguage = result.data.language || this.config.language;
+
+      return {
+        success: true,
+        text: result.data.text || '',
+        confidence,
+        pages: 1,
+        language: detectedLanguage,
+        processingTime,
+        provider: 'tesseract',
+        metadata: {
+          blockCount: result.data.blocks?.length || 0,
+          paragraphCount: result.data.paragraphs?.length || 0,
+          lineCount: result.data.lines?.length || 0,
+          wordCount: result.data.words?.length || 0
+        }
+      };
+
+    } catch (error) {
+      throw new OcrProcessingError(
+        'Tesseract processing failed',
+        'TESSERACT_PROCESSING_FAILED',
+        { fileName },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async processWithGoogleVision(
+    imageBuffer: Buffer,
+    fileName: string
+  ): Promise<OcrResult> {
+    if (!this.googleVisionClient) {
+      throw new OcrServiceError('Google Vision client not initialized', 'GOOGLE_VISION_NOT_INITIALIZED');
+    }
+
+    try {
+      const startTime = Date.now();
+
+      const [result] = await this.googleVisionClient.textDetection({
+        image: { content: imageBuffer.toString('base64') },
+        imageContext: {
+          languageHints: [this.config.language]
+        }
+      });
+
+      const processingTime = Date.now() - startTime;
+
+      const detections = result.textAnnotations || [];
+      const fullText = detections[0]?.description || '';
+      const confidence = detections.length > 0 
+        ? detections.slice(1).reduce((sum, detection) => sum + (detection.confidence || 0), 0) / (detections.length - 1) 
+        : 0;
+
+      let detectedLanguage = this.config.language;
+      if (result.textAnnotations && result.textAnnotations.length > 0) {
+        const locale = result.textAnnotations[0].locale;
+        if (locale) {
+          detectedLanguage = locale.split('-')[0];
+        }
+      }
+
+      return {
+        success: true,
+        text: fullText,
+        confidence: confidence * 100,
+        pages: 1,
+        language: detectedLanguage,
+        processingTime,
+        provider: 'google-vision',
+        metadata: {
+          detectionsCount: detections.length,
+          locale: result.textAnnotations?.[0]?.locale,
+        }
+      };
+
+    } catch (error) {
+      throw new OcrProcessingError(
+        'Google Vision processing failed',
+        'GOOGLE_VISION_PROCESSING_FAILED',
+        { fileName },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async processWithAwsTextract(
+    imageBuffer: Buffer,
+    fileName: string
+  ): Promise<OcrResult> {
+    if (!this.awsTextractClient) {
+      throw new OcrServiceError('AWS Textract client not initialized', 'AWS_TEXTRACT_NOT_INITIALIZED');
+    }
+
+    try {
+      const startTime = Date.now();
+
+      const command = new AnalyzeDocumentCommand({
+        Document: {
+          Bytes: imageBuffer
+        },
+        FeatureTypes: [FeatureType.TABLES, FeatureType.FORMS]
+      });
+
+      const response = await this.awsTextractClient.send(command);
+      const processingTime = Date.now() - startTime;
+
+      let fullText = '';
+      const blocks = response.Blocks || [];
+      
+      for (const block of blocks) {
+        if (block.BlockType === 'LINE' && block.Text) {
+          fullText += block.Text + '\n';
+        }
+      }
+
+      const wordBlocks = blocks.filter(b => b.BlockType === 'WORD');
+      const confidence = wordBlocks.length > 0
+        ? wordBlocks.reduce((sum, block) => sum + (block.Confidence || 0), 0) / wordBlocks.length
+        : 0;
+
+      return {
+        success: true,
+        text: fullText.trim(),
+        confidence,
+        pages: 1,
+        language: this.config.language,
+        processingTime,
+        provider: 'aws-textract',
+        metadata: {
+          blockCount: blocks.length,
+          pageCount: response.DocumentMetadata?.Pages || 1,
+        }
+      };
+
+    } catch (error) {
+      throw new OcrProcessingError(
+        'AWS Textract processing failed',
+        'AWS_TEXTRACT_PROCESSING_FAILED',
+        { fileName },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  private async preprocessImage(
+    imageBuffer: Buffer,
+    mimeType: string
+  ): Promise<Buffer> {
+    try {
+      let image = sharp(imageBuffer);
+
+      const metadata = await image.metadata();
+
+      image = image
+        .grayscale()
+        .linear(1.2, -0.1 * 255)
+        .median(3)
+        .sharpen()
+        .withMetadata({ density: Math.max(metadata.density || 72, 200) });
+
+      if (metadata.width && metadata.width > 4000) {
+        image = image.resize(4000, null, { fit: 'inside', withoutEnlargement: true });
+      }
+      if (metadata.height && metadata.height > 4000) {
+        image = image.resize(null, 4000, { fit: 'inside', withoutEnlargement: true });
+      }
+
+      const processedBuffer = await image.png().toBuffer();
+
+      return processedBuffer;
+
+    } catch (error) {
+      this.logger.error('Failed to preprocess image', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        mimeType
+      });
+
+      return imageBuffer;
+    }
+  }
+
+  private async pdfPageToImage(
+    page: PDFPage,
+    pageIndex: number
+  ): Promise<Buffer> {
+    try {
+      const tempPdf = await PDFDocument.create();
+      const [copiedPage] = await tempPdf.copyPages(await PDFDocument.create(page.doc.read()), [pageIndex]);
+      tempPdf.addPage(copiedPage);
+
+      const tempPdfBytes = await tempPdf.save();
+      const tempPdfPath = path.join(this.tempDir, `page_${pageIndex}_${Date.now()}.pdf`);
+      fs.writeFileSync(tempPdfPath, tempPdfBytes);
+
+      try {
+        const image = await sharp(tempPdfPath, { density: 300 })
+          .png()
+          .toBuffer();
+
+        fs.unlinkSync(tempPdfPath);
+
+        return image;
+      } catch (sharpError) {
+        this.logger.warn('Sharp PDF conversion failed, using fallback', {
+          pageIndex,
+          error: sharpError instanceof Error ? sharpError.message : 'Unknown error'
+        });
+
+        const fallbackImage = await sharp({
+          create: {
+            width: 800,
+            height: 1000,
+            channels: 3,
+            background: { r: 255, g: 255, b: 255 }
+          }
+        })
+          .png()
+          .toBuffer();
+
+        return fallbackImage;
+      }
+
+    } catch (error) {
+      this.logger.error('Failed to convert PDF page to image', {
+        pageIndex,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return Buffer.from([]);
+    }
+  }
+
+  private async getTesseractLanguages(): Promise<Array<{
+    code: string;
+    name: string;
+    nativeName: string;
+    supported: boolean;
+  }>> {
+    if (!this.tesseractWorker) {
+      return [];
+    }
+
+    try {
+      const languages = await this.tesseractWorker.getLanguages();
+      const languageMap: Record<string, { name: string; nativeName: string }> = {
+        eng: { name: 'English', nativeName: 'English' },
+        spa: { name: 'Spanish', nativeName: 'Español' },
+        fra: { name: 'French', nativeName: 'Français' },
+        deu: { name: 'German', nativeName: 'Deutsch' },
+        ita: { name: 'Italian', nativeName: 'Italiano' },
+        por: { name: 'Portuguese', nativeName: 'Português' },
+        rus: { name: 'Russian', nativeName: 'Русский' },
+        chi_sim: { name: 'Chinese Simplified', nativeName: '简体中文' },
+        chi_tra: { name: 'Chinese Traditional', nativeName: '繁體中文' },
+        jpn: { name: 'Japanese', nativeName: '日本語' },
+        kor: { name: 'Korean', nativeName: '한국어' },
+        ara: { name: 'Arabic', nativeName: 'العربية' },
+        hin: { name: 'Hindi', nativeName: 'हिन्दी' },
+        ben: { name: 'Bengali', nativeName: 'বাংলা' }
+      };
+
+      return languages.map(lang => {
+        const info = languageMap[lang] || { name: lang, nativeName: lang };
+        return {
+          code: lang,
+          name: info.name,
+          nativeName: info.nativeName,
+          supported: true
+        };
+      });
+
+    } catch (error) {
+      this.logger.error('Failed to get Tesseract languages', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return [];
+    }
+  }
+
+  private async getGoogleVisionLanguages(): Promise<Array<{
+    code: string;
+    name: string;
+    nativeName: string;
+    supported: boolean;
+  }>> {
+    const supportedLanguages = [
+      { code: 'en', name: 'English', nativeName: 'English' },
+      { code: 'es', name: 'Spanish', nativeName: 'Español' },
+      { code: 'fr', name: 'French', nativeName: 'Français' },
+      { code: 'de', name: 'German', nativeName: 'Deutsch' },
+      { code: 'it', name: 'Italian', nativeName: 'Italiano' },
+      { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+      { code: 'ru', name: 'Russian', nativeName: 'Русский' },
+      { code: 'zh', name: 'Chinese', nativeName: '中文' },
+      { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+      { code: 'ko', name: 'Korean', nativeName: '한국어' },
+      { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
+      { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
+      { code: 'bn', name: 'Bengali', nativeName: 'বাংলা' }
+    ];
+
+    return supportedLanguages.map(lang => ({
+      ...lang,
+      supported: true
+    }));
+  }
+
+  private async getAwsTextractLanguages(): Promise<Array<{
+    code: string;
+    name: string;
+    nativeName: string;
+    supported: boolean;
+  }>> {
+    const supportedLanguages = [
+      { code: 'en', name: 'English', nativeName: 'English' },
+      { code: 'es', name: 'Spanish', nativeName: 'Español' },
+      { code: 'fr', name: 'French', nativeName: 'Français' },
+      { code: 'de', name: 'German', nativeName: 'Deutsch' },
+      { code: 'it', name: 'Italian', nativeName: 'Italiano' },
+      { code: 'pt', name: 'Portuguese', nativeName: 'Português' }
+    ];
+
+    return supportedLanguages.map(lang => ({
+      ...lang,
+      supported: true
+    }));
+  }
+
+  private registerProcess(
+    jobId: string,
+    progressCallback?: (progress: OcrProgress) => void
+  ): void {
+    const timeout = setTimeout(() => {
+      this.logger.error('OCR process timeout', { jobId, timeout: this.config.timeout });
+      this.unregisterProcess(jobId);
+    }, this.config.timeout);
+
+    this.activeProcesses.set(jobId, {
+      jobId,
+      startTime: new Date(),
+      progressCallback,
+      timeout
+    });
+
+    this.metrics.setGauge('ocr.active.processes', this.activeProcesses.size);
+  }
+
+  private unregisterProcess(jobId: string): void {
+    const process = this.activeProcesses.get(jobId);
+    if (process) {
+      if (process.timeout) {
+        clearTimeout(process.timeout);
+      }
+      this.activeProcesses.delete(jobId);
+      this.metrics.setGauge('ocr.active.processes', this.activeProcesses.size);
+    }
+  }
+
+  private updateProgress(jobId: string, progress: OcrProgress): void {
+    const process = this.activeProcesses.get(jobId);
+    if (process && process.progressCallback) {
+      try {
+        process.progressCallback(progress);
+      } catch (error) {
+        this.logger.error('Failed to call progress callback', {
+          jobId,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+  }
+
+  private async logExtraction(logData: {
+    jobId: string;
+    fileName: string;
+    mimeType: string;
+    success: boolean;
+    pages: number;
+    processedPages: number;
+    confidence: number;
+    processingTime: number;
+    provider: string;
+    textLength: number;
+    language: string;
+    errors?: string[];
+    warnings?: string[];
+    validationScore?: number;
+  }): Promise<void> {
+    try {
+      await prisma.ocrExtractionLog.create({
+        data: {
+          id: generateId(),
+          jobId: logData.jobId,
+          fileName: logData.fileName,
+          mimeType: logData.mimeType,
+          success: logData.success,
+          pages: logData.pages,
+          processedPages: logData.processedPages,
+          confidence: logData.confidence,
+          processingTime: logData.processingTime,
+          provider: logData.provider,
+          textLength: logData.textLength,
+          language: logData.language,
+          errors: logData.errors || [],
+          warnings: logData.warnings || [],
+          validationScore: logData.validationScore || 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    } catch (error) {
+      this.logger.error('Failed to log OCR extraction', {
+        jobId: logData.jobId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+}
+
+export default OcrService;

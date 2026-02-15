@@ -1,0 +1,41 @@
+import { NotificationType } from '../enums/NotificationType';
+import { NotificationPriority } from '../enums/NotificationPriority';
+import { NotificationChannel } from '../enums/NotificationChannel';
+import { NotificationStatus } from '../enums/NotificationStatus';
+import { EntityType } from '../enums/EntityType';
+
+export interface Notification {
+  id: string;
+  organizationId?: string | null;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  shortMessage?: string | null;
+  actionUrl?: string | null;
+  actionText?: string | null;
+  imageUrl?: string | null;
+  priority: NotificationPriority;
+  channel: NotificationChannel;
+  status: NotificationStatus;
+  sentAt?: Date | null;
+  deliveredAt?: Date | null;
+  readAt?: Date | null;
+  dismissedAt?: Date | null;
+  archivedAt?: Date | null;
+  emailSentAt?: Date | null;
+  emailMessageId?: string | null;
+  smsSentAt?: Date | null;
+  smsMessageId?: string | null;
+  pushSentAt?: Date | null;
+  webhookSentAt?: Date | null;
+  deliveryAttempts: number;
+  lastError?: string | null;
+  lastErrorAt?: Date | null;
+  actions?: Record<string, unknown> | null;
+  entityType?: EntityType | null;
+  entityId?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: Date;
+  updatedAt: Date;
+}

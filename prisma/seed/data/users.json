@@ -1,0 +1,41 @@
+[
+  {
+    "id": "user_001",
+    "email": "admin@creditorflow.com",
+    "name": "System Administrator",
+    "password": "$2a$10$YourHashedPasswordHere",
+    "role": "SYSTEM_ADMIN",
+    "organizationId": "org_001",
+    "isActive": true
+  },
+  {
+    "id": "user_002",
+    "email": "manager@acme.com",
+    "name": "Finance Manager",
+    "password": "$2a$10$YourHashedPasswordHere",
+    "role": "FINANCIAL_MANAGER",
+    "department": "FINANCE",
+    "organizationId": "org_001",
+    "isActive": true
+  },
+  {
+    "id": "user_003",
+    "email": "approver@acme.com",
+    "name": "Approval User",
+    "password": "$2a$10$YourHashedPasswordHere",
+    "role": "APPROVER",
+    "department": "FINANCE",
+    "organizationId": "org_001",
+    "isActive": true
+  },
+  {
+    "id": "user_004",
+    "email": "clerk@acme.com",
+    "name": "Credit Clerk",
+    "password": "$2a$10$YourHashedPasswordHere",
+    "role": "CREDIT_CLERK",
+    "department": "OPERATIONS",
+    "organizationId": "org_001",
+    "isActive": true
+  }
+]

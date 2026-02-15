@@ -1,0 +1,47 @@
+import { UserRole } from '../enums/UserRole';
+import { Department } from '../enums/Department';
+
+export interface User {
+  id: string;
+  employeeId?: string | null;
+  email: string;
+  emailVerified?: Date | null;
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  image?: string | null;
+  passwordHash?: string | null;
+  role: UserRole;
+  department?: Department | null;
+  position?: string | null;
+  jobTitle?: string | null;
+  phoneNumber?: string | null;
+  mobileNumber?: string | null;
+  timezone: string;
+  language: string;
+  locale: string;
+  isActive: boolean;
+  isLocked: boolean;
+  lastLoginAt?: Date | null;
+  lastLoginIp?: string | null;
+  failedLoginAttempts: number;
+  lockedUntil?: Date | null;
+  passwordChangedAt?: Date | null;
+  passwordExpiresAt?: Date | null;
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string | null;
+  twoFactorMethod?: string | null;
+  recoveryCodes: string[];
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  pushNotifications: boolean;
+  notificationSettings?: Record<string, unknown> | null;
+  theme: string;
+  sidebarCollapsed: boolean;
+  defaultDashboard?: string | null;
+  sessionTimeout: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date | null;
+  primaryOrganizationId?: string | null;
+}

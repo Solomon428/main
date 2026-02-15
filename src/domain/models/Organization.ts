@@ -1,0 +1,56 @@
+import { Currency } from '../enums/Currency';
+
+export interface Organization {
+  id: string;
+  name: string;
+  legalName?: string | null;
+  tradingName?: string | null;
+  taxId?: string | null;
+  vatNumber?: string | null;
+  registrationNumber?: string | null;
+  companyNumber?: string | null;
+  industry?: string | null;
+  sector?: string | null;
+  employeeCount?: number | null;
+  annualRevenue?: unknown | null; // Decimal
+  fiscalYearEnd?: string | null;
+  website?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+  faxNumber?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  country: string;
+  countryCode: string;
+  timezone: string;
+  currency: Currency;
+  baseCurrency: Currency;
+  supportedCurrencies: string[];
+  settings?: Record<string, unknown> | null;
+  complianceSettings?: Record<string, unknown> | null;
+  riskSettings?: Record<string, unknown> | null;
+  approvalSettings?: Record<string, unknown> | null;
+  paymentSettings?: Record<string, unknown> | null;
+  notificationSettings?: Record<string, unknown> | null;
+  brandingSettings?: Record<string, unknown> | null;
+  securitySettings?: Record<string, unknown> | null;
+  integrationSettings?: Record<string, unknown> | null;
+  isActive: boolean;
+  isVerified: boolean;
+  isTrial: boolean;
+  trialEndsAt?: Date | null;
+  plan: string;
+  planExpiresAt?: Date | null;
+  maxUsers: number;
+  maxInvoices: number;
+  storageQuota: number;
+  storageUsed: number;
+  metadata?: Record<string, unknown> | null;
+  externalId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date | null;
+}

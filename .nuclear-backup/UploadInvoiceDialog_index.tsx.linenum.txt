@@ -1,0 +1,736 @@
+   1: "use client";
+   2: 
+   3: import { useState, useRef, useEffect, useCallback } from "react";
+   4: import {
+   5:   Dialog,
+   6:   DialogContent,
+   7:   DialogHeader,
+   8:   DialogTitle,
+   9:   DialogDescription,
+  10: } from "@/components/ui/dialog";
+  11: import { Button } from "@/components/ui/button";
+  12: import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  13: import { Input } from "@/components/ui/input";
+  14: import { Label } from "@/components/ui/label";
+  15: import { Textarea } from "@/components/ui/textarea";
+  16: import {
+  17:   Select,
+  18:   SelectContent,
+  19:   SelectItem,
+  20:   SelectTrigger,
+  21:   SelectValue,
+  22: } from "@/components/ui/select";
+  23: import { Progress } from "@/components/ui/progress";
+  24: import { Alert, AlertDescription } from "@/components/ui/alert";
+  25: import { useFileUpload, UploadResult, UploadProgress } from "@/hooks/useFileUpload";
+  26: import { 
+  27:   Upload, File, X, AlertCircle, CheckCircle, Loader2, 
+  28:   FileText, RefreshCw, Eye, AlertTriangle 
+  29: } from "lucide-react";
+  30: 
+  31: interface UploadInvoiceDialogProps {
+  32:   open: boolean;
+  33:   onOpenChange: (open: boolean) => void;
+  34:   onSuccess: () => void;
+  35: }
+  36: 
+  37: interface Supplier {
+  38:   id: string;
+  39:   name: string;
+  40: }
+  41: 
+  42: interface ExtractedDataPreview {
+  43:   invoiceNumber?: string;
+  44:   supplierName?: string;
+  45:   issueDate?: string;
+  46:   dueDate?: string;
+  47:   totalAmount?: number;
+  48:   currency?: string;
+  49:   confidence: number;
+  50:   lineItems: Array<{
+  51:     description: string;
+  52:     quantity: number;
+  53:     unitPrice: number;
+  54:     totalAmount: number;
+  55:   }>;
+  56: }
+  57: 
+  58: export function UploadInvoiceDialog({
+  59:   open,
+  60:   onOpenChange,
+  61:   onSuccess,
+  62: }: UploadInvoiceDialogProps) {
+  63:   const [activeTab, setActiveTab] = useState("file");
+  64:   const [file, setFile] = useState<File | null>(null);
+  65:   const [dragActive, setDragActive] = useState(false);
+  66:   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  67:   const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'preview' | 'success'>('idle');
+  68:   const [extractedData, setExtractedData] = useState<ExtractedDataPreview | null>(null);
+  69:   const [progress, setProgress] = useState<UploadProgress | null>(null);
+  70:   const inputRef = useRef<HTMLInputElement>(null);
+  71: 
+  72:   // Manual form state
+  73:   const [manualForm, setManualForm] = useState({
+  74:     invoiceNumber: "",
+  75:     supplierId: "",
+  76:     invoiceDate: "",
+  77:     dueDate: "",
+  78:     totalAmount: "",
+  79:     vatAmount: "",
+  80:     notes: "",
+  81:     currency: "ZAR",
+  82:   });
+  83: 
+  84:   const { uploadFile, isUploading, result, error, reset } = useFileUpload({
+  85:     onProgress: (p) => setProgress(p),
+  86:     onSuccess: (r) => {
+  87:       if (r.extractedData && r.status === 'completed') {
+  88:         setExtractedData({
+  89:           invoiceNumber: r.extractedData.invoiceNumber,
+  90:           supplierName: r.extractedData.supplierName,
+  91:           issueDate: r.extractedData.issueDate,
+  92:           dueDate: r.extractedData.dueDate,
+  93:           totalAmount: r.extractedData.totalAmount,
+  94:           currency: r.extractedData.currency,
+  95:           confidence: r.extractedData.confidence,
+  96:           lineItems: r.extractedData.lineItems || [],
+  97:         });
+  98:         setUploadStage('preview');
+  99:       } else if (r.status === 'completed') {
+ 100:         setUploadStage('success');
+ 101:         setTimeout(() => {
+ 102:           handleClose();
+ 103:           onSuccess();
+ 104:         }, 1500);
+ 105:       }
+ 106:     },
+ 107:   });
+ 108: 
+ 109:   // Fetch suppliers on mount
+ 110:   useEffect(() => {
+ 111:     if (open) {
+ 112:       fetchSuppliers();
+ 113:     }
+ 114:   }, [open]);
+ 115: 
+ 116:   // Reset when dialog closes
+ 117:   useEffect(() => {
+ 118:     if (!open) {
+ 119:       resetForm();
+ 120:     }
+ 121:   }, [open]);
+ 122: 
+ 123:   const fetchSuppliers = async () => {
+ 124:     try {
+ 125:       const response = await fetch("/api/suppliers?limit=100");
+ 126:       const result = await response.json();
+ 127:       if (result.success && result.data?.suppliers) {
+ 128:         setSuppliers(result.data.suppliers);
+ 129:       }
+ 130:     } catch (err) {
+ 131:       console.error("Failed to fetch suppliers:", err);
+ 132:     }
+ 133:   };
+ 134: 
+ 135:   const handleDrag = (e: React.DragEvent) => {
+ 136:     e.preventDefault();
+ 137:     e.stopPropagation();
+ 138:     if (e.type === "dragenter" || e.type === "dragover") {
+ 139:       setDragActive(true);
+ 140:     } else if (e.type === "dragleave") {
+ 141:       setDragActive(false);
+ 142:     }
+ 143:   };
+ 144: 
+ 145:   const handleDrop = (e: React.DragEvent) => {
+ 146:     e.preventDefault();
+ 147:     e.stopPropagation();
+ 148:     setDragActive(false);
+ 149: 
+ 150:     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+ 151:       const droppedFile = e.dataTransfer.files[0];
+ 152:       validateAndSetFile(droppedFile);
+ 153:     }
+ 154:   };
+ 155: 
+ 156:   const validateAndSetFile = (file: File) => {
+ 157:     const allowedTypes = [
+ 158:       'application/pdf',
+ 159:       'image/jpeg',
+ 160:       'image/png',
+ 161:       'image/tiff',
+ 162:     ];
+ 163:     const maxSize = 50 * 1024 * 1024; // 50MB
+ 164: 
+ 165:     if (!allowedTypes.includes(file.type)) {
+ 166:       return;
+ 167:     }
+ 168: 
+ 169:     if (file.size > maxSize) {
+ 170:       return;
+ 171:     }
+ 172: 
+ 173:     setFile(file);
+ 174:     reset();
+ 175:   };
+ 176: 
+ 177:   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+ 178:     if (e.target.files && e.target.files[0]) {
+ 179:       validateAndSetFile(e.target.files[0]);
+ 180:     }
+ 181:   };
+ 182: 
+ 183:   const handleUpload = async () => {
+ 184:     if (!file) return;
+ 185: 
+ 186:     setUploadStage('uploading');
+ 187:     setProgress({ stage: 'uploading', progress: 0, message: 'Starting upload...' });
+ 188: 
+ 189:     try {
+ 190:       await uploadFile(file, {
+ 191:         autoProcess: true,
+ 192:         extractionMethod: 'ocr',
+ 193:       });
+ 194:     } catch (err) {
+ 195:       console.error('Upload failed:', err);
+ 196:       setUploadStage('idle');
+ 197:     }
+ 198:   };
+ 199: 
+ 200:   const handleManualSubmit = async () => {
+ 201:     try {
+ 202:       const response = await fetch('/api/invoices', {
+ 203:         method: 'POST',
+ 204:         headers: { 'Content-Type': 'application/json' },
+ 205:         body: JSON.stringify({
+ 206:           invoiceNumber: manualForm.invoiceNumber,
+ 207:           supplierId: manualForm.supplierId,
+ 208:           invoiceDate: manualForm.invoiceDate,
+ 209:           dueDate: manualForm.dueDate,
+ 210:           totalAmount: parseFloat(manualForm.totalAmount),
+ 211:           vatAmount: manualForm.vatAmount ? parseFloat(manualForm.vatAmount) : undefined,
+ 212:           notes: manualForm.notes,
+ 213:           currency: manualForm.currency,
+ 214:           source: 'MANUAL',
+ 215:         }),
+ 216:       });
+ 217: 
+ 218:       const data = await response.json();
+ 219:       
+ 220:       if (data.success) {
+ 221:         setUploadStage('success');
+ 222:         setTimeout(() => {
+ 223:           handleClose();
+ 224:           onSuccess();
+ 225:         }, 1500);
+ 226:       }
+ 227:     } catch (err) {
+ 228:       console.error('Manual submission failed:', err);
+ 229:     }
+ 230:   };
+ 231: 
+ 232:   const handleConfirmExtractedData = async () => {
+ 233:     if (result?.invoiceId) {
+ 234:       setUploadStage('success');
+ 235:       setTimeout(() => {
+ 236:         handleClose();
+ 237:         onSuccess();
+ 238:       }, 1500);
+ 239:     }
+ 240:   };
+ 241: 
+ 242:   const handleRetry = () => {
+ 243:     setUploadStage('idle');
+ 244:     setProgress(null);
+ 245:     reset();
+ 246:   };
+ 247: 
+ 248:   const handleClose = () => {
+ 249:     resetForm();
+ 250:     onOpenChange(false);
+ 251:   };
+ 252: 
+ 253:   const resetForm = () => {
+ 254:     setFile(null);
+ 255:     setUploadStage('idle');
+ 256:     setExtractedData(null);
+ 257:     setProgress(null);
+ 258:     reset();
+ 259:     setManualForm({
+ 260:       invoiceNumber: "",
+ 261:       supplierId: "",
+ 262:       invoiceDate: "",
+ 263:       dueDate: "",
+ 264:       totalAmount: "",
+ 265:       vatAmount: "",
+ 266:       notes: "",
+ 267:       currency: "ZAR",
+ 268:     });
+ 269:   };
+ 270: 
+ 271:   const formatCurrency = (amount?: number, currency: string = 'ZAR') => {
+ 272:     if (amount === undefined) return '-';
+ 273:     return new Intl.NumberFormat('en-ZA', {
+ 274:       style: 'currency',
+ 275:       currency,
+ 276:     }).format(amount);
+ 277:   };
+ 278: 
+ 279:   const getConfidenceColor = (confidence: number) => {
+ 280:     if (confidence >= 80) return 'text-green-600';
+ 281:     if (confidence >= 60) return 'text-yellow-600';
+ 282:     return 'text-red-600';
+ 283:   };
+ 284: 
+ 285:   // Render upload progress
+ 286:   const renderUploadProgress = () => {
+ 287:     if (!progress && isUploading) {
+ 288:       return (
+ 289:         <div className="flex flex-col items-center justify-center py-8 space-y-4">
+ 290:           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+ 291:           <p className="text-sm text-muted-foreground">Processing...</p>
+ 292:         </div>
+ 293:       );
+ 294:     }
+ 295: 
+ 296:     if (!progress) return null;
+ 297: 
+ 298:     const stageLabels: Record<string, string> = {
+ 299:       uploading: 'Uploading file...',
+ 300:       ocr: 'Extracting text with OCR...',
+ 301:       extracting: 'Parsing invoice data...',
+ 302:       validating: 'Validating extracted data...',
+ 303:       creating: 'Creating invoice...',
+ 304:       completed: 'Completed!',
+ 305:       failed: 'Processing failed',
+ 306:     };
+ 307: 
+ 308:     return (
+ 309:       <div className="space-y-4 py-4">
+ 310:         <div className="flex items-center justify-between">
+ 311:           <span className="text-sm font-medium">{stageLabels[progress.stage]}</span>
+ 312:           <span className="text-sm text-muted-foreground">{progress.progress}%</span>
+ 313:         </div>
+ 314:         <Progress value={progress.progress} className="h-2" />
+ 315:         {progress.message && (
+ 316:           <p className="text-xs text-muted-foreground">{progress.message}</p>
+ 317:         )}
+ 318:         {progress.details && (
+ 319:           <div className="text-xs text-muted-foreground space-y-1">
+ 320:             {progress.details.invoiceNumber && (
+ 321:               <p>Invoice: {progress.details.invoiceNumber}</p>
+ 322:             )}
+ 323:             {progress.details.lineItems !== undefined && (
+ 324:               <p>Line items: {progress.details.lineItems}</p>
+ 325:             )}
+ 326:           </div>
+ 327:         )}
+ 328:       </div>
+ 329:     );
+ 330:   };
+ 331: 
+ 332:   // Render extracted data preview
+ 333:   const renderExtractedDataPreview = () => {
+ 334:     if (!extractedData) return null;
+ 335: 
+ 336:     return (
+ 337:       <div className="space-y-4">
+ 338:         <Alert className={extractedData.confidence >= 60 ? 'bg-green-50' : 'bg-yellow-50'}>
+ 339:           <AlertCircle className="h-4 w-4" />
+ 340:           <AlertDescription>
+ 341:             Data extracted with{' '}
+ 342:             <span className={getConfidenceColor(extractedData.confidence)}>
+ 343:               {extractedData.confidence.toFixed(1)}% confidence
+ 344:             </span>
+ 345:             {extractedData.confidence < 60 && (
+ 346:               <span className="block mt-1 text-xs">
+ 347:                 Please review and correct the extracted data before confirming.
+ 348:               </span>
+ 349:             )}
+ 350:           </AlertDescription>
+ 351:         </Alert>
+ 352: 
+ 353:         <div className="grid grid-cols-2 gap-4 text-sm">
+ 354:           <div>
+ 355:             <Label className="text-muted-foreground">Invoice Number</Label>
+ 356:             <p className="font-medium">{extractedData.invoiceNumber || '-'}</p>
+ 357:           </div>
+ 358:           <div>
+ 359:             <Label className="text-muted-foreground">Supplier</Label>
+ 360:             <p className="font-medium">{extractedData.supplierName || '-'}</p>
+ 361:           </div>
+ 362:           <div>
+ 363:             <Label className="text-muted-foreground">Issue Date</Label>
+ 364:             <p className="font-medium">
+ 365:               {extractedData.issueDate 
+ 366:                 ? new Date(extractedData.issueDate).toLocaleDateString() 
+ 367:                 : '-'}
+ 368:             </p>
+ 369:           </div>
+ 370:           <div>
+ 371:             <Label className="text-muted-foreground">Due Date</Label>
+ 372:             <p className="font-medium">
+ 373:               {extractedData.dueDate 
+ 374:                 ? new Date(extractedData.dueDate).toLocaleDateString() 
+ 375:                 : '-'}
+ 376:             </p>
+ 377:           </div>
+ 378:           <div>
+ 379:             <Label className="text-muted-foreground">Total Amount</Label>
+ 380:             <p className="font-medium">
+ 381:               {formatCurrency(extractedData.totalAmount, extractedData.currency)}
+ 382:             </p>
+ 383:           </div>
+ 384:           <div>
+ 385:             <Label className="text-muted-foreground">Currency</Label>
+ 386:             <p className="font-medium">{extractedData.currency || 'ZAR'}</p>
+ 387:           </div>
+ 388:         </div>
+ 389: 
+ 390:         {extractedData.lineItems.length > 0 && (
+ 391:           <div className="space-y-2">
+ 392:             <Label className="text-muted-foreground">Line Items ({extractedData.lineItems.length})</Label>
+ 393:             <div className="max-h-40 overflow-y-auto border rounded-md">
+ 394:               <table className="w-full text-sm">
+ 395:                 <thead className="bg-muted">
+ 396:                   <tr>
+ 397:                     <th className="px-3 py-2 text-left">Description</th>
+ 398:                     <th className="px-3 py-2 text-right">Qty</th>
+ 399:                     <th className="px-3 py-2 text-right">Price</th>
+ 400:                     <th className="px-3 py-2 text-right">Total</th>
+ 401:                   </tr>
+ 402:                 </thead>
+ 403:                 <tbody>
+ 404:                   {extractedData.lineItems.slice(0, 5).map((item, idx) => (
+ 405:                     <tr key={idx} className="border-t">
+ 406:                       <td className="px-3 py-2 truncate max-w-[150px]">{item.description}</td>
+ 407:                       <td className="px-3 py-2 text-right">{item.quantity}</td>
+ 408:                       <td className="px-3 py-2 text-right">
+ 409:                         {formatCurrency(item.unitPrice, extractedData.currency)}
+ 410:                       </td>
+ 411:                       <td className="px-3 py-2 text-right">
+ 412:                         {formatCurrency(item.totalAmount, extractedData.currency)}
+ 413:                       </td>
+ 414:                     </tr>
+ 415:                   ))}
+ 416:                   {extractedData.lineItems.length > 5 && (
+ 417:                     <tr>
+ 418:                       <td colSpan={4} className="px-3 py-2 text-center text-muted-foreground">
+ 419:                         +{extractedData.lineItems.length - 5} more items
+ 420:                       </td>
+ 421:                     </tr>
+ 422:                   )}
+ 423:                 </tbody>
+ 424:               </table>
+ 425:             </div>
+ 426:           </div>
+ 427:         )}
+ 428: 
+ 429:         {result?.warnings && result.warnings.length > 0 && (
+ 430:           <div className="space-y-2">
+ 431:             <div className="flex items-center gap-2 text-yellow-600">
+ 432:               <AlertTriangle className="h-4 w-4" />
+ 433:               <span className="text-sm font-medium">Warnings</span>
+ 434:             </div>
+ 435:             <ul className="text-xs text-muted-foreground space-y-1 pl-6">
+ 436:               {result.warnings.slice(0, 5).map((warning, idx) => (
+ 437:                 <li key={idx}>{warning}</li>
+ 438:               ))}
+ 439:             </ul>
+ 440:           </div>
+ 441:         )}
+ 442: 
+ 443:         <div className="flex justify-end gap-2 pt-4">
+ 444:           <Button variant="outline" onClick={handleRetry}>
+ 445:             <RefreshCw className="h-4 w-4 mr-2" />
+ 446:             Retry
+ 447:           </Button>
+ 448:           <Button onClick={handleConfirmExtractedData}>
+ 449:             <CheckCircle className="h-4 w-4 mr-2" />
+ 450:             Confirm & Create Invoice
+ 451:           </Button>
+ 452:         </div>
+ 453:       </div>
+ 454:     );
+ 455:   };
+ 456: 
+ 457:   return (
+ 458:     <Dialog open={open} onOpenChange={onOpenChange}>
+ 459:       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+ 460:         <DialogHeader>
+ 461:           <DialogTitle>
+ 462:             {uploadStage === 'preview' ? 'Review Extracted Data' : 'Upload Invoice'}
+ 463:           </DialogTitle>
+ 464:           <DialogDescription>
+ 465:             {uploadStage === 'preview' 
+ 466:               ? 'Please review the extracted invoice data before confirming.'
+ 467:               : 'Upload a PDF or image file to automatically extract invoice data using OCR.'}
+ 468:           </DialogDescription>
+ 469:         </DialogHeader>
+ 470: 
+ 471:         {uploadStage === 'success' ? (
+ 472:           <div className="flex flex-col items-center justify-center py-8 space-y-4">
+ 473:             <CheckCircle className="h-16 w-16 text-green-500" />
+ 474:             <h3 className="text-lg font-semibold">Invoice Created Successfully!</h3>
+ 475:             <p className="text-sm text-muted-foreground">
+ 476:               The invoice has been uploaded and is being processed.
+ 477:             </p>
+ 478:           </div>
+ 479:         ) : uploadStage === 'preview' ? (
+ 480:           renderExtractedDataPreview()
+ 481:         ) : uploadStage === 'uploading' ? (
+ 482:           renderUploadProgress()
+ 483:         ) : (
+ 484:           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+ 485:             <TabsList className="grid w-full grid-cols-2">
+ 486:               <TabsTrigger value="file">Upload with OCR</TabsTrigger>
+ 487:               <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+ 488:             </TabsList>
+ 489: 
+ 490:             <TabsContent value="file" className="space-y-4">
+ 491:               <div
+ 492:                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+ 493:                   dragActive
+ 494:                     ? "border-primary bg-primary/5"
+ 495:                     : "border-gray-300 hover:border-gray-400"
+ 496:                 }`}
+ 497:                 onDragEnter={handleDrag}
+ 498:                 onDragLeave={handleDrag}
+ 499:                 onDragOver={handleDrag}
+ 500:                 onDrop={handleDrop}
+ 501:               >
+ 502:                 <input
+ 503:                   ref={inputRef}
+ 504:                   type="file"
+ 505:                   accept=".pdf,.jpg,.jpeg,.png,.tiff"
+ 506:                   onChange={handleFileChange}
+ 507:                   className="hidden"
+ 508:                 />
+ 509: 
+ 510:                 {file ? (
+ 511:                   <div className="flex items-center justify-center gap-2">
+ 512:                     <FileText className="h-8 w-8 text-primary" />
+ 513:                     <div className="text-left">
+ 514:                       <p className="font-medium">{file.name}</p>
+ 515:                       <p className="text-sm text-muted-foreground">
+ 516:                         {(file.size / 1024 / 1024).toFixed(2)} MB
+ 517:                       </p>
+ 518:                     </div>
+ 519:                     <Button
+ 520:                       variant="ghost"
+ 521:                       size="icon"
+ 522:                       onClick={() => setFile(null)}
+ 523:                       className="ml-2"
+ 524:                     >
+ 525:                       <X className="h-4 w-4" />
+ 526:                     </Button>
+ 527:                   </div>
+ 528:                 ) : (
+ 529:                   <div
+ 530:                     onClick={() => inputRef.current?.click()}
+ 531:                     className="cursor-pointer"
+ 532:                   >
+ 533:                     <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+ 534:                     <p className="font-medium">
+ 535:                       Click to upload or drag and drop
+ 536:                     </p>
+ 537:                     <p className="text-sm text-muted-foreground mt-1">
+ 538:                       PDF, JPG, PNG, TIFF (max 50MB)
+ 539:                     </p>
+ 540:                   </div>
+ 541:                 )}
+ 542:               </div>
+ 543: 
+ 544:               {error && (
+ 545:                 <Alert variant="destructive">
+ 546:                   <AlertCircle className="h-4 w-4" />
+ 547:                   <AlertDescription>{error.message}</AlertDescription>
+ 548:                 </Alert>
+ 549:               )}
+ 550: 
+ 551:               <div className="space-y-2">
+ 552:                 <Label htmlFor="supplier-select">Supplier (optional)</Label>
+ 553:                 <Select
+ 554:                   value={manualForm.supplierId}
+ 555:                   onValueChange={(value) =>
+ 556:                     setManualForm({ ...manualForm, supplierId: value })
+ 557:                   }
+ 558:                 >
+ 559:                   <SelectTrigger id="supplier-select">
+ 560:                     <SelectValue placeholder="Select supplier" />
+ 561:                   </SelectTrigger>
+ 562:                   <SelectContent>
+ 563:                     <SelectItem value="">Auto-detect</SelectItem>
+ 564:                     {suppliers.map((supplier) => (
+ 565:                       <SelectItem key={supplier.id} value={supplier.id}>
+ 566:                         {supplier.name}
+ 567:                       </SelectItem>
+ 568:                     ))}
+ 569:                   </SelectContent>
+ 570:                 </Select>
+ 571:                 <p className="text-xs text-muted-foreground">
+ 572:                   Select a supplier to improve extraction accuracy
+ 573:                 </p>
+ 574:               </div>
+ 575: 
+ 576:               <div className="flex justify-end gap-2">
+ 577:                 <Button variant="outline" onClick={() => onOpenChange(false)}>
+ 578:                   Cancel
+ 579:                 </Button>
+ 580:                 <Button onClick={handleUpload} disabled={!file || isUploading}>
+ 581:                   {isUploading ? (
+ 582:                     <>
+ 583:                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+ 584:                       Processing...
+ 585:                     </>
+ 586:                   ) : (
+ 587:                     <>
+ 588:                       <Upload className="h-4 w-4 mr-2" />
+ 589:                       Upload & Process
+ 590:                     </>
+ 591:                   )}
+ 592:                 </Button>
+ 593:               </div>
+ 594:             </TabsContent>
+ 595: 
+ 596:             <TabsContent value="manual" className="space-y-4">
+ 597:               <div className="grid grid-cols-2 gap-4">
+ 598:                 <div>
+ 599:                   <Label htmlFor="invoiceNumber">Invoice Number *</Label>
+ 600:                   <Input
+ 601:                     id="invoiceNumber"
+ 602:                     value={manualForm.invoiceNumber}
+ 603:                     onChange={(e) =>
+ 604:                       setManualForm({ ...manualForm, invoiceNumber: e.target.value })
+ 605:                     }
+ 606:                     placeholder="INV-2024-001"
+ 607:                   />
+ 608:                 </div>
+ 609:                 <div>
+ 610:                   <Label htmlFor="supplierId">Supplier *</Label>
+ 611:                   <Select
+ 612:                     value={manualForm.supplierId}
+ 613:                     onValueChange={(value) =>
+ 614:                       setManualForm({ ...manualForm, supplierId: value })
+ 615:                     }
+ 616:                   >
+ 617:                     <SelectTrigger id="supplierId">
+ 618:                       <SelectValue placeholder="Select supplier" />
+ 619:                     </SelectTrigger>
+ 620:                     <SelectContent>
+ 621:                       {suppliers.map((supplier) => (
+ 622:                         <SelectItem key={supplier.id} value={supplier.id}>
+ 623:                           {supplier.name}
+ 624:                         </SelectItem>
+ 625:                       ))}
+ 626:                     </SelectContent>
+ 627:                   </Select>
+ 628:                 </div>
+ 629:               </div>
+ 630: 
+ 631:               <div className="grid grid-cols-2 gap-4">
+ 632:                 <div>
+ 633:                   <Label htmlFor="invoiceDate">Invoice Date *</Label>
+ 634:                   <Input
+ 635:                     id="invoiceDate"
+ 636:                     type="date"
+ 637:                     value={manualForm.invoiceDate}
+ 638:                     onChange={(e) =>
+ 639:                       setManualForm({ ...manualForm, invoiceDate: e.target.value })
+ 640:                     }
+ 641:                   />
+ 642:                 </div>
+ 643:                 <div>
+ 644:                   <Label htmlFor="dueDate">Due Date *</Label>
+ 645:                   <Input
+ 646:                     id="dueDate"
+ 647:                     type="date"
+ 648:                     value={manualForm.dueDate}
+ 649:                     onChange={(e) =>
+ 650:                       setManualForm({ ...manualForm, dueDate: e.target.value })
+ 651:                     }
+ 652:                   />
+ 653:                 </div>
+ 654:               </div>
+ 655: 
+ 656:               <div className="grid grid-cols-3 gap-4">
+ 657:                 <div>
+ 658:                   <Label htmlFor="totalAmount">Total Amount *</Label>
+ 659:                   <Input
+ 660:                     id="totalAmount"
+ 661:                     type="number"
+ 662:                     step="0.01"
+ 663:                     value={manualForm.totalAmount}
+ 664:                     onChange={(e) =>
+ 665:                       setManualForm({ ...manualForm, totalAmount: e.target.value })
+ 666:                     }
+ 667:                     placeholder="0.00"
+ 668:                   />
+ 669:                 </div>
+ 670:                 <div>
+ 671:                   <Label htmlFor="vatAmount">VAT Amount</Label>
+ 672:                   <Input
+ 673:                     id="vatAmount"
+ 674:                     type="number"
+ 675:                     step="0.01"
+ 676:                     value={manualForm.vatAmount}
+ 677:                     onChange={(e) =>
+ 678:                       setManualForm({ ...manualForm, vatAmount: e.target.value })
+ 679:                     }
+ 680:                     placeholder="Auto"
+ 681:                   />
+ 682:                 </div>
+ 683:                 <div>
+ 684:                   <Label htmlFor="currency">Currency</Label>
+ 685:                   <Select
+ 686:                     value={manualForm.currency}
+ 687:                     onValueChange={(value) =>
+ 688:                       setManualForm({ ...manualForm, currency: value })
+ 689:                     }
+ 690:                   >
+ 691:                     <SelectTrigger id="currency">
+ 692:                       <SelectValue />
+ 693:                     </SelectTrigger>
+ 694:                     <SelectContent>
+ 695:                       <SelectItem value="ZAR">ZAR</SelectItem>
+ 696:                       <SelectItem value="USD">USD</SelectItem>
+ 697:                       <SelectItem value="EUR">EUR</SelectItem>
+ 698:                       <SelectItem value="GBP">GBP</SelectItem>
+ 699:                     </SelectContent>
+ 700:                   </Select>
+ 701:                 </div>
+ 702:               </div>
+ 703: 
+ 704:               <div>
+ 705:                 <Label htmlFor="notes">Notes</Label>
+ 706:                 <Textarea
+ 707:                   id="notes"
+ 708:                   value={manualForm.notes}
+ 709:                   onChange={(e) =>
+ 710:                     setManualForm({ ...manualForm, notes: e.target.value })
+ 711:                   }
+ 712:                   placeholder="Additional notes..."
+ 713:                   rows={3}
+ 714:                 />
+ 715:               </div>
+ 716: 
+ 717:               <div className="flex justify-end gap-2">
+ 718:                 <Button variant="outline" onClick={() => onOpenChange(false)}>
+ 719:                   Cancel
+ 720:                 </Button>
+ 721:                 <Button 
+ 722:                   onClick={handleManualSubmit}
+ 723:                   disabled={!manualForm.invoiceNumber || !manualForm.supplierId || !manualForm.invoiceDate || !manualForm.dueDate || !manualForm.totalAmount}
+ 724:                 >
+ 725:                   Create Invoice
+ 726:                 </Button>
+ 727:               </div>
+ 728:             </TabsContent>
+ 729:           </Tabs>
+ 730:         )}
+ 731:       </DialogContent>
+ 732:     </Dialog>
+ 733:   );
+ 734: }
+ 735: 
+ 736: export default UploadInvoiceDialog;

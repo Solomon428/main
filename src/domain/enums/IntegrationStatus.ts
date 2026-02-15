@@ -1,0 +1,9 @@
+export enum IntegrationStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  ERROR = 'ERROR',
+  SYNCING = 'SYNCING',
+  PENDING = 'PENDING',
+  PAUSED = 'PAUSED',
+  MAINTENANCE = 'MAINTENANCE',
+}

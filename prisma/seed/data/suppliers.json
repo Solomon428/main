@@ -1,0 +1,50 @@
+[
+  {
+    "id": "sup_001",
+    "name": "Tech Supplies Inc",
+    "code": "TECH-001",
+    "email": "billing@techsupplies.com",
+    "phone": "+1-555-1001",
+    "address": "789 Tech Boulevard",
+    "city": "San Francisco",
+    "country": "USA",
+    "postalCode": "94105",
+    "paymentTerms": 30,
+    "category": "STRATEGIC",
+    "status": "ACTIVE",
+    "creditLimit": 100000.00,
+    "organizationId": "org_001"
+  },
+  {
+    "id": "sup_002",
+    "name": "Office Depot",
+    "code": "OFFICE-001",
+    "email": "invoices@officedepot.com",
+    "phone": "+1-555-1002",
+    "address": "321 Office Lane",
+    "city": "Chicago",
+    "country": "USA",
+    "postalCode": "60601",
+    "paymentTerms": 15,
+    "category": "TIER_1",
+    "status": "ACTIVE",
+    "creditLimit": 50000.00,
+    "organizationId": "org_001"
+  },
+  {
+    "id": "sup_003",
+    "name": "Global Logistics",
+    "code": "LOGISTICS-001",
+    "email": "accounts@globallogistics.com",
+    "phone": "+1-555-1003",
+    "address": "555 Shipping Way",
+    "city": "Miami",
+    "country": "USA",
+    "postalCode": "33101",
+    "paymentTerms": 45,
+    "category": "TIER_2",
+    "status": "ACTIVE",
+    "creditLimit": 75000.00,
+    "organizationId": "org_001"
+  }
+]

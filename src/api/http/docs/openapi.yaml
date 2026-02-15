@@ -1,0 +1,392 @@
+openapi: 3.0.3
+info:
+  title: CreditorFlow API
+  description: Enterprise Invoice Management System API
+  version: 2.0.0
+  contact:
+    name: CreditorFlow Support
+    email: support@creditorflow.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.creditorflow.com/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check API health status
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /iam/login:
+    post:
+      summary: User login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+
+  /invoices:
+    get:
+      summary: List invoices
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, SUBMITTED, APPROVED, PAID, REJECTED]
+      responses:
+        '200':
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invoice'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Create invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceInput'
+      responses:
+        '201':
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+
+  /invoices/{id}:
+    get:
+      summary: Get invoice by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '404':
+          description: Invoice not found
+
+  /invoices/{id}/approve:
+    post:
+      summary: Approve invoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Invoice approved
+
+  /approvals/pending:
+    get:
+      summary: Get pending approvals
+      responses:
+        '200':
+          description: List of pending approvals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Approval'
+
+  /suppliers:
+    get:
+      summary: List suppliers
+      responses:
+        '200':
+          description: List of suppliers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Supplier'
+
+    post:
+      summary: Create supplier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SupplierInput'
+      responses:
+        '201':
+          description: Supplier created
+
+  /payments:
+    get:
+      summary: List payments
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+
+  /notifications:
+    get:
+      summary: Get user notifications
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          enum: [SYSTEM_ADMIN, ORG_ADMIN, FINANCE_MANAGER, APPROVER, VIEWER]
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoiceNumber:
+          type: string
+        supplierId:
+          type: string
+          format: uuid
+        totalAmount:
+          type: number
+        currency:
+          type: string
+          enum: [ZAR, USD, EUR, GBP]
+        status:
+          type: string
+          enum: [DRAFT, SUBMITTED, APPROVED, PAID, REJECTED]
+        dueDate:
+          type: string
+          format: date
+
+    InvoiceInput:
+      type: object
+      required:
+        - invoiceNumber
+        - supplierId
+        - totalAmount
+        - invoiceDate
+        - dueDate
+      properties:
+        invoiceNumber:
+          type: string
+        supplierId:
+          type: string
+          format: uuid
+        totalAmount:
+          type: number
+        currency:
+          type: string
+          default: ZAR
+        invoiceDate:
+          type: string
+          format: date
+        dueDate:
+          type: string
+          format: date
+        lineItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineItem'
+
+    InvoiceLineItem:
+      type: object
+      properties:
+        description:
+          type: string
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+
+    Approval:
+      type: object
+      properties:
+        id:
+          type: string
+        invoiceId:
+          type: string
+        approverId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+        slaDueDate:
+          type: string
+          format: date-time
+
+    Supplier:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        taxId:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, BLACKLISTED]
+
+    SupplierInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        taxId:
+          type: string
+        vatNumber:
+          type: string
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        paymentNumber:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+          enum: [UNREAD, READ]
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer

@@ -1,0 +1,736 @@
+"use client";
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useFileUpload, UploadResult, UploadProgress } from "@/hooks/useFileUpload";
+import { 
+  Upload, File, X, AlertCircle, CheckCircle, Loader2, 
+  FileText, RefreshCw, Eye, AlertTriangle 
+} from "lucide-react";
+
+interface UploadInvoiceDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+}
+
+interface ExtractedDataPreview {
+  invoiceNumber?: string;
+  supplierName?: string;
+  issueDate?: string;
+  dueDate?: string;
+  totalAmount?: number;
+  currency?: string;
+  confidence: number;
+  lineItems: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    totalAmount: number;
+  }>;
+}
+
+export function UploadInvoiceDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+}: UploadInvoiceDialogProps) {
+  const [activeTab, setActiveTab] = useState("file");
+  const [file, setFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'preview' | 'success'>('idle');
+  const [extractedData, setExtractedData] = useState<ExtractedDataPreview | null>(null);
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Manual form state
+  const [manualForm, setManualForm] = useState({
+    invoiceNumber: "",
+    supplierId: "",
+    invoiceDate: "",
+    dueDate: "",
+    totalAmount: "",
+    vatAmount: "",
+    notes: "",
+    currency: "ZAR",
+  });
+
+  const { uploadFile, isUploading, result, error, reset } = useFileUpload({
+    onProgress: (p) => setProgress(p),
+    onSuccess: (r) => {
+      if (r.extractedData && r.status === 'completed') {
+        setExtractedData({
+          invoiceNumber: r.extractedData.invoiceNumber,
+          supplierName: r.extractedData.supplierName,
+          issueDate: r.extractedData.issueDate,
+          dueDate: r.extractedData.dueDate,
+          totalAmount: r.extractedData.totalAmount,
+          currency: r.extractedData.currency,
+          confidence: r.extractedData.confidence,
+          lineItems: r.extractedData.lineItems || [],
+        });
+        setUploadStage('preview');
+      } else if (r.status === 'completed') {
+        setUploadStage('success');
+        setTimeout(() => {
+          handleClose();
+          onSuccess();
+        }, 1500);
+      }
+    },
+  });
+
+  // Fetch suppliers on mount
+  useEffect(() => {
+    if (open) {
+      fetchSuppliers();
+    }
+  }, [open]);
+
+  // Reset when dialog closes
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
+
+  const fetchSuppliers = async () => {
+    try {
+      const response = await fetch("/api/suppliers?limit=100");
+      const result = await response.json();
+      if (result.success && result.data?.suppliers) {
+        setSuppliers(result.data.suppliers);
+      }
+    } catch (err) {
+      console.error("Failed to fetch suppliers:", err);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0];
+      validateAndSetFile(droppedFile);
+    }
+  };
+
+  const validateAndSetFile = (file: File) => {
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/tiff',
+    ];
+    const maxSize = 50 * 1024 * 1024; // 50MB
+
+    if (!allowedTypes.includes(file.type)) {
+      return;
+    }
+
+    if (file.size > maxSize) {
+      return;
+    }
+
+    setFile(file);
+    reset();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      validateAndSetFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+
+    setUploadStage('uploading');
+    setProgress({ stage: 'uploading', progress: 0, message: 'Starting upload...' });
+
+    try {
+      await uploadFile(file, {
+        autoProcess: true,
+        extractionMethod: 'ocr',
+      });
+    } catch (err) {
+      console.error('Upload failed:', err);
+      setUploadStage('idle');
+    }
+  };
+
+  const handleManualSubmit = async () => {
+    try {
+      const response = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoiceNumber: manualForm.invoiceNumber,
+          supplierId: manualForm.supplierId,
+          invoiceDate: manualForm.invoiceDate,
+          dueDate: manualForm.dueDate,
+          totalAmount: parseFloat(manualForm.totalAmount),
+          vatAmount: manualForm.vatAmount ? parseFloat(manualForm.vatAmount) : undefined,
+          notes: manualForm.notes,
+          currency: manualForm.currency,
+          source: 'MANUAL',
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setUploadStage('success');
+        setTimeout(() => {
+          handleClose();
+          onSuccess();
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('Manual submission failed:', err);
+    }
+  };
+
+  const handleConfirmExtractedData = async () => {
+    if (result?.invoiceId) {
+      setUploadStage('success');
+      setTimeout(() => {
+        handleClose();
+        onSuccess();
+      }, 1500);
+    }
+  };
+
+  const handleRetry = () => {
+    setUploadStage('idle');
+    setProgress(null);
+    reset();
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onOpenChange(false);
+  };
+
+  const resetForm = () => {
+    setFile(null);
+    setUploadStage('idle');
+    setExtractedData(null);
+    setProgress(null);
+    reset();
+    setManualForm({
+      invoiceNumber: "",
+      supplierId: "",
+      invoiceDate: "",
+      dueDate: "",
+      totalAmount: "",
+      vatAmount: "",
+      notes: "",
+      currency: "ZAR",
+    });
+  };
+
+  const formatCurrency = (amount?: number, currency: string = 'ZAR') => {
+    if (amount === undefined) return '-';
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency,
+    }).format(amount);
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 80) return 'text-green-600';
+    if (confidence >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  // Render upload progress
+  const renderUploadProgress = () => {
+    if (!progress && isUploading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Processing...</p>
+        </div>
+      );
+    }
+
+    if (!progress) return null;
+
+    const stageLabels: Record<string, string> = {
+      uploading: 'Uploading file...',
+      ocr: 'Extracting text with OCR...',
+      extracting: 'Parsing invoice data...',
+      validating: 'Validating extracted data...',
+      creating: 'Creating invoice...',
+      completed: 'Completed!',
+      failed: 'Processing failed',
+    };
+
+    return (
+      <div className="space-y-4 py-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">{stageLabels[progress.stage]}</span>
+          <span className="text-sm text-muted-foreground">{progress.progress}%</span>
+        </div>
+        <Progress value={progress.progress} className="h-2" />
+        {progress.message && (
+          <p className="text-xs text-muted-foreground">{progress.message}</p>
+        )}
+        {progress.details && (
+          <div className="text-xs text-muted-foreground space-y-1">
+            {progress.details.invoiceNumber && (
+              <p>Invoice: {progress.details.invoiceNumber}</p>
+            )}
+            {progress.details.lineItems !== undefined && (
+              <p>Line items: {progress.details.lineItems}</p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render extracted data preview
+  const renderExtractedDataPreview = () => {
+    if (!extractedData) return null;
+
+    return (
+      <div className="space-y-4">
+        <Alert className={extractedData.confidence >= 60 ? 'bg-green-50' : 'bg-yellow-50'}>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Data extracted with{' '}
+            <span className={getConfidenceColor(extractedData.confidence)}>
+              {extractedData.confidence.toFixed(1)}% confidence
+            </span>
+            {extractedData.confidence < 60 && (
+              <span className="block mt-1 text-xs">
+                Please review and correct the extracted data before confirming.
+              </span>
+            )}
+          </AlertDescription>
+        </Alert>
+
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <Label className="text-muted-foreground">Invoice Number</Label>
+            <p className="font-medium">{extractedData.invoiceNumber || '-'}</p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground">Supplier</Label>
+            <p className="font-medium">{extractedData.supplierName || '-'}</p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground">Issue Date</Label>
+            <p className="font-medium">
+              {extractedData.issueDate 
+                ? new Date(extractedData.issueDate).toLocaleDateString() 
+                : '-'}
+            </p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground">Due Date</Label>
+            <p className="font-medium">
+              {extractedData.dueDate 
+                ? new Date(extractedData.dueDate).toLocaleDateString() 
+                : '-'}
+            </p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground">Total Amount</Label>
+            <p className="font-medium">
+              {formatCurrency(extractedData.totalAmount, extractedData.currency)}
+            </p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground">Currency</Label>
+            <p className="font-medium">{extractedData.currency || 'ZAR'}</p>
+          </div>
+        </div>
+
+        {extractedData.lineItems.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">Line Items ({extractedData.lineItems.length})</Label>
+            <div className="max-h-40 overflow-y-auto border rounded-md">
+              <table className="w-full text-sm">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Description</th>
+                    <th className="px-3 py-2 text-right">Qty</th>
+                    <th className="px-3 py-2 text-right">Price</th>
+                    <th className="px-3 py-2 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {extractedData.lineItems.slice(0, 5).map((item, idx) => (
+                    <tr key={idx} className="border-t">
+                      <td className="px-3 py-2 truncate max-w-[150px]">{item.description}</td>
+                      <td className="px-3 py-2 text-right">{item.quantity}</td>
+                      <td className="px-3 py-2 text-right">
+                        {formatCurrency(item.unitPrice, extractedData.currency)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {formatCurrency(item.totalAmount, extractedData.currency)}
+                      </td>
+                    </tr>
+                  ))}
+                  {extractedData.lineItems.length > 5 && (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-2 text-center text-muted-foreground">
+                        +{extractedData.lineItems.length - 5} more items
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {result?.warnings && result.warnings.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-yellow-600">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-sm font-medium">Warnings</span>
+            </div>
+            <ul className="text-xs text-muted-foreground space-y-1 pl-6">
+              {result.warnings.slice(0, 5).map((warning, idx) => (
+                <li key={idx}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-4">
+          <Button variant="outline" onClick={handleRetry}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+          <Button onClick={handleConfirmExtractedData}>
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Confirm & Create Invoice
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {uploadStage === 'preview' ? 'Review Extracted Data' : 'Upload Invoice'}
+          </DialogTitle>
+          <DialogDescription>
+            {uploadStage === 'preview' 
+              ? 'Please review the extracted invoice data before confirming.'
+              : 'Upload a PDF or image file to automatically extract invoice data using OCR.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        {uploadStage === 'success' ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <CheckCircle className="h-16 w-16 text-green-500" />
+            <h3 className="text-lg font-semibold">Invoice Created Successfully!</h3>
+            <p className="text-sm text-muted-foreground">
+              The invoice has been uploaded and is being processed.
+            </p>
+          </div>
+        ) : uploadStage === 'preview' ? (
+          renderExtractedDataPreview()
+        ) : uploadStage === 'uploading' ? (
+          renderUploadProgress()
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="file">Upload with OCR</TabsTrigger>
+              <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="file" className="space-y-4">
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  dragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-gray-300 hover:border-gray-400"
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.tiff"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {file ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <FileText className="h-8 w-8 text-primary" />
+                    <div className="text-left">
+                      <p className="font-medium">{file.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setFile(null)}
+                      className="ml-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => inputRef.current?.click()}
+                    className="cursor-pointer"
+                  >
+                    <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="font-medium">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      PDF, JPG, PNG, TIFF (max 50MB)
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error.message}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="supplier-select">Supplier (optional)</Label>
+                <Select
+                  value={manualForm.supplierId}
+                  onValueChange={(value) =>
+                    setManualForm({ ...manualForm, supplierId: value })
+                  }
+                >
+                  <SelectTrigger id="supplier-select">
+                    <SelectValue placeholder="Select supplier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Auto-detect</SelectItem>
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={supplier.id}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Select a supplier to improve extraction accuracy
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpload} disabled={!file || isUploading}>
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload & Process
+                    </>
+                  )}
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="manual" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="invoiceNumber">Invoice Number *</Label>
+                  <Input
+                    id="invoiceNumber"
+                    value={manualForm.invoiceNumber}
+                    onChange={(e) =>
+                      setManualForm({ ...manualForm, invoiceNumber: e.target.value })
+                    }
+                    placeholder="INV-2024-001"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="supplierId">Supplier *</Label>
+                  <Select
+                    value={manualForm.supplierId}
+                    onValueChange={(value) =>
+                      setManualForm({ ...manualForm, supplierId: value })
+                    }
+                  >
+                    <SelectTrigger id="supplierId">
+                      <SelectValue placeholder="Select supplier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id}>
+                          {supplier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="invoiceDate">Invoice Date *</Label>
+                  <Input
+                    id="invoiceDate"
+                    type="date"
+                    value={manualForm.invoiceDate}
+                    onChange={(e) =>
+                      setManualForm({ ...manualForm, invoiceDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="dueDate">Due Date *</Label>
+                  <Input
+                    id="dueDate"
+                    type="date"
+                    value={manualForm.dueDate}
+                    onChange={(e) =>
+                      setManualForm({ ...manualForm, dueDate: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="totalAmount">Total Amount *</Label>
+                  <Input
+                    id="totalAmount"
+                    type="number"
+                    step="0.01"
+                    value={manualForm.totalAmount}
+                    onChange={(e) =>
+                      setManualForm({ ...manualForm, totalAmount: e.target.value })
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vatAmount">VAT Amount</Label>
+                  <Input
+                    id="vatAmount"
+                    type="number"
+                    step="0.01"
+                    value={manualForm.vatAmount}
+                    onChange={(e) =>
+                      setManualForm({ ...manualForm, vatAmount: e.target.value })
+                    }
+                    placeholder="Auto"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select
+                    value={manualForm.currency}
+                    onValueChange={(value) =>
+                      setManualForm({ ...manualForm, currency: value })
+                    }
+                  >
+                    <SelectTrigger id="currency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ZAR">ZAR</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={manualForm.notes}
+                  onChange={(e) =>
+                    setManualForm({ ...manualForm, notes: e.target.value })
+                  }
+                  placeholder="Additional notes..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleManualSubmit}
+                  disabled={!manualForm.invoiceNumber || !manualForm.supplierId || !manualForm.invoiceDate || !manualForm.dueDate || !manualForm.totalAmount}
+                >
+                  Create Invoice
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default UploadInvoiceDialog;

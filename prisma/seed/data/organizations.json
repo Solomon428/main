@@ -1,0 +1,32 @@
+[
+  {
+    "id": "org_001",
+    "name": "Acme Corporation",
+    "slug": "acme-corp",
+    "description": "Primary organization for testing",
+    "email": "admin@acme.com",
+    "phone": "+1-555-0100",
+    "address": "123 Business Street",
+    "city": "New York",
+    "country": "USA",
+    "postalCode": "10001",
+    "vatNumber": "US123456789",
+    "taxId": "12-3456789",
+    "currency": "USD",
+    "isActive": true
+  },
+  {
+    "id": "org_002",
+    "name": "Global Enterprises",
+    "slug": "global-ent",
+    "description": "Secondary organization",
+    "email": "info@globalent.com",
+    "phone": "+1-555-0200",
+    "address": "456 Commerce Ave",
+    "city": "Los Angeles",
+    "country": "USA",
+    "postalCode": "90001",
+    "currency": "USD",
+    "isActive": true
+  }
+]

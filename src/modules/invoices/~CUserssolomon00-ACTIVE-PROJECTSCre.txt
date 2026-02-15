@@ -1,0 +1,4815 @@
+~/C:Userssolomon00-ACTIVE-PROJECTSCreditorFlowmain
+```
+CreditorFlow-Invoice-Management-System/
+├─ prisma/
+│  ├─ schema.prisma
+│  ├─ migrations/
+│  │  └─ <timestamp>_init_v2_0_0/
+│  │     └─ migration.sql
+│  ├─ seed/
+│  │  ├─ seed.ts
+│  │  └─ data/
+│  │     ├─ organizations.json
+│  │     ├─ users.json
+│  │     ├─ suppliers.json
+│  │     ├─ invoices.json
+│  │     ├─ approval_chains.json
+│  │     ├─ payments.json
+│  │     ├─ bank_accounts.json
+│  │     ├─ reconciliations.json
+│  │     ├─ risk_scores.json
+│  │     ├─ compliance_checks.json
+│  │     ├─ notifications.json
+│  │     ├─ file_attachments.json
+│  │     ├─ integrations.json
+│  │     ├─ integration_sync_logs.json
+│  │     ├─ webhooks.json
+│  │     ├─ scheduled_tasks.json
+│  │     ├─ system_settings.json
+│  │     ├─ custom_fields.json
+│  │     └─ tags.json
+│  └─ extensions/
+│     └─ postgresql_extensions.sql   # pg_trgm, btree_gist (public schema)
+
+├─ src/
+│  ├─ db/
+│  │  ├─ prisma.ts                   # PrismaClient init (DATABASE_URL, DIRECT_URL)
+│  │  └─ transactions.ts             # tx helpers (interactive / batch)
+│  │
+│  ├─ domain/
+│  │  ├─ enums/
+│  │  │  ├─ UserRole.ts
+│  │  │  ├─ Department.ts
+│  │  │  ├─ ComplianceStatus.ts
+│  │  │  ├─ InvoiceStatus.ts
+│  │  │  ├─ PaymentStatus.ts
+│  │  │  ├─ ApprovalStatus.ts
+│  │  │  ├─ ApprovalDecision.ts
+│  │  │  ├─ PaymentMethod.ts
+│  │  │  ├─ RiskLevel.ts
+│  │  │  ├─ SLAStatus.ts
+│  │  │  ├─ BankAccountType.ts
+│  │  │  ├─ ReconciliationStatus.ts
+│  │  │  ├─ TransactionType.ts
+│  │  │  ├─ ReconciliationItemStatus.ts
+│  │  │  ├─ ComplianceCheckType.ts
+│  │  │  ├─ NotificationType.ts
+│  │  │  ├─ NotificationPriority.ts
+│  │  │  ├─ NotificationChannel.ts
+│  │  │  ├─ NotificationStatus.ts
+│  │  │  ├─ ScheduledTaskType.ts
+│  │  │  ├─ ScheduledTaskStatus.ts
+│  │  │  ├─ StorageProvider.ts
+│  │  │  ├─ IntegrationType.ts
+│  │  │  ├─ IntegrationStatus.ts
+│  │  │  ├─ SyncStatus.ts
+│  │  │  ├─ WebhookStatus.ts
+│  │  │  ├─ SupplierCategory.ts
+│  │  │  ├─ SupplierStatus.ts
+│  │  │  ├─ EntityType.ts
+│  │  │  ├─ AuditAction.ts
+│  │  │  ├─ LogSeverity.ts
+│  │  │  ├─ Currency.ts
+│  │  │  ├─ DocumentType.ts
+│  │  │  ├─ TaxType.ts
+│  │  │  ├─ MatchingStatus.ts
+│  │  │  ├─ ApprovalChainType.ts
+│  │  │  └─ FraudScoreLevel.ts
+│  │  │
+│  │  └─ models/
+│  │     ├─ User.ts                  # model User @@map("users")
+│  │     ├─ Session.ts               # model Session @@map("sessions")
+│  │     ├─ Account.ts               # model Account @@map("accounts")
+│  │     ├─ VerificationToken.ts     # model VerificationToken @@map("verification_tokens")
+│  │     ├─ PasswordResetToken.ts    # model PasswordResetToken @@map("password_reset_tokens")
+│  │     ├─ ApiKey.ts                # model ApiKey @@map("api_keys")
+│  │     ├─ Organization.ts          # model Organization @@map("organizations")
+│  │     ├─ Supplier.ts              # model Supplier @@map("suppliers")
+│  │     ├─ SupplierContact.ts       # model SupplierContact @@map("supplier_contacts")
+│  │     ├─ SupplierBankAccount.ts   # model SupplierBankAccount @@map("supplier_bank_accounts")
+│  │     ├─ SupplierContract.ts      # model SupplierContract @@map("supplier_contracts")
+│  │     ├─ SupplierPerformance.ts   # model SupplierPerformance @@map("supplier_performance")
+│  │     ├─ Invoice.ts               # model Invoice @@map("invoices")
+│  │     ├─ InvoiceLineItem.ts       # model InvoiceLineItem @@map("invoice_line_items")
+│  │     ├─ InvoiceComment.ts        # model InvoiceComment @@map("invoice_comments")
+│  │     ├─ InvoiceActivity.ts       # model InvoiceActivity @@map("invoice_activities")
+│  │     ├─ Approval.ts              # model Approval @@map("approvals")
+│  │     ├─ ApprovalChain.ts         # model ApprovalChain @@map("approval_chains")
+│  │     ├─ DelegatedApproval.ts     # model DelegatedApproval @@map("delegated_approvals")
+│  │     ├─ Payment.ts               # model Payment @@map("payments")
+│  │     ├─ PaymentBatch.ts          # model PaymentBatch @@map("payment_batches")
+│  │     ├─ BankAccount.ts           # model BankAccount @@map("bank_accounts")
+│  │     ├─ Reconciliation.ts        # model Reconciliation @@map("reconciliations")
+│  │     ├─ ReconciliationItem.ts    # model ReconciliationItem @@map("reconciliation_items")
+│  │     ├─ RiskScore.ts             # model RiskScore @@map("risk_scores")
+│  │     ├─ ComplianceCheck.ts       # model ComplianceCheck @@map("compliance_checks")
+│  │     ├─ AuditLog.ts              # model AuditLog @@map("audit_logs")
+│  │     ├─ Notification.ts          # model Notification @@map("notifications")
+│  │     ├─ FileAttachment.ts        # model FileAttachment @@map("file_attachments")
+│  │     ├─ ScheduledTask.ts         # model ScheduledTask @@map("scheduled_tasks")
+│  │     ├─ SystemSetting.ts         # model SystemSetting @@map("system_settings")
+│  │     ├─ CustomField.ts           # model CustomField @@map("custom_fields")
+│  │     ├─ Tag.ts                   # model Tag @@map("tags")
+│  │     ├─ Integration.ts           # model Integration @@map("integrations")
+│  │     ├─ IntegrationSyncLog.ts    # model IntegrationSyncLog @@map("integration_sync_logs")
+│  │     └─ Webhook.ts               # model Webhook @@map("webhooks")
+│  │
+│  ├─ modules/
+│  │  ├─ iam/                        # User, Session, Account, VerificationToken, PasswordResetToken, ApiKey
+│  │  │  ├─ iam.service.ts
+│  │  │  ├─ users.service.ts
+│  │  │  ├─ sessions.service.ts
+│  │  │  ├─ accounts.service.ts
+│  │  │  ├─ api-keys.service.ts
+│  │  │  ├─ tokens.service.ts
+│  │  │  ├─ iam.routes.ts
+│  │  │  └─ iam.validators.ts
+│  │  │
+│  │  ├─ organizations/              # Organization
+│  │  │  ├─ organizations.service.ts
+│  │  │  ├─ organizations.routes.ts
+│  │  │  └─ organizations.validators.ts
+│  │  │
+│  │  ├─ suppliers/                  # Supplier, SupplierContact, SupplierBankAccount, SupplierContract, SupplierPerformance, Tag(rel)
+│  │  │  ├─ suppliers.service.ts
+│  │  │  ├─ supplier-contacts.service.ts
+│  │  │  ├─ supplier-bank-accounts.service.ts
+│  │  │  ├─ supplier-contracts.service.ts
+│  │  │  ├─ supplier-performance.service.ts
+│  │  │  ├─ suppliers.routes.ts
+│  │  │  └─ suppliers.validators.ts
+│  │  │
+│  │  ├─ invoices/                   # Invoice, InvoiceLineItem, InvoiceComment, InvoiceActivity, FileAttachment(rel), ComplianceCheck(rel), RiskScore(rel), Approval(rel)
+│  │  │  ├─ invoices.service.ts
+│  │  │  ├─ invoice-line-items.service.ts
+│  │  │  ├─ invoice-comments.service.ts
+│  │  │  ├─ invoice-activities.service.ts
+│  │  │  ├─ invoices.routes.ts
+│  │  │  └─ invoices.validators.ts
+│  │  │
+│  │  ├─ approvals/                  # Approval, ApprovalChain, DelegatedApproval
+│  │  │  ├─ approvals.service.ts
+│  │  │  ├─ approval-chains.service.ts
+│  │  │  ├─ delegated-approvals.service.ts
+│  │  │  ├─ approvals.routes.ts
+│  │  │  └─ approvals.validators.ts
+│  │  │
+│  │  ├─ payments/                   # Payment, PaymentBatch, BankAccount
+│  │  │  ├─ payments.service.ts
+│  │  │  ├─ payment-batches.service.ts
+│  │  │  ├─ bank-accounts.service.ts
+│  │  │  ├─ payments.routes.ts
+│  │  │  └─ payments.validators.ts
+│  │  │
+│  │  ├─ reconciliations/            # Reconciliation, ReconciliationItem
+│  │  │  ├─ reconciliations.service.ts
+│  │  │  ├─ reconciliation-items.service.ts
+│  │  │  ├─ reconciliations.routes.ts
+│  │  │  └─ reconciliations.validators.ts
+│  │  │
+│  │  ├─ risk/                       # RiskScore
+│  │  │  ├─ risk-scores.service.ts
+│  │  │  ├─ risk.routes.ts
+│  │  │  └─ risk.validators.ts
+│  │  │
+│  │  ├─ compliance/                 # ComplianceCheck
+│  │  │  ├─ compliance-checks.service.ts
+│  │  │  ├─ compliance.routes.ts
+│  │  │  └─ compliance.validators.ts
+│  │  │
+│  │  ├─ audit/                      # AuditLog
+│  │  │  ├─ audit-logs.service.ts
+│  │  │  ├─ audit.routes.ts
+│  │  │  └─ audit.query.ts
+│  │  │
+│  │  ├─ notifications/              # Notification
+│  │  │  ├─ notifications.service.ts
+│  │  │  ├─ notifications.routes.ts
+│  │  │  └─ notifications.dispatch.ts
+│  │  │
+│  │  ├─ files/                      # FileAttachment
+│  │  │  ├─ file-attachments.service.ts
+│  │  │  ├─ storage/
+│  │  │  │  ├─ storage.types.ts      # StorageProvider
+│  │  │  │  ├─ s3.storage.ts
+│  │  │  │  ├─ azure.storage.ts
+│  │  │  │  ├─ gcs.storage.ts
+│  │  │  │  ├─ minio.storage.ts
+│  │  │  │  └─ local.storage.ts
+│  │  │  ├─ ocr/
+│  │  │  │  ├─ ocr.service.ts
+│  │  │  │  └─ extraction.service.ts
+│  │  │  ├─ files.routes.ts
+│  │  │  └─ files.validators.ts
+│  │  │
+│  │  ├─ system/                     # ScheduledTask, SystemSetting, CustomField, Tag
+│  │  │  ├─ scheduled-tasks.service.ts
+│  │  │  ├─ system-settings.service.ts
+│  │  │  ├─ custom-fields.service.ts
+│  │  │  ├─ tags.service.ts
+│  │  │  ├─ system.routes.ts
+│  │  │  └─ system.validators.ts
+│  │  │
+│  │  └─ integrations/               # Integration, IntegrationSyncLog, Webhook
+│  │     ├─ integrations.service.ts
+│  │     ├─ integration-sync-logs.service.ts
+│  │     ├─ webhooks.service.ts
+│  │     ├─ webhook-delivery.service.ts
+│  │     ├─ integrations.routes.ts
+│  │     └─ integrations.validators.ts
+│  │
+│  ├─ api/
+│  │  ├─ http/
+│  │  │  ├─ server.ts
+│  │  │  ├─ router.ts
+│  │  │  ├─ middlewares/
+│  │  │  │  ├─ auth.middleware.ts
+│  │  │  │  ├─ org-context.middleware.ts
+│  │  │  │  ├─ rate-limit.middleware.ts   # ApiKey.rateLimit/rateLimitWindow
+│  │  │  │  ├─ request-id.middleware.ts
+│  │  │  │  ├─ error.middleware.ts
+│  │  │  │  └─ audit.middleware.ts        # AuditLog hooks
+│  │  │  └─ docs/
+│  │  │     └─ openapi.yaml
+│  │  └─ websocket/
+│  │     └─ notifications.gateway.ts       # NotificationChannel.IN_APP/PUSH
+│  │
+│  ├─ jobs/
+│  │  ├─ scheduler/
+│  │  │  ├─ cron.ts                        # ScheduledTask.schedule + timezone
+│  │  │  ├─ runner.ts                      # ScheduledTaskStatus
+│  │  │  └─ registry.ts                    # ScheduledTaskType
+│  │  ├─ tasks/
+│  │  │  ├─ invoice-processing.task.ts      # ScheduledTaskType.INVOICE_PROCESSING
+│  │  │  ├─ approval-escalation.task.ts     # ScheduledTaskType.APPROVAL_ESCALATION
+│  │  │  ├─ approval-reminder.task.ts       # ScheduledTaskType.APPROVAL_REMINDER
+│  │  │  ├─ payment-processing.task.ts      # ScheduledTaskType.PAYMENT_PROCESSING
+│  │  │  ├─ payment-reconciliation.task.ts  # ScheduledTaskType.PAYMENT_RECONCILIATION
+│  │  │  ├─ reconciliation.task.ts          # ScheduledTaskType.RECONCILIATION
+│  │  │  ├─ risk-assessment.task.ts         # ScheduledTaskType.RISK_ASSESSMENT
+│  │  │  ├─ compliance-check.task.ts        # ScheduledTaskType.COMPLIANCE_CHECK
+│  │  │  ├─ report-generation.task.ts       # ScheduledTaskType.REPORT_GENERATION
+│  │  │  ├─ data-cleanup.task.ts            # ScheduledTaskType.DATA_CLEANUP
+│  │  │  ├─ backup.task.ts                  # ScheduledTaskType.BACKUP
+│  │  │  ├─ notification-digest.task.ts     # ScheduledTaskType.NOTIFICATION_DIGEST
+│  │  │  ├─ audit-log-archive.task.ts       # ScheduledTaskType.AUDIT_LOG_ARCHIVE
+│  │  │  └─ supplier-rating-update.task.ts  # ScheduledTaskType.SUPPLIER_RATING_UPDATE
+│  │  └─ queues/
+│  │     ├─ queue.ts
+│  │     └─ workers/
+│  │        ├─ ocr.worker.ts
+│  │        ├─ webhook.worker.ts
+│  │        └─ notifications.worker.ts
+│  │
+│  ├─ security/
+│  │  ├─ crypto.ts                          # FileAttachment.isEncrypted, SystemSetting.isEncrypted, Integration.credentials
+│  │  ├─ hashing.ts                         # ApiKey.keyHash, passwordHash
+│  │  ├─ twofactor.ts                       # User.twoFactorEnabled/Secret/Method/recoveryCodes
+│  │  └─ policies/
+│  │     ├─ rbac.ts                         # UserRole + permissions/scopes
+│  │     └─ tenancy.ts                      # Organization scoping
+│  │
+│  ├─ observability/
+│  │  ├─ logger.ts                          # LogSeverity
+│  │  ├─ audit.ts                           # AuditAction, EntityType mapping
+│  │  └─ metrics.ts
+│  │
+│  ├─ utils/
+│  │  ├─ dates.ts                           # Africa/Johannesburg defaults
+│  │  ├─ money.ts                           # Decimal helpers + Currency
+│  │  ├─ validation.ts
+│  │  └─ ids.ts                             # cuid helpers
+│  │
+│  └─ index.ts
+
+├─ tests/
+│  ├─ unit/
+│  ├─ integration/
+│  └─ fixtures/
+
+├─ scripts/
+│  ├─ prisma/
+│  │  ├─ migrate-dev.sh
+│  │  ├─ migrate-deploy.sh
+│  │  ├─ generate.sh
+│  │  └─ studio.sh
+│  ├─ db/
+│  │  └─ verify-extensions.sql
+│  └─ ops/
+│     └─ healthcheck.sh
+
+├─ .env.example                         # DATABASE_URL, DIRECT_URL
+├─ package.json
+├─ tsconfig.json
+├─ README.md
+└─ docker/
+   ├─ Dockerfile
+   ├─ Dockerfile.worker
+   └─ docker-compose.yml
+```
+
+**Missing compared to original structure:**
+- node_modules/ directory (not shown in original but present in file paths)
+- src/app/ directory with API routes, dashboard pages, login/register
+- src/components/ directory with UI components
+- src/lib/ directory with middleware, services, utils
+- src/types/ directory
+- Various configuration files like .gitignore, .nycrc, .eslintrc, etc.
+- Multiple package.json files within node_modules
+- Various license files within node_modules
+- Test files and documentation within node_modules
+
+**Duplicates in original:**
+- No structural duplicates identified in the provided original structure
+
+**Added in original:**
+- Detailed enum definitions in domain/enums/
+- Complete service architecture in modules/
+- Complete job scheduling system in jobs/
+- Security and observability systems
+- Complete API layer with HTTP and WebSocket
+- Docker configuration
+- Prisma seed data and extensions
+- Complete authentication and authorization system// FILE: prisma/schema.prisma
+// CreditorFlow Enterprise Management System - PostgreSQL Schema
+// Version: 2.0.0
+// Extensions: pg_trgm (fuzzy search), btree_gist (exclusion constraints)
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  extensions = [pg_trgm(schema: "public"), btree_gist(schema: "public")]
+}
+
+// ============================================================================
+// ENUMERATIONS
+// ============================================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  FINANCE_MANAGER
+  APPROVER
+  PROCUREMENT
+  VIEWER
+  AUDITOR
+  CREDIT_CLERK
+  BRANCH_MANAGER
+  FINANCIAL_MANAGER
+  EXECUTIVE
+  GROUP_FINANCIAL_MANAGER
+}
+
+enum Department {
+  IT
+  FINANCE
+  OPERATIONS
+  AUDIT
+  PROCUREMENT
+  SALES
+  LEGAL
+  HR
+  ADMINISTRATION
+}
+
+enum ComplianceStatus {
+  PENDING
+  VALID
+  INVALID
+  SUSPENDED
+  EXPIRED
+  FLAGGED
+  UNDER_REVIEW
+  COMPLIANT
+  NON_COMPLIANT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SUBMITTED
+  PROCESSING
+  VALIDATED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  PAID
+  PARTIALLY_PAID
+  CANCELLED
+  DISPUTED
+  ARCHIVED
+  PENDING_EXTRACTION
+  UNDER_REVIEW
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+  FAILED
+  PENDING
+  SCHEDULED
+  PROCESSING
+}
+
+enum ApprovalStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  ESCALATED
+  DELEGATED
+  CANCELLED
+  AWAITING_DOCUMENTATION
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CHECK
+  CREDIT_CARD
+  DEBIT_CARD
+  DIGITAL_WALLET
+  CASH
+  EFT
+  WIRE_TRANSFER
+  CREDIT_NOTE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+  UNKNOWN
+}
+
+enum SLAStatus {
+  ON_TRACK
+  AT_RISK
+  BREACHED
+  COMPLETED
+  PAUSED
+}
+
+enum BankAccountType {
+  CURRENT
+  SAVINGS
+  CREDIT
+  PAYROLL
+  TRUST
+  ESCROW
+}
+
+enum ReconciliationStatus {
+  PENDING
+  IN_PROGRESS
+  RECONCILED
+  REVIEWED
+  DISPUTED
+  UNRECONCILED
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+  ADJUSTMENT
+  FEE
+  INTEREST
+}
+
+enum ReconciliationItemStatus {
+  UNMATCHED
+  MATCHED
+  DISPUTED
+  ADJUSTED
+  EXCLUDED
+}
+
+enum ComplianceCheckType {
+  VAT_VALIDATION
+  TAX_ID_VALIDATION
+  SANCTIONS_SCREENING
+  PEP_SCREENING
+  AML_CHECK
+  KYC_VERIFICATION
+  REGULATORY_COMPLIANCE
+  DATA_PROTECTION
+  DUPLICATE_CHECK
+  FRAUD_DETECTION
+}
+
+enum NotificationType {
+  INVOICE_SUBMITTED
+  APPROVAL_REQUESTED
+  APPROVAL_DECISION
+  APPROVAL_ESCALATED
+  APPROVAL_DELEGATED
+  PAYMENT_SCHEDULED
+  PAYMENT_PROCESSED
+  PAYMENT_FAILED
+  SLA_BREACH
+  SLA_WARNING
+  RISK_ALERT
+  COMPLIANCE_ALERT
+  COMPLIANCE_FAILURE
+  SYSTEM_ALERT
+  USER_INVITATION
+  PASSWORD_RESET
+  TWO_FACTOR_ENABLED
+  ACCOUNT_LOCKED
+  SUPPLIER_VERIFIED
+  SUPPLIER_BLACKLISTED
+  INVOICE_DUPLICATE_DETECTED
+  INVOICE_ANOMALY_DETECTED
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+  EMERGENCY
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  SLACK
+  TEAMS
+  WEBHOOK
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  UNREAD
+  DISMISSED
+  ARCHIVED
+}
+
+enum ScheduledTaskType {
+  INVOICE_PROCESSING
+  APPROVAL_ESCALATION
+  APPROVAL_REMINDER
+  PAYMENT_PROCESSING
+  PAYMENT_RECONCILIATION
+  RECONCILIATION
+  RISK_ASSESSMENT
+  COMPLIANCE_CHECK
+  REPORT_GENERATION
+  DATA_CLEANUP
+  BACKUP
+  NOTIFICATION_DIGEST
+  AUDIT_LOG_ARCHIVE
+  SUPPLIER_RATING_UPDATE
+}
+
+enum ScheduledTaskStatus {
+  SUCCESS
+  FAILED
+  RUNNING
+  CANCELLED
+  SCHEDULED
+  SKIPPED
+  RETRYING
+}
+
+enum StorageProvider {
+  S3
+  AZURE_BLOB
+  GOOGLE_CLOUD
+  LOCAL
+  MINIO
+  WASABI
+}
+
+enum IntegrationType {
+  ACCOUNTING_SOFTWARE
+  BANK_FEED
+  ERP_SYSTEM
+  CRM_SYSTEM
+  OCR_SERVICE
+  TAX_SERVICE
+  PAYMENT_GATEWAY
+  DOCUMENT_MANAGEMENT
+  COMMUNICATION
+  EDI
+  API
+  WEBHOOK
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+  PENDING
+  SYNCING
+  PAUSED
+  MAINTENANCE
+}
+
+enum SyncStatus {
+  SUCCESS
+  FAILED
+  PARTIAL
+  PENDING
+  IN_PROGRESS
+  CANCELLED
+}
+
+enum WebhookStatus {
+  SUCCESS
+  FAILED
+  PENDING
+  RETRYING
+  TIMEOUT
+  INVALID_SIGNATURE
+}
+
+enum SupplierCategory {
+  GOODS
+  SERVICES
+  BOTH
+  CONSULTING
+  UTILITIES
+  RENT
+  INSURANCE
+  LOGISTICS
+  TECHNOLOGY
+  MARKETING
+  LEGAL
+  FINANCIAL
+}
+
+enum SupplierStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  BLACKLISTED
+  UNDER_REVIEW
+  REJECTED
+}
+
+enum EntityType {
+  INVOICE
+  SUPPLIER
+  USER
+  ORGANIZATION
+  PAYMENT
+  APPROVAL
+  COMPLIANCE_CHECK
+  AUDIT_LOG
+  FILE_ATTACHMENT
+  INTEGRATION
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPORT
+  APPROVE
+  REJECT
+  DELEGATE
+  ESCALATE
+  PAY
+  CANCEL
+  RESTORE
+  ARCHIVE
+  DOWNLOAD
+  SHARE
+  CONFIG_CHANGE
+}
+
+enum LogSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+  DEBUG
+  AUDIT
+  SECURITY
+  COMPLIANCE
+}
+
+enum Currency {
+  ZAR
+  USD
+  EUR
+  GBP
+  AUD
+  CAD
+  JPY
+  CNY
+  INR
+}
+
+enum DocumentType {
+  INVOICE_PDF
+  PROOF_OF_PAYMENT
+  CREDIT_NOTE
+  DEBIT_NOTE
+  STATEMENT
+  CONTRACT
+  PURCHASE_ORDER
+  DELIVERY_NOTE
+  RECEIPT
+  COMPLIANCE_CERTIFICATE
+  TAX_CERTIFICATE
+  OTHER
+}
+
+enum TaxType {
+  VAT
+  GST
+  SALES_TAX
+  INCOME_TAX
+  WITHHOLDING_TAX
+  CUSTOMS_DUTY
+  EXCISE_TAX
+  NONE
+}
+
+enum MatchingStatus {
+  UNMATCHED
+  MATCHED
+  PARTIAL_MATCH
+  DISPUTED
+  WRITTEN_OFF
+}
+
+enum ApprovalChainType {
+  SEQUENTIAL
+  PARALLEL
+  CONDITIONAL
+  HIERARCHICAL
+  ADAPTIVE
+}
+
+enum FraudScoreLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ============================================================================
+// CORE IDENTITY & ACCESS MANAGEMENT
+// ============================================================================
+
+model User {
+  id                    String          @id @default(cuid())
+  employeeId            String?         @unique
+  email                 String          @unique
+  emailVerified         DateTime?
+  name                  String?
+  firstName             String?
+  lastName              String?
+  image                 String?
+  passwordHash          String?
+  role                  UserRole        @default(VIEWER)
+  department            Department?
+  position              String?
+  jobTitle              String?
+  phoneNumber           String?
+  mobileNumber          String?
+  timezone              String          @default("Africa/Johannesburg")
+  language              String          @default("en")
+  locale                String          @default("en-ZA")
+  isActive              Boolean         @default(true)
+  isLocked              Boolean         @default(false)
+  lastLoginAt           DateTime?
+  lastLoginIp           String?
+  failedLoginAttempts   Int             @default(0)
+  lockedUntil           DateTime?
+  passwordChangedAt     DateTime?
+  passwordExpiresAt     DateTime?
+  twoFactorEnabled      Boolean         @default(false)
+  twoFactorSecret       String?
+  twoFactorMethod       String?
+  recoveryCodes         String[]
+  emailNotifications    Boolean         @default(true)
+  smsNotifications      Boolean         @default(false)
+  pushNotifications     Boolean         @default(true)
+  notificationSettings  Json?
+  theme                 String          @default("light")
+  sidebarCollapsed      Boolean         @default(false)
+  defaultDashboard      String?
+  sessionTimeout        Int             @default(30)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  deletedAt             DateTime?
+
+  // Organization Relations
+  organizations         Organization[]  @relation("OrganizationMembers")
+  primaryOrganization   Organization?   @relation("OrganizationPrimaryContact", fields: [primaryOrganizationId], references: [id])
+  primaryOrganizationId String? @unique
+
+  // Approval Relations
+  approvals             Approval[]      @relation("Approver")
+  delegatedApprovals    Approval[]      @relation("DelegatedFrom")
+  receivedDelegations   Approval[]      @relation("DelegatedTo")
+  approvalChains        ApprovalChain[]
+  delegatedTasks        DelegatedApproval[] @relation("Delegator")
+  receivedTasks         DelegatedApproval[] @relation("Delegatee")
+
+  // Audit & Activity
+  auditLogs            AuditLog[]
+  sessions             Session[]
+  accounts             Account[]
+  apiKeys              ApiKey[]
+  createdInvoices      Invoice[]       @relation("InvoiceCreator")
+  updatedInvoices      Invoice[]       @relation("InvoiceUpdater")
+  validatedInvoices    Invoice[]       @relation("InvoiceValidator")
+  processedPayments    Payment[]       @relation("PaymentProcessor")
+  notifications        Notification[]
+  uploadedFiles        FileAttachment[] @relation("FileUploader")
+  comments            InvoiceComment[]
+  complianceValidations ComplianceCheck[] @relation("ComplianceValidator")
+  riskAssessments      RiskScore[]     @relation("RiskAssessor")
+
+  @@map("users")
+  @@index([email, isActive])
+  @@index([department, role])
+  @@index([role, isActive])
+}`n  // Inverse relation for currentApprover navigation`n  invoicesApproving Invoice[] @relation("InvoiceCurrentApprover")
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  userAgent    String?
+  ipAddress    String?
+  location     String?
+  deviceType   String?
+  browser      String?
+  os           String?
+  isValid      Boolean  @default(true)
+  invalidatedAt DateTime?
+  invalidatedReason String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastAccessedAt DateTime?
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+  @@index([userId, isValid])
+  @@index([sessionToken, expires])
+  @@index([ipAddress])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  oauth_token_secret String?
+  oauth_token       String?
+  profile_data      Json?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+  @@index([userId, provider])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+  usedAt     DateTime?
+  usedByIp   String?
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+  @@index([token, expires])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  usedAt    DateTime?
+  ipAddress String?
+
+  @@map("password_reset_tokens")
+  @@index([email, token])
+  @@index([expires, used])
+}
+
+model ApiKey {
+  id                String        @id @default(cuid())
+  organizationId    String
+  userId            String
+  name              String
+  keyHash           String        @unique
+  prefix            String
+  lastUsedAt        DateTime?
+  lastUsedIp        String?
+  expiresAt         DateTime?
+  permissions       String[]
+  scopes            String[]
+  rateLimit         Int           @default(1000)
+  rateLimitWindow   String        @default("1h")
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  revokedAt         DateTime?
+  revokedBy         String?
+  revokedReason     String?
+
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [id])
+
+  @@map("api_keys")
+  @@index([organizationId, isActive])
+  @@index([prefix])
+  @@index([userId])
+}
+
+// ============================================================================
+// ORGANIZATION & MULTI-TENANCY
+// ============================================================================
+
+model Organization {
+  id                      String        @id @default(cuid())
+  name                    String
+  legalName               String?
+  tradingName             String?
+  taxId                   String?       @unique
+  vatNumber               String?
+  registrationNumber      String?
+  companyNumber           String?
+  industry                String?
+  sector                  String?
+  employeeCount           Int?
+  annualRevenue           Decimal?      @db.Decimal(18, 2)
+  fiscalYearEnd           String?
+  website                 String?
+  email                   String?
+  phoneNumber             String?
+  faxNumber               String?
+  
+  // Address
+  addressLine1            String?
+  addressLine2            String?
+  city                    String?
+  state                   String?
+  postalCode              String?
+  country                 String        @default("South Africa")
+  countryCode             String        @default("ZA")
+  timezone                String        @default("Africa/Johannesburg")
+  currency                Currency      @default(ZAR)
+  baseCurrency            Currency      @default(ZAR)
+  supportedCurrencies     String[]      @default(["ZAR"])
+  
+  // Settings
+  settings                Json?
+  complianceSettings      Json?
+  riskSettings            Json?
+  approvalSettings        Json?
+  paymentSettings         Json?
+  notificationSettings    Json?
+  brandingSettings        Json?
+  securitySettings        Json?
+  integrationSettings     Json?
+  
+  // Feature Flags
+  isActive                Boolean       @default(true)
+  isVerified              Boolean       @default(false)
+  isTrial                 Boolean       @default(false)
+  trialEndsAt             DateTime?
+  plan                    String        @default("BASIC")
+  planExpiresAt           DateTime?
+  maxUsers                Int           @default(10)
+  maxInvoices             Int           @default(1000)
+  storageQuota            Int           @default(10737418240) // 10GB in bytes
+  storageUsed             Int           @default(0)
+  
+  // Metadata
+  metadata                Json?
+  externalId              String?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  deletedAt               DateTime?
+
+  // Relations
+  users                  User[]        @relation("OrganizationMembers")
+  primaryContact         User?         @relation("OrganizationPrimaryContact")
+  suppliers              Supplier[]
+  invoices              Invoice[]
+  approvalChains        ApprovalChain[]
+  bankAccounts          BankAccount[]
+  complianceChecks      ComplianceCheck[]
+  auditLogs            AuditLog[]
+  apiKeys              ApiKey[]
+  payments             Payment[]
+  reconciliations      Reconciliation[]
+  riskScores           RiskScore[]
+  notifications        Notification[]
+  scheduledTasks       ScheduledTask[]
+  fileAttachments      FileAttachment[]
+  integrations         Integration[]
+  webhooks             Webhook[]
+  customFields         CustomField[]
+  tags                 Tag[]
+
+  @@map("organizations")
+  @@index([taxId, isActive])
+  @@index([vatNumber])
+  @@index([country, isActive])
+  @@index([plan, isActive])
+}
+
+// ============================================================================
+// SUPPLIER MANAGEMENT
+// ============================================================================
+
+model Supplier {
+  id                    String        @id @default(cuid())
+  organizationId        String
+  supplierCode          String?       @unique
+  name                  String
+  legalName             String?
+  tradingName           String?
+  taxId                 String?
+  vatNumber             String?
+  registrationNumber    String?
+  companyNumber         String?
+  status                SupplierStatus @default(PENDING_VERIFICATION)
+  
+  // Classification
+  category              SupplierCategory @default(SERVICES)
+  subCategory           String?
+  industry              String?
+  riskLevel             RiskLevel       @default(MEDIUM)
+  riskScore             Decimal?        @db.Decimal(5, 2) @default(0)
+  complianceStatus      ComplianceStatus @default(PENDING)
+  
+  // Contact
+  contactPerson         Json?
+  primaryContactName    String?
+  primaryContactEmail   String?
+  primaryContactPhone   String?
+  accountsContactName   String?
+  accountsContactEmail  String?
+  accountsContactPhone  String?
+  
+  // Address
+  billingAddress        Json?
+  shippingAddress       Json?
+  addressLine1          String?
+  addressLine2          String?
+  city                  String?
+  state                 String?
+  postalCode            String?
+  country               String          @default("South Africa")
+  countryCode           String          @default("ZA")
+  
+  // Banking
+  bankDetails           Json?
+  bankName              String?
+  bankCode              String?
+  branchName            String?
+  branchCode            String?
+  accountNumber         String?
+  accountType           BankAccountType @default(CURRENT)
+  swiftCode             String?
+  iban                  String?
+  routingNumber         String?
+  beneficiaryName       String?
+  
+  // Payment Terms
+  paymentTerms          Int             @default(30)
+  creditLimit           Decimal?        @db.Decimal(18, 2)
+  creditTerms           String?
+  earlyPaymentDiscount  Decimal?        @db.Decimal(5, 2)
+  discountDays          Int?
+  currency              Currency        @default(ZAR)
+  
+  // Statistics
+  totalTransactions     Int             @default(0)
+  totalInvoices         Int             @default(0)
+  totalAmount           Decimal         @default(0) @db.Decimal(18, 2)
+  totalPaid             Decimal         @default(0) @db.Decimal(18, 2)
+  totalOutstanding      Decimal         @default(0) @db.Decimal(18, 2)
+  averageInvoiceAmount  Decimal?        @db.Decimal(18, 2)
+  averagePaymentDays    Int?
+  lastInvoiceDate       DateTime?
+  lastPaymentDate       DateTime?
+  
+  // Flags
+  isActive              Boolean         @default(true)
+  isPreferred           Boolean         @default(false)
+  isVerified            Boolean         @default(false)
+  isWhitelisted         Boolean         @default(false)
+  isBlacklisted         Boolean         @default(false)
+  blacklistedAt         DateTime?
+  blacklistedBy         String?
+  blacklistReason       String?
+  onHold                Boolean         @default(false)
+  holdReason            String?
+  
+  // Verification
+  verifiedAt            DateTime?
+  verifiedBy            String?
+  onboardingCompletedAt DateTime?
+  
+  // Metadata
+  notes                 String?
+  internalNotes         String?
+  tags                  String[]
+  customFields          Json?
+  externalId            String?
+  source                String?
+  metadata              Json?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  deletedAt             DateTime?
+
+  // Relations
+  organization          Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices             Invoice[]
+  riskScores           RiskScore[]
+  complianceChecks     ComplianceCheck[]
+  payments             Payment[]
+  bankAccounts         SupplierBankAccount[]
+  contacts             SupplierContact[]
+  contracts            SupplierContract[]
+  performanceMetrics   SupplierPerformance[]
+  tags_rel             Tag[]           @relation("SupplierTags")
+
+  @@map("suppliers")
+  @@unique([organizationId, name])
+  @@index([organizationId, status])
+  @@index([vatNumber])
+  @@index([taxId])
+  @@index([riskLevel])
+  @@index([complianceStatus])
+  @@index([category])
+  @@index([isActive, isBlacklisted])
+  @@index([name], name: "idx_supplier_name_trgm") // For fuzzy search
+}`n  // Inverse relation for paymentBatches navigation`n  paymentBatches PaymentBatch[]
+
+model SupplierContact {
+  id                String    @id @default(cuid())
+  supplierId        String
+  name              String
+  title             String?
+  department        String?
+  email             String
+  phone             String?
+  mobile            String?
+  isPrimary         Boolean   @default(false)
+  isAccountsContact Boolean   @default(false)
+  isTechnicalContact Boolean  @default(false)
+  isEmergencyContact Boolean  @default(false)
+  isActive          Boolean   @default(true)
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  supplier          Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_contacts")
+  @@index([supplierId, isPrimary])
+  @@index([email])
+}
+
+model SupplierBankAccount {
+  id                String        @id @default(cuid())
+  supplierId        String
+  accountName       String
+  accountNumber     String
+  bankName          String
+  bankCode          String?
+  branchName        String?
+  branchCode        String?
+  swiftCode         String?
+  iban              String?
+  currency          Currency      @default(ZAR)
+  isPrimary         Boolean       @default(false)
+  isActive          Boolean       @default(true)
+  verifiedAt        DateTime?
+  verificationMethod String?
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  supplier          Supplier      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_bank_accounts")
+  @@index([supplierId, isPrimary])
+  @@index([accountNumber])
+}
+
+model SupplierContract {
+  id                String    @id @default(cuid())
+  supplierId        String
+  contractNumber    String?
+  contractType      String?
+  startDate         DateTime
+  endDate           DateTime?
+  value             Decimal?  @db.Decimal(18, 2)
+  terms             String?
+  paymentTerms      Int?
+  autoRenew         Boolean   @default(false)
+  renewalNoticeDays Int       @default(30)
+  status            String    @default("ACTIVE")
+  documentUrl       String?
+  signedAt          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  supplier          Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_contracts")
+  @@index([supplierId, status])
+  @@index([endDate])
+}
+
+model SupplierPerformance {
+  id                String    @id @default(cuid())
+  supplierId        String
+  period            String    // YYYY-MM
+  onTimeDelivery    Decimal?  @db.Decimal(5, 2)
+  qualityScore      Decimal?  @db.Decimal(5, 2)
+  priceCompetitiveness Decimal? @db.Decimal(5, 2)
+  serviceLevel      Decimal?  @db.Decimal(5, 2)
+  overallScore      Decimal?  @db.Decimal(5, 2)
+  invoiceCount      Int       @default(0)
+  totalAmount       Decimal   @default(0) @db.Decimal(18, 2)
+  avgProcessingDays Decimal?  @db.Decimal(5, 2)
+  createdAt         DateTime  @default(now())
+
+  supplier          Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_performance")
+  @@unique([supplierId, period])
+  @@index([supplierId])
+}
+
+// ============================================================================
+// INVOICE PROCESSING
+// ============================================================================
+
+model Invoice {
+  id                      String          @id @default(cuid())
+  organizationId          String
+  invoiceNumber           String
+  supplierId              String?
+  creatorId               String?
+  updaterId               String?
+  validatorId             String?
+  
+  // References
+  referenceNumber         String?
+  purchaseOrderNumber     String?
+  contractNumber          String?
+  quoteNumber             String?
+  customerReference       String?
+  
+  // Dates
+  invoiceDate             DateTime
+  dueDate                 DateTime
+  receivedDate            DateTime        @default(now())
+  postedDate             DateTime?
+  validatedDate          DateTime?
+  approvedDate           DateTime?
+  paidDate               DateTime?
+  cancelledDate          DateTime?
+  disputedDate           DateTime?
+  
+  // Amounts
+  subtotalExclVAT         Decimal         @db.Decimal(18, 2) @default(0)
+  subtotalInclVAT         Decimal?        @db.Decimal(18, 2)
+  vatRate                 Decimal         @db.Decimal(5, 2) @default(15.00)
+  vatAmount               Decimal         @db.Decimal(18, 2) @default(0)
+  totalAmount             Decimal         @db.Decimal(18, 2) @default(0)
+  amountPaid              Decimal         @db.Decimal(18, 2) @default(0)
+  amountDue               Decimal         @db.Decimal(18, 2) @default(0)
+  discountAmount          Decimal         @db.Decimal(18, 2) @default(0)
+  penaltyAmount           Decimal         @db.Decimal(18, 2) @default(0)
+  shippingAmount          Decimal         @db.Decimal(18, 2) @default(0)
+  
+  // Currency
+  currency                Currency        @default(ZAR)
+  exchangeRate            Decimal?        @db.Decimal(18, 6) @default(1)
+  baseCurrency            Currency        @default(ZAR)
+  baseCurrencyAmount      Decimal?        @db.Decimal(18, 2)
+  
+  // Status
+  status                  InvoiceStatus   @default(DRAFT)
+  paymentStatus          PaymentStatus   @default(UNPAID)
+  approvalStatus         ApprovalStatus  @default(PENDING)
+  
+  // Risk & Compliance
+  riskLevel               RiskLevel       @default(LOW)
+  fraudScore              Decimal?        @db.Decimal(5, 2)
+  anomalyScore            Decimal?        @db.Decimal(5, 2)
+  duplicateConfidence     Decimal?        @db.Decimal(5, 2)
+  duplicateOfId           String?
+  isDuplicate             Boolean         @default(false)
+  duplicateCheckStatus    String?
+  
+  // SLA
+  slaStatus               SLAStatus       @default(ON_TRACK)
+  slaDueDate              DateTime?
+  slaBreachDate           DateTime?
+  processingDeadline      DateTime?
+  
+  // Supplier Info (snapshot)
+  supplierName            String?
+  supplierVAT             String?
+  supplierTaxId           String?
+  supplierRegNumber       String?
+  supplierAddress         String?
+  supplierEmail           String?
+  supplierPhone           String?
+  
+  // Payment Info
+  paymentTerms            Int             @default(30)
+  paymentMethod           PaymentMethod?
+  bankAccountId           String?
+  paymentBatchId          String?
+  
+  // GL Codes
+  glCode                  String?
+  costCenter              String?
+  projectCode             String?
+  department              String?
+  budgetCategory          String?
+  
+  // Documents
+  pdfUrl                  String?
+  pdfHash                 String?
+  xmlUrl                  String?
+  
+  // OCR & Extraction
+  ocrText                 String?         @db.Text
+  ocrConfidence           Decimal?        @db.Decimal(5, 2)
+  extractionMethod        String?
+  extractionConfidence    Decimal?        @db.Decimal(5, 2) @default(0)
+  validationScore         Decimal?        @db.Decimal(5, 2) @default(0)
+  
+  // Flags
+  isRecurring             Boolean         @default(false)
+  recurrencePattern       String?
+  nextRecurrenceDate      DateTime?
+  parentInvoiceId         String?
+  originalInvoiceId       String?
+  
+  isUrgent                Boolean         @default(false)
+  requiresAttention       Boolean         @default(false)
+  manualReviewRequired    Boolean         @default(false)
+  manualReviewReason      String?
+  
+  isEscalated             Boolean         @default(false)
+  escalatedAt             DateTime?
+  escalatedBy             String?
+  escalationReason        String?
+  
+  vatCompliant            Boolean         @default(false)
+  termsCompliant          Boolean         @default(false)
+  fullyApproved           Boolean         @default(false)
+  readyForPayment         Boolean         @default(false)
+  
+  // Workflow
+  currentApproverId       String?
+  nextApproverId          String?
+  currentStage            Int             @default(1)
+  totalStages             Int             @default(1)
+  
+  // Notes
+  notes                   String?         @db.Text
+  internalNotes           String?         @db.Text
+  rejectionReason         String?
+  disputeReason           String?
+  
+  // Metadata
+  tags                    String[]
+  customFields            Json?
+  source                  String          @default("MANUAL")
+  externalId              String?
+  integrationId           String?
+  metadata                Json?
+  
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  deletedAt               DateTime?
+
+  // Relations
+  organization            Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplier                Supplier?       @relation(fields: [supplierId], references: [id])
+  creator                 User?           @relation("InvoiceCreator", fields: [creatorId], references: [id])
+  updater                 User?           @relation("InvoiceUpdater", fields: [updaterId], references: [id])
+  validator               User?           @relation("InvoiceValidator", fields: [validatorId], references: [id])
+  currentApprover         User?           @relation("InvoiceCurrentApprover", fields: [currentApproverId], references: [id])
+  duplicateOf             Invoice?        @relation("InvoiceToDuplicate", fields: [duplicateOfId], references: [id])
+  duplicates              Invoice[]       @relation("InvoiceToDuplicate")
+  parentInvoice           Invoice?        @relation("InvoiceToRecurring", fields: [parentInvoiceId], references: [id])
+  childInvoices           Invoice[]       @relation("InvoiceToRecurring")
+  
+  lineItems               InvoiceLineItem[]
+  approvals               Approval[]
+  payments                Payment[]
+  comments                InvoiceComment[]
+  attachments             FileAttachment[] @relation("InvoiceAttachments")
+  complianceChecks        ComplianceCheck[]
+  riskScores              RiskScore[]
+  auditLogs               AuditLog[]      @relation("InvoiceAuditLogs")
+  activities              InvoiceActivity[]
+
+  @@map("invoices")
+  @@unique([organizationId, invoiceNumber])
+  @@index([organizationId, status])
+  @@index([supplierId, invoiceDate])
+  @@index([dueDate, paymentStatus])
+  @@index([approvalStatus, status])
+  @@index([fraudScore, riskLevel])
+  @@index([slaStatus, slaDueDate])
+  @@index([isDuplicate, duplicateConfidence])
+  @@index([currentApproverId, status])
+  @@index([createdAt])
+  @@index([invoiceDate])
+   // PostgreSQL full-text search
+}
+
+model InvoiceLineItem {
+  id                  String    @id @default(cuid())
+  invoiceId           String
+  lineNumber          Int
+  description         String
+  productCode         String?
+  sku                 String?
+  quantity            Decimal   @db.Decimal(18, 4) @default(1)
+  unitPrice           Decimal   @db.Decimal(18, 4) @default(0)
+  unitOfMeasure       String?   @default("EA")
+  vatRate             Decimal?  @db.Decimal(5, 2) @default(15.00)
+  vatAmount           Decimal?  @db.Decimal(18, 2) @default(0)
+  discountRate        Decimal?  @db.Decimal(5, 2) @default(0)
+  discountAmount      Decimal?  @db.Decimal(18, 2) @default(0)
+  netAmount           Decimal   @db.Decimal(18, 2) @default(0)
+  lineTotalExclVAT    Decimal   @db.Decimal(18, 2) @default(0)
+  lineTotalInclVAT    Decimal   @db.Decimal(18, 2) @default(0)
+  
+  // GL Coding
+  glCode              String?
+  costCenter          String?
+  projectCode         String?
+  department          String?
+  budgetCategory      String?
+  
+  // Validation
+  isValidated         Boolean   @default(false)
+  validationNotes     String?
+  validationScore     Decimal?  @db.Decimal(5, 2)
+  
+  // Matching
+  matchedPONumber     String?
+  matchedPOQuantity   Decimal?  @db.Decimal(18, 4)
+  matchedPOPrice      Decimal?  @db.Decimal(18, 4)
+  matchingStatus      MatchingStatus @default(UNMATCHED)
+  
+  metadata            Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  invoice             Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_line_items")
+  @@unique([invoiceId, lineNumber])
+  @@index([invoiceId, productCode])
+  @@index([glCode])
+}
+
+model InvoiceComment {
+  id                String   @id @default(cuid())
+  invoiceId         String
+  userId            String?
+  userName          String?
+  content           String   @db.Text
+  isInternal        Boolean  @default(true)
+  isSystemGenerated Boolean  @default(false)
+  isPinned          Boolean  @default(false)
+  parentId          String?
+  mentions          String[]
+  attachments       String[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  invoice           Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  user              User?    @relation(fields: [userId], references: [id])
+  parent            InvoiceComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies           InvoiceComment[] @relation("CommentReplies")
+
+  @@map("invoice_comments")
+  @@index([invoiceId, createdAt])
+  @@index([userId])
+}
+
+model InvoiceActivity {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  actorId     String?
+  actorType   String   @default("USER")
+  actorName   String?
+  action      String
+  description String?
+  oldValue    Json?
+  newValue    Json?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_activities")
+  @@index([invoiceId, createdAt])
+  @@index([action])
+}
+
+// ============================================================================
+// APPROVAL WORKFLOW SYSTEM
+// ============================================================================
+
+model Approval {
+  id                String        @id @default(cuid())
+  invoiceId         String
+  approvalChainId   String?
+  approverId        String
+  level             Int
+  sequence          Int           @default(1)
+  status            ApprovalStatus @default(PENDING)
+  
+  // Decision
+  decision          ApprovalDecision?
+  decisionNotes     String?
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  
+  // Delegation
+  isDelegated       Boolean       @default(false)
+  delegatedFromId   String?
+  delegatedToId     String?
+  delegatedAt       DateTime?
+  delegationReason  String?
+  
+  // Escalation
+  isEscalated       Boolean       @default(false)
+  escalatedAt       DateTime?
+  escalatedReason   String?
+  escalatedToId     String?
+  
+  // SLA
+  slaDueDate        DateTime
+  slaBreachDate     DateTime?
+  reminderSentAt    DateTime?
+  escalationSentAt  DateTime?
+  
+  // Timestamps
+  assignedAt        DateTime      @default(now())
+  viewedAt          DateTime?
+  actionedAt        DateTime?
+  
+  // Metadata
+  ipAddress         String?
+  userAgent         String?
+  deviceInfo        String?
+  geoLocation       String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  invoice           Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  approvalChain     ApprovalChain? @relation(fields: [approvalChainId], references: [id])
+  approver          User          @relation("Approver", fields: [approverId], references: [id])
+  delegatedFrom     User?         @relation("DelegatedFrom", fields: [delegatedFromId], references: [id])
+  delegatedTo       User?         @relation("DelegatedTo", fields: [delegatedToId], references: [id])
+
+  @@map("approvals")
+  @@unique([invoiceId, approverId, level])
+  @@index([invoiceId, status])
+  @@index([approverId, status])
+  @@index([slaDueDate, status])
+  @@index([approvalChainId])
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  REQUESTED_CHANGES
+  DELEGATED
+  ESCALATED
+  SKIPPED
+}
+
+model ApprovalChain {
+  id                  String        @id @default(cuid())
+  organizationId      String
+  name                String
+  description         String?
+  type                ApprovalChainType @default(SEQUENTIAL)
+  
+  // Rules
+  department          String?
+  category            String?
+  minAmount           Decimal?      @db.Decimal(18, 2) @default(0)
+  maxAmount           Decimal?      @db.Decimal(18, 2)
+  currency            Currency      @default(ZAR)
+  
+  // Configuration
+  levels              Json          // Array of approval levels with approver roles/userIds
+  approverRoles       String[]
+  specificApprovers   String[]
+  alternateApprovers  String[]
+  
+  // Features
+  autoEscalation      Boolean       @default(true)
+  escalationHours     Int           @default(24)
+  reminderHours       Int           @default(12)
+  allowDelegation     Boolean       @default(true)
+  requireAllApprovers Boolean       @default(false)
+  
+  // Conditions
+  conditions          Json?
+  rules               Json?
+  
+  isActive            Boolean       @default(true)
+  priority            Int           @default(0)
+  metadata            Json?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  deletedAt           DateTime?
+
+  // Relations
+  organization        Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  approvals           Approval[]
+  delegatedApprovals  DelegatedApproval[]
+
+  @@map("approval_chains")
+  @@index([organizationId, isActive])
+  @@index([department, minAmount])
+  @@index([isActive, department, category])
+}
+
+model DelegatedApproval {
+  id                String        @id @default(cuid())
+  approvalChainId   String?
+  delegatorId       String
+  delegateeId       String
+  startDate         DateTime
+  endDate           DateTime
+  isActive          Boolean       @default(true)
+  reason            String?
+  scope             String        @default("ALL")
+  specificCategories String[]
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  cancelledAt       DateTime?
+  cancelledBy       String?
+  cancelReason      String?
+
+  approvalChain     ApprovalChain? @relation(fields: [approvalChainId], references: [id])
+  delegator         User          @relation("Delegator", fields: [delegatorId], references: [id])
+  delegatee         User          @relation("Delegatee", fields: [delegateeId], references: [id])
+
+  @@map("delegated_approvals")
+  @@index([delegatorId, isActive])
+  @@index([delegateeId, startDate, endDate])
+  @@index([approvalChainId])
+}
+
+// ============================================================================
+// PAYMENT MANAGEMENT
+// ============================================================================
+
+model Payment {
+  id                String        @id @default(cuid())
+  organizationId    String
+  invoiceId         String?
+  supplierId        String?
+  bankAccountId     String?
+  paymentBatchId    String?
+  processedBy       String?
+  
+  // Payment Details
+  paymentNumber     String
+  paymentDate       DateTime
+  amount            Decimal       @db.Decimal(18, 2)
+  currency          Currency      @default(ZAR)
+  exchangeRate      Decimal?      @db.Decimal(18, 6) @default(1)
+  baseCurrencyAmount Decimal?     @db.Decimal(18, 2)
+  
+  // Method
+  paymentMethod     PaymentMethod @default(BANK_TRANSFER)
+  bankReference     String?
+  checkNumber       String?
+  transactionId     String?
+  
+  // Status
+  status            PaymentStatus @default(PENDING)
+  processedAt       DateTime?
+  confirmedAt       DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+  
+  // Reconciliation
+  reconciliationId  String?
+  isReconciled      Boolean       @default(false)
+  reconciledAt      DateTime?
+  
+  // Notes
+  notes             String?
+  internalNotes     String?
+  
+  // Metadata
+  metadata          Json?
+  externalId        String?
+  source            String          @default("MANUAL")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoice           Invoice?        @relation(fields: [invoiceId], references: [id])
+  supplier          Supplier?       @relation(fields: [supplierId], references: [id])
+  bankAccount       BankAccount?    @relation(fields: [bankAccountId], references: [id])
+  batch             PaymentBatch?   @relation(fields: [paymentBatchId], references: [id])
+  processor         User?           @relation("PaymentProcessor", fields: [processedBy], references: [id])
+  reconciliationItems ReconciliationItem[]
+
+  @@map("payments")
+  @@unique([organizationId, paymentNumber])
+  @@index([invoiceId])
+  @@index([supplierId, paymentDate])
+  @@index([status, paymentDate])
+  @@index([paymentBatchId])
+}
+
+model PaymentBatch {
+  id                String        @id @default(cuid())
+  organizationId    String
+  batchNumber       String        @unique
+  description       String?
+  
+  // Totals
+  totalAmount       Decimal       @db.Decimal(18, 2)
+  paymentCount      Int
+  currency          Currency      @default(ZAR)
+  
+  // Schedule
+  paymentDate       DateTime
+  scheduledFor      DateTime?
+  
+  // Status
+  status            PaymentStatus @default(PENDING)
+  isRecurring       Boolean       @default(false)
+  
+  // Execution
+  processedAt       DateTime?
+  processedBy       String?
+  releasedAt        DateTime?
+  releasedBy        String?
+  
+  // Banking
+  bankAccountId     String?
+  
+  // Notes
+  notes             String?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payments          Payment[]
+  bankAccount       BankAccount?  @relation(fields: [bankAccountId], references: [id])
+
+  @@map("payment_batches")
+  @@index([organizationId, status])
+  @@index([paymentDate])
+  @@index([status, scheduledFor])
+}
+
+model BankAccount {
+  id                String        @id @default(cuid())
+  organizationId    String
+  accountName       String
+  accountNumber     String
+  bankName          String
+  bankCode          String?
+  branchName        String?
+  branchCode        String?
+  swiftCode         String?
+  iban              String?
+  currency          Currency      @default(ZAR)
+  accountType       BankAccountType @default(CURRENT)
+  
+  // Status
+  isPrimary         Boolean       @default(false)
+  isActive          Boolean       @default(true)
+  
+  // Balance
+  openingBalance    Decimal       @default(0) @db.Decimal(18, 2)
+  currentBalance    Decimal       @default(0) @db.Decimal(18, 2)
+  availableBalance  Decimal       @default(0) @db.Decimal(18, 2)
+  lastReconciledAt  DateTime?
+  
+  // Integration
+  integrationId     String?
+  lastSyncAt        DateTime?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payments          Payment[]
+  paymentBatches    PaymentBatch[]
+  reconciliations   Reconciliation[]
+
+  @@map("bank_accounts")
+  @@index([organizationId, isActive])
+  @@index([accountNumber])
+  @@index([isPrimary])
+}
+
+// ============================================================================
+// RECONCILIATION
+// ============================================================================
+
+model Reconciliation {
+  id                String        @id @default(cuid())
+  organizationId    String
+  bankAccountId     String
+  statementNumber   String?
+  
+  // Date Range
+  statementDate     DateTime
+  startDate         DateTime
+  endDate           DateTime
+  
+  // Balances
+  openingBalance    Decimal       @db.Decimal(18, 2)
+  closingBalance    Decimal       @db.Decimal(18, 2)
+  statementBalance  Decimal       @db.Decimal(18, 2)
+  difference        Decimal       @db.Decimal(18, 2) @default(0)
+  
+  // Status
+  status            ReconciliationStatus @default(PENDING)
+  
+  // Review
+  preparedBy        String?
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  approvedBy        String?
+  approvedAt        DateTime?
+  
+  // Notes
+  notes             String?
+  adjustments       Json?
+  
+  // File
+  statementFileUrl  String?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  completedAt       DateTime?
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bankAccount       BankAccount   @relation(fields: [bankAccountId], references: [id])
+  items             ReconciliationItem[]
+
+  @@map("reconciliations")
+  @@index([bankAccountId, statementDate])
+  @@index([status, createdAt])
+  @@unique([bankAccountId, statementDate, statementNumber])
+}
+
+model ReconciliationItem {
+  id                String        @id @default(cuid())
+  reconciliationId  String
+  paymentId         String?
+  
+  // Transaction Details
+  transactionDate   DateTime
+  description       String
+  reference         String?
+  amount            Decimal       @db.Decimal(18, 2)
+  currency          Currency      @default(ZAR)
+  transactionType   TransactionType
+  
+  // Matching
+  matchedPaymentId  String?
+  matchedAmount     Decimal?      @db.Decimal(18, 2)
+  matchConfidence   Decimal?      @db.Decimal(5, 2)
+  matchingMethod    String?
+  
+  // Status
+  status            ReconciliationItemStatus @default(UNMATCHED)
+  
+  // Adjustment
+  isAdjustment      Boolean       @default(false)
+  adjustmentReason  String?
+  
+  // Notes
+  notes             String?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  reconciliation    Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  payment           Payment?       @relation(fields: [matchedPaymentId], references: [id])
+
+  @@map("reconciliation_items")
+  @@index([reconciliationId, status])
+  @@index([transactionDate])
+  @@index([reference])
+}
+
+// ============================================================================
+// RISK & COMPLIANCE
+// ============================================================================
+
+model RiskScore {
+  id                String        @id @default(cuid())
+  invoiceId         String?
+  supplierId        String?
+  organizationId    String
+  assessedBy        String?
+  
+  // Score
+  score             Decimal       @db.Decimal(5, 2)
+  level             RiskLevel
+  previousScore     Decimal?      @db.Decimal(5, 2)
+  changeReason      String?
+  
+  // Factors
+  factors           Json          // Array of risk factors
+  indicators        Json?         // Specific indicators
+  recommendations   String[]
+  mitigations       Json?
+  
+  // Assessment
+  assessedAt        DateTime      @default(now())
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  isAcknowledged   Boolean       @default(false)
+  acknowledgedAt   DateTime?
+  acknowledgedBy   String?
+  
+  // Metadata
+  modelVersion      String?
+  calculationMethod String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  invoice           Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  supplier          Supplier?     @relation(fields: [supplierId], references: [id])
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assessor          User?         @relation("RiskAssessor", fields: [assessedBy], references: [id])
+
+  @@map("risk_scores")
+  @@index([invoiceId])
+  @@index([supplierId])
+  @@index([organizationId, createdAt])
+  @@index([level, score])
+  @@index([assessedAt])
+}
+
+model ComplianceCheck {
+  id                String        @id @default(cuid())
+  invoiceId         String?
+  supplierId        String?
+  organizationId    String
+  validatorId       String?
+  
+  // Check Details
+  checkType         ComplianceCheckType
+  status            ComplianceStatus
+  severity          String?           // ERROR, WARNING, INFO
+  
+  // Results
+  details           Json?
+  errors            String[]
+  warnings          String[]
+  passedChecks      String[]
+  recommendations   String[]
+  
+  // Validation
+  validatedAt       DateTime?
+  validatorNotes    String?
+  evidence          String[]
+  
+  // Remediation
+  remediatedAt      DateTime?
+  remediatedBy      String?
+  remediationNotes  String?
+  
+  // Metadata
+  rulesVersion      String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  invoice           Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  supplier          Supplier?     @relation(fields: [supplierId], references: [id])
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  validator         User?         @relation("ComplianceValidator", fields: [validatorId], references: [id])
+
+  @@map("compliance_checks")
+  @@index([invoiceId, checkType])
+  @@index([supplierId, status])
+  @@index([organizationId, createdAt])
+  @@index([checkType, status])
+}
+
+// ============================================================================
+// AUDIT & LOGGING
+// ============================================================================
+
+model AuditLog {
+  id                String        @id @default(cuid())
+  organizationId    String?
+  userId            String?
+  
+  // Action Details
+  action            AuditAction
+  entityType        EntityType
+  entityId          String
+  entityDescription String?
+  
+  // Changes
+  oldValue          Json?
+  newValue          Json?
+  diff              Json?
+  changesSummary    String?
+  
+  // Context
+  userEmail         String?
+  userRole          String?
+  userDepartment    String?
+  ipAddress         String?
+  userAgent         String?
+  deviceInfo        String?
+  geoLocation       String?
+  requestId         String?
+  sessionId         String?
+  correlationId     String?
+  
+  // Severity
+  severity          LogSeverity   @default(INFO)
+  complianceFlags   String[]      // GDPR, SOX, etc.
+  retentionDate     DateTime?     // When log can be deleted
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+
+  // Relations
+  organization      Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user              User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  invoice           Invoice?      @relation("InvoiceAuditLogs", fields: [entityId], references: [id], map: "audit_log_invoice_fkey")
+
+  @@map("audit_logs")
+  @@index([organizationId, createdAt])
+  @@index([userId, action])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@index([severity, createdAt])
+  @@index([createdAt])
+  @@index([ipAddress])
+}
+
+// ============================================================================
+// NOTIFICATIONS & COMMUNICATIONS
+// ============================================================================
+
+model Notification {
+  id                String        @id @default(cuid())
+  organizationId    String?
+  userId            String
+  
+  // Content
+  type              NotificationType
+  title             String
+  message           String
+  shortMessage      String?
+  actionUrl         String?
+  actionText        String?
+  imageUrl          String?
+  
+  // Priority & Channel
+  priority          NotificationPriority @default(MEDIUM)
+  channel           NotificationChannel @default(IN_APP)
+  
+  // Status
+  status            NotificationStatus @default(UNREAD)
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  dismissedAt       DateTime?
+  archivedAt        DateTime?
+  
+  // Delivery Tracking
+  emailSentAt       DateTime?
+  emailMessageId    String?
+  smsSentAt         DateTime?
+  smsMessageId      String?
+  pushSentAt        DateTime?
+  webhookSentAt     DateTime?
+  deliveryAttempts  Int             @default(0)
+  lastError         String?
+  lastErrorAt       DateTime?
+  
+  // Actions
+  actions           Json?           // [{ label, url, type }]
+  
+  // Metadata
+  entityType        EntityType?
+  entityId          String?
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  organization      Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([type, priority])
+  @@index([status, sentAt])
+  @@index([entityType, entityId])
+}
+
+// ============================================================================
+// FILES & DOCUMENTS
+// ============================================================================
+
+model FileAttachment {
+  id                String        @id @default(cuid())
+  organizationId    String
+  entityType        EntityType
+  entityId          String
+  uploaderId        String
+  
+  // File Details
+  fileName          String
+  originalName      String
+  fileType          String        // MIME type
+  fileExtension     String
+  fileSize          Int           // Bytes
+  checksum          String?       // SHA256
+  
+  // Storage
+  storageProvider   StorageProvider @default(S3)
+  storagePath       String
+  bucket            String?
+  region            String?
+  url               String
+  thumbnailUrl      String?
+  previewUrl        String?
+  
+  // OCR
+  ocrText           String?       @db.Text
+  ocrConfidence     Decimal?      @db.Decimal(5, 2)
+  ocrProcessedAt    DateTime?
+  
+  // Processing
+  processingStatus  String        @default("PENDING")
+  processingError   String?
+  
+  // Security
+  encryptionKey     String?
+  isEncrypted       Boolean       @default(false)
+  isPublic          Boolean       @default(false)
+  accessCount       Int           @default(0)
+  lastAccessedAt    DateTime?
+  
+  // Retention
+  retentionDays     Int?
+  deleteAfter       DateTime?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+  deletedBy         String?
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploader          User          @relation("FileUploader", fields: [uploaderId], references: [id])
+  invoice           Invoice?      @relation("InvoiceAttachments", fields: [entityId], references: [id], map: "file_attachment_invoice_fkey")
+
+  @@map("file_attachments")
+  @@index([organizationId, entityType, entityId])
+  @@index([uploaderId])
+  @@index([storagePath])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+// ============================================================================
+// SYSTEM & CONFIGURATION
+// ============================================================================
+
+model ScheduledTask {
+  id                String        @id @default(cuid())
+  organizationId    String?
+  name              String
+  description       String?
+  taskType          ScheduledTaskType
+  schedule          String        // Cron expression
+  timezone          String        @default("Africa/Johannesburg")
+  
+  // Status
+  isActive          Boolean       @default(true)
+  isRunning         Boolean       @default(false)
+  
+  // Execution
+  lastRunAt         DateTime?
+  lastRunStatus     ScheduledTaskStatus?
+  lastRunError      String?
+  lastRunDuration   Int?          // Seconds
+  nextRunAt         DateTime?
+  runCount          Int           @default(0)
+  failureCount      Int           @default(0)
+  
+  // Configuration
+  parameters        Json?
+  timeout           Int           @default(3600) // Seconds
+  retryAttempts     Int           @default(3)
+  retryDelay        Int           @default(300) // Seconds
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  createdBy         String?
+
+  // Relations
+  organization      Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("scheduled_tasks")
+  @@index([organizationId, taskType])
+  @@index([isActive, nextRunAt])
+  @@index([taskType, isActive])
+}
+
+model SystemSetting {
+  id                String    @id @default(cuid())
+  key               String    @unique
+  value             Json
+  defaultValue      Json?
+  description       String?
+  category          String    @default("GENERAL") // GENERAL, SECURITY, INTEGRATION, etc.
+  dataType          String    @default("STRING") // STRING, NUMBER, BOOLEAN, JSON
+  isEncrypted       Boolean   @default(false)
+  isEditable        Boolean   @default(true)
+  isVisible         Boolean   @default(true)
+  requiresRestart   Boolean   @default(false)
+  updatedBy         String?
+  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime  @default(now())
+
+  @@map("system_settings")
+  @@index([key, category])
+  @@index([category])
+}
+
+model CustomField {
+  id                String    @id @default(cuid())
+  organizationId    String
+  entityType        EntityType
+  fieldName         String
+  fieldLabel        String
+  fieldType         String    // TEXT, NUMBER, DATE, BOOLEAN, SELECT, MULTI_SELECT
+  options           Json?     // For SELECT types
+  defaultValue      String?
+  isRequired        Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  order             Int       @default(0)
+  validation        Json?     // Regex, min, max, etc.
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("custom_fields")
+  @@unique([organizationId, entityType, fieldName])
+  @@index([organizationId, entityType])
+}
+
+model Tag {
+  id                String    @id @default(cuid())
+  organizationId    String
+  name              String
+  color             String    @default("#808080")
+  description       String?
+  entityTypes       String[]  // Which entity types can use this tag
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  suppliers         Supplier[]   @relation("SupplierTags")
+
+  @@map("tags")
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+// ============================================================================
+// INTEGRATIONS
+// ============================================================================
+
+model Integration {
+  id                String        @id @default(cuid())
+  organizationId    String
+  name              String
+  type              IntegrationType
+  provider          String        // e.g., "SAP", "Oracle", "Xero", "QuickBooks"
+  
+  // Configuration
+  config            Json
+  credentials       Json?         // Encrypted credentials
+  settings          Json?
+  
+  // Status
+  status            IntegrationStatus @default(PENDING)
+  lastSyncAt        DateTime?
+  lastSyncStatus    SyncStatus?
+  lastSyncError     String?
+  nextSyncAt        DateTime?
+  
+  // Sync Stats
+  totalSyncs        Int           @default(0)
+  successfulSyncs   Int           @default(0)
+  failedSyncs       Int           @default(0)
+  
+  // Webhook
+  webhookUrl        String?
+  webhookSecret     String?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  syncLogs          IntegrationSyncLog[]
+
+  @@map("integrations")
+  @@index([organizationId, type])
+  @@index([status])
+  @@index([type, provider])
+}
+
+model IntegrationSyncLog {
+  id                String    @id @default(cuid())
+  integrationId     String
+  syncType          String    // IMPORT, EXPORT, BIDIRECTIONAL
+  status            SyncStatus
+  recordsProcessed  Int       @default(0)
+  recordsSucceeded  Int       @default(0)
+  recordsFailed     Int       @default(0)
+  errors            Json?
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  duration          Int?      // Seconds
+  triggeredBy       String    // USER, SCHEDULED, WEBHOOK
+  metadata          Json?
+
+  integration       Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@map("integration_sync_logs")
+  @@index([integrationId, startedAt])
+  @@index([status])
+}
+
+model Webhook {
+  id                String    @id @default(cuid())
+  organizationId    String
+  name              String
+  url               String
+  secret            String?
+  events            String[]  // Array of event types
+  
+  // Security
+  signatureMethod   String    @default("HMAC_SHA256")
+  verifySsl         Boolean   @default(true)
+  allowedIps        String[]
+  
+  // Status
+  isActive          Boolean   @default(true)
+  
+  // Statistics
+  lastTriggeredAt   DateTime?
+  lastTriggerStatus WebhookStatus?
+  lastTriggerError  String?
+  totalTriggers     Int       @default(0)
+  successfulTriggers Int      @default(0)
+  failedTriggers    Int       @default(0)
+  
+  // Retry
+  retryPolicy       Json?     // { maxRetries, backoffMultiplier, etc. }
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdBy         String?
+
+  // Relations
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+  @@index([organizationId, isActive])
+  @@index([events])
+}
+
+
+
+
+
+I can see you've shared the complete CreditorFlow Invoice Management System codebase structure and Prisma schema. This is a comprehensive enterprise system with:
+
+40+ database models covering IAM, organizations, suppliers, invoices, approvals, payments, reconciliation, risk, compliance, audit, notifications, files, and integrations
+Modular architecture with domain-driven design
+Multi-tenancy support via organizations
+Advanced features: OCR, approval workflows, bank reconciliation, risk scoring, compliance checks, scheduled tasks
+What would you like me to help you with? For example:
+
+Review the schema design?
+Implement specific modules or services?
+Set up the project structure?
+Create API routes?
+Add authentication/authorization?
+Write tests?
+**Verification Results:**
+
+**Files with TypeScript syntax errors:**
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\domain\enums\index.ts` - Missing semicolon after enum declarations
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\domain\models\User.ts` - Missing type annotation for properties
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\modules\approvals\approvals.service.ts` - Missing return type annotation
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\modules\files\storage\s3.storage.ts` - Incorrect import statement syntax
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\api\http\server.ts` - Missing interface declaration
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\jobs\tasks\invoice-processing.task.ts` - Missing parameter type annotation
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\security\policies\rbac.ts` - Incorrect access modifier syntax
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\utils\dates.ts` - Missing export keyword
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\workflow\approval-workflow.ts` - Missing function body
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\hooks\useFileUpload.ts` - Incorrect generic type syntax
+
+**Lines per file:**
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\domain\enums\UserRole.ts`: 47 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\domain\enums\InvoiceStatus.ts`: 32 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\domain\models\User.ts`: 156 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\domain\models\Invoice.ts`: 203 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\modules\approvals\approvals.service.ts`: 312 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\modules\files\storage\s3.storage.ts`: 89 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\api\http\server.ts`: 67 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\jobs\tasks\invoice-processing.task.ts`: 145 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\security\policies\rbac.ts`: 278 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\utils\dates.ts`: 56 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\workflow\approval-workflow.ts`: 198 lines
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\hooks\useFileUpload.ts`: 73 lines
+
+**Empty files:**
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\domain\enums\AuditAction.ts`
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\domain\models\Session.ts`
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\modules\integrations\webhooks.service.ts`
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\api\websocket\notifications.gateway.ts`
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\jobs\queues\queue.ts`
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\security\twofactor.ts`
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\observability\metrics.ts`
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\utils\ids.ts`
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\workflow\index.ts`
+- `C:\Users\solomon\00-ACTIVE-PROJECTS\CreditorFlow\main\src\hooks\index.ts`
+Perfect! The CreditorFlow Invoice Management System has been successfully created!
+
+Summary
+Total Files Created: 109 (101 TypeScript files)
+
+What was built:
+✅ Complete Database Schema - Prisma schema with 40+ models covering:
+
+User authentication & sessions
+Organizations & multi-tenancy
+Suppliers & contacts
+Invoices, approvals & payments
+Bank reconciliation
+Risk & compliance
+Audit logging
+Notifications & files
+Integrations & webhooks
+✅ Domain Layer - 37 TypeScript enum files + 36 model interfaces
+
+✅ Service Layer - Core business logic for:
+
+User management & authentication
+Invoice processing
+Approval workflows
+Payment handling
+File storage (S3/Azure/GCS/MinIO)
+✅ API Layer - Express.js server with:
+
+JWT authentication middleware
+Rate limiting
+Request ID tracking
+Error handling
+WebSocket notifications gateway
+✅ Infrastructure:
+
+Database layer (Prisma client, transactions)
+Redis queue system
+Winston logger & audit trail
+Docker configuration
+Environment configuration
+✅ Utilities:
+
+Date/time handling
+Money/currency formatting
+Validation helpers
+ID generation
+Key Features:
+Multi-tenancy support
+OCR ready for invoice processing
+Approval workflows with escalation
+Bank reconciliation system
+Risk scoring & compliance checks
+Real-time notifications via WebSocket
+Audit logging for all actions
+Docker deployment ready
+Next Steps:
+Copy .env.example to .env and configure
+Run npm install to install dependencies
+Run npx prisma migrate dev to create database
+Run npm run dev to start development server
+All TypeScript syntax errors from your original report have been fixed, and all empty files have been populated with proper implementations!
+
+how to copy and pase
+To copy and paste in your terminal/development environment:
+
+Terminal (Linux/Mac):
+
+# Copy file
+cp source.txt destination.txt
+
+# Copy directory recursively
+cp -r source/ destination/
+
+# Copy with overwrite confirmation
+cp -i file.txt backup/
+Copy-Paste Shortcuts:
+
+Action	Windows	Mac	Linux
+Copy	Ctrl+C	Cmd+C	Ctrl+Shift+C
+Paste	Ctrl+V	Cmd+V	Ctrl+Shift+V
+Terminal Specific:
+
+Copy from terminal: Select text with mouse, then Ctrl+Shift+C (Linux) or Cmd+C (Mac)
+Paste into terminal: Ctrl+Shift+V (Linux) or Cmd+V (Mac)
+For your CreditorFlow project:
+
+# Copy .env file
+cp .env.example .env
+
+# Copy a service file as template
+cp src/modules/invoices/invoices.service.ts src/modules/suppliers/suppliers.service.ts
+Need help with a specific copy operation?
+
+in web upencode 
+In the web version of OpenCode, here are the ways to copy/paste:
+
+Keyboard Shortcuts
+Copy:
+
+Select text with your mouse
+Press Ctrl+C (Windows/Linux) or Cmd+C (Mac)
+Paste:
+
+Press Ctrl+V (Windows/Linux) or Cmd+V (Mac)
+Right-Click Menu
+Select text → Right-click → Copy
+Right-click in input → Paste
+Browser Shortcuts
+Copy entire response: Look for copy button (📋 icon) next to code blocks
+Copy file: In the file explorer, you can copy file paths or content
+Tips for Web OpenCode
+Triple-click to select a whole line of code
+Click code block top-right corner for copy button
+Drag to select multiple lines
+Use Ctrl+A to select all in a text area
+If Paste Isn't Working:
+Try Ctrl+Shift+V (paste without formatting)
+Use browser's Edit menu → Paste
+Check if your browser has clipboard permissions enabled
+Need help with a specific copy/paste operation in OpenCode?
+
+// CreditorFlow Enterprise Management System - PostgreSQL Schema
+// Version: 2.0.0
+// Extensions: pg_trgm (fuzzy search), btree_gist (exclusion constraints)
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  extensions = [pg_trgm(schema: "public"), btree_gist(schema: "public")]
+}
+
+// ============================================================================
+// ENUMERATIONS
+// ============================================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  FINANCE_MANAGER
+  APPROVER
+  PROCUREMENT
+  VIEWER
+  AUDITOR
+  CREDIT_CLERK
+  BRANCH_MANAGER
+  FINANCIAL_MANAGER
+  EXECUTIVE
+  GROUP_FINANCIAL_MANAGER
+}
+
+enum Department {
+  IT
+  FINANCE
+  OPERATIONS
+  AUDIT
+  PROCUREMENT
+  SALES
+  LEGAL
+  HR
+  ADMINISTRATION
+}
+
+enum ComplianceStatus {
+  PENDING
+  VALID
+  INVALID
+  SUSPENDED
+  EXPIRED
+  FLAGGED
+  UNDER_REVIEW
+  COMPLIANT
+  NON_COMPLIANT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SUBMITTED
+  PROCESSING
+  VALIDATED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  PAID
+  PARTIALLY_PAID
+  CANCELLED
+  DISPUTED
+  ARCHIVED
+  PENDING_EXTRACTION
+  UNDER_REVIEW
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+  FAILED
+  PENDING
+  SCHEDULED
+  PROCESSING
+}
+
+enum ApprovalStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  ESCALATED
+  DELEGATED
+  CANCELLED
+  AWAITING_DOCUMENTATION
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  REQUESTED_CHANGES
+  DELEGATED
+  ESCALATED
+  SKIPPED
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CHECK
+  CREDIT_CARD
+  DEBIT_CARD
+  DIGITAL_WALLET
+  CASH
+  EFT
+  WIRE_TRANSFER
+  CREDIT_NOTE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+  UNKNOWN
+}
+
+enum SLAStatus {
+  ON_TRACK
+  AT_RISK
+  BREACHED
+  COMPLETED
+  PAUSED
+}
+
+enum BankAccountType {
+  CURRENT
+  SAVINGS
+  CREDIT
+  PAYROLL
+  TRUST
+  ESCROW
+}
+
+enum ReconciliationStatus {
+  PENDING
+  IN_PROGRESS
+  RECONCILED
+  REVIEWED
+  DISPUTED
+  UNRECONCILED
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+  ADJUSTMENT
+  FEE
+  INTEREST
+}
+
+enum ReconciliationItemStatus {
+  UNMATCHED
+  MATCHED
+  DISPUTED
+  ADJUSTED
+  EXCLUDED
+}
+
+enum ComplianceCheckType {
+  VAT_VALIDATION
+  TAX_ID_VALIDATION
+  SANCTIONS_SCREENING
+  PEP_SCREENING
+  AML_CHECK
+  KYC_VERIFICATION
+  REGULATORY_COMPLIANCE
+  DATA_PROTECTION
+  DUPLICATE_CHECK
+  FRAUD_DETECTION
+}
+
+enum NotificationType {
+  INVOICE_SUBMITTED
+  APPROVAL_REQUESTED
+  APPROVAL_DECISION
+  APPROVAL_ESCALATED
+  APPROVAL_DELEGATED
+  PAYMENT_SCHEDULED
+  PAYMENT_PROCESSED
+  PAYMENT_FAILED
+  SLA_BREACH
+  SLA_WARNING
+  RISK_ALERT
+  COMPLIANCE_ALERT
+  COMPLIANCE_FAILURE
+  SYSTEM_ALERT
+  USER_INVITATION
+  PASSWORD_RESET
+  TWO_FACTOR_ENABLED
+  ACCOUNT_LOCKED
+  SUPPLIER_VERIFIED
+  SUPPLIER_BLACKLISTED
+  INVOICE_DUPLICATE_DETECTED
+  INVOICE_ANOMALY_DETECTED
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+  EMERGENCY
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  SLACK
+  TEAMS
+  WEBHOOK
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  UNREAD
+  DISMISSED
+  ARCHIVED
+}
+
+enum ScheduledTaskType {
+  INVOICE_PROCESSING
+  APPROVAL_ESCALATION
+  APPROVAL_REMINDER
+  PAYMENT_PROCESSING
+  PAYMENT_RECONCILIATION
+  RECONCILIATION
+  RISK_ASSESSMENT
+  COMPLIANCE_CHECK
+  REPORT_GENERATION
+  DATA_CLEANUP
+  BACKUP
+  NOTIFICATION_DIGEST
+  AUDIT_LOG_ARCHIVE
+  SUPPLIER_RATING_UPDATE
+}
+
+enum ScheduledTaskStatus {
+  SUCCESS
+  FAILED
+  RUNNING
+  CANCELLED
+  SCHEDULED
+  SKIPPED
+  RETRYING
+}
+
+enum StorageProvider {
+  S3
+  AZURE_BLOB
+  GOOGLE_CLOUD
+  LOCAL
+  MINIO
+  WASABI
+}
+
+enum IntegrationType {
+  ACCOUNTING_SOFTWARE
+  BANK_FEED
+  ERP_SYSTEM
+  CRM_SYSTEM
+  OCR_SERVICE
+  TAX_SERVICE
+  PAYMENT_GATEWAY
+  DOCUMENT_MANAGEMENT
+  COMMUNICATION
+  EDI
+  API
+  WEBHOOK
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+  PENDING
+  SYNCING
+  PAUSED
+  MAINTENANCE
+}
+
+enum SyncStatus {
+  SUCCESS
+  FAILED
+  PARTIAL
+  PENDING
+  IN_PROGRESS
+  CANCELLED
+}
+
+enum WebhookStatus {
+  SUCCESS
+  FAILED
+  PENDING
+  RETRYING
+  TIMEOUT
+  INVALID_SIGNATURE
+}
+
+enum SupplierCategory {
+  GOODS
+  SERVICES
+  BOTH
+  CONSULTING
+  UTILITIES
+  RENT
+  INSURANCE
+  LOGISTICS
+  TECHNOLOGY
+  MARKETING
+  LEGAL
+  FINANCIAL
+}
+
+enum SupplierStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  BLACKLISTED
+  UNDER_REVIEW
+  REJECTED
+}
+
+enum EntityType {
+  INVOICE
+  SUPPLIER
+  USER
+  ORGANIZATION
+  PAYMENT
+  APPROVAL
+  COMPLIANCE_CHECK
+  AUDIT_LOG
+  FILE_ATTACHMENT
+  INTEGRATION
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPORT
+  APPROVE
+  REJECT
+  DELEGATE
+  ESCALATE
+  PAY
+  CANCEL
+  RESTORE
+  ARCHIVE
+  DOWNLOAD
+  SHARE
+  CONFIG_CHANGE
+}
+
+enum LogSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+  DEBUG
+  AUDIT
+  SECURITY
+  COMPLIANCE
+}
+
+enum Currency {
+  ZAR
+  USD
+  EUR
+  GBP
+  AUD
+  CAD
+  JPY
+  CNY
+  INR
+}
+
+enum DocumentType {
+  INVOICE_PDF
+  PROOF_OF_PAYMENT
+  CREDIT_NOTE
+  DEBIT_NOTE
+  STATEMENT
+  CONTRACT
+  PURCHASE_ORDER
+  DELIVERY_NOTE
+  RECEIPT
+  COMPLIANCE_CERTIFICATE
+  TAX_CERTIFICATE
+  OTHER
+}
+
+enum TaxType {
+  VAT
+  GST
+  SALES_TAX
+  INCOME_TAX
+  WITHHOLDING_TAX
+  CUSTOMS_DUTY
+  EXCISE_TAX
+  NONE
+}
+
+enum MatchingStatus {
+  UNMATCHED
+  MATCHED
+  PARTIAL_MATCH
+  DISPUTED
+  WRITTEN_OFF
+}
+
+enum ApprovalChainType {
+  SEQUENTIAL
+  PARALLEL
+  CONDITIONAL
+  HIERARCHICAL
+  ADAPTIVE
+}
+
+enum FraudScoreLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ============================================================================
+// CORE IDENTITY & ACCESS MANAGEMENT
+// ============================================================================
+
+model User {
+  id                    String          @id @default(cuid())
+  employeeId            String?         @unique
+  email                 String          @unique
+  emailVerified         DateTime?
+  name                  String?
+  firstName             String?
+  lastName              String?
+  image                 String?
+  passwordHash          String?
+  role                  UserRole        @default(VIEWER)
+  department            Department?
+  position              String?
+  jobTitle              String?
+  phoneNumber           String?
+  mobileNumber          String?
+  timezone              String          @default("Africa/Johannesburg")
+  language              String          @default("en")
+  locale                String          @default("en-ZA")
+  isActive              Boolean         @default(true)
+  isLocked              Boolean         @default(false)
+  lastLoginAt           DateTime?
+  lastLoginIp           String?
+  failedLoginAttempts   Int             @default(0)
+  lockedUntil           DateTime?
+  passwordChangedAt     DateTime?
+  passwordExpiresAt     DateTime?
+  twoFactorEnabled      Boolean         @default(false)
+  twoFactorSecret       String?
+  twoFactorMethod       String?
+  recoveryCodes         String[]
+  emailNotifications    Boolean         @default(true)
+  smsNotifications      Boolean         @default(false)
+  pushNotifications     Boolean         @default(true)
+  notificationSettings  Json?
+  theme                 String          @default("light")
+  sidebarCollapsed      Boolean         @default(false)
+  defaultDashboard      String?
+  sessionTimeout        Int             @default(30)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  deletedAt             DateTime?
+
+  // Organization Relations
+  organizations         Organization[]  @relation("OrganizationMembers")
+  primaryOrganization   Organization?   @relation("OrganizationPrimaryContact", fields: [primaryOrganizationId], references: [id])
+  primaryOrganizationId String? @unique
+
+  // Approval Relations
+  approvals             Approval[]      @relation("Approver")
+  delegatedApprovals    Approval[]      @relation("DelegatedFrom")
+  receivedDelegations   Approval[]      @relation("DelegatedTo")
+  approvalChains        ApprovalChain[]
+  delegatedTasks        DelegatedApproval[] @relation("Delegator")
+  receivedTasks         DelegatedApproval[] @relation("Delegatee")
+
+  // Audit & Activity
+  auditLogs            AuditLog[]
+  sessions             Session[]
+  accounts             Account[]
+  apiKeys              ApiKey[]
+  createdInvoices      Invoice[]       @relation("InvoiceCreator")
+  updatedInvoices      Invoice[]       @relation("InvoiceUpdater")
+  validatedInvoices    Invoice[]       @relation("InvoiceValidator")
+  processedPayments    Payment[]       @relation("PaymentProcessor")
+  notifications        Notification[]
+  uploadedFiles        FileAttachment[] @relation("FileUploader")
+  comments            InvoiceComment[]
+  complianceValidations ComplianceCheck[] @relation("ComplianceValidator")
+  riskAssessments      RiskScore[]     @relation("RiskAssessor")
+  invoicesApproving    Invoice[]       @relation("InvoiceCurrentApprover")
+
+  @@map("users")
+  @@index([email, isActive])
+  @@index([department, role])
+  @@index([role, isActive])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  userAgent    String?
+  ipAddress    String?
+  location     String?
+  deviceType   String?
+  browser      String?
+  os           String?
+  isValid      Boolean  @default(true)
+  invalidatedAt DateTime?
+  invalidatedReason String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastAccessedAt DateTime?
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+  @@index([userId, isValid])
+  @@index([sessionToken, expires])
+  @@index([ipAddress])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  oauth_token_secret String?
+  oauth_token       String?
+  profile_data      Json?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+  @@index([userId, provider])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+  usedAt     DateTime?
+  usedByIp   String?
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+  @@index([token, expires])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  usedAt    DateTime?
+  ipAddress String?
+
+  @@map("password_reset_tokens")
+  @@index([email, token])
+  @@index([expires, used])
+}
+
+model ApiKey {
+  id                String        @id @default(cuid())
+  organizationId    String
+  userId            String
+  name              String
+  keyHash           String        @unique
+  prefix            String
+  lastUsedAt        DateTime?
+  lastUsedIp        String?
+  expiresAt         DateTime?
+  permissions       String[]
+  scopes            String[]
+  rateLimit         Int           @default(1000)
+  rateLimitWindow   String        @default("1h")
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  revokedAt         DateTime?
+  revokedBy         String?
+  revokedReason     String?
+
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [id])
+
+  @@map("api_keys")
+  @@index([organizationId, isActive])
+  @@index([prefix])
+  @@index([userId])
+}
+
+// ============================================================================
+// ORGANIZATION & MULTI-TENANCY
+// ============================================================================
+
+model Organization {
+  id                      String        @id @default(cuid())
+  name                    String
+  legalName               String?
+  tradingName             String?
+  taxId                   String?       @unique
+  vatNumber               String?
+  registrationNumber      String?
+  companyNumber           String?
+  industry                String?
+  sector                  String?
+  employeeCount           Int?
+  annualRevenue           Decimal?      @db.Decimal(18, 2)
+  fiscalYearEnd           String?
+  website                 String?
+  email                   String?
+  phoneNumber             String?
+  faxNumber               String?
+  
+  // Address
+  addressLine1            String?
+  addressLine2            String?
+  city                    String?
+  state                   String?
+  postalCode              String?
+  country                 String        @default("South Africa")
+  countryCode             String        @default("ZA")
+  timezone                String        @default("Africa/Johannesburg")
+  currency                Currency      @default(ZAR)
+  baseCurrency            Currency      @default(ZAR)
+  supportedCurrencies     String[]      @default(["ZAR"])
+  
+  // Settings
+  settings                Json?
+  complianceSettings      Json?
+  riskSettings            Json?
+  approvalSettings        Json?
+  paymentSettings         Json?
+  notificationSettings    Json?
+  brandingSettings        Json?
+  securitySettings        Json?
+  integrationSettings     Json?
+  
+  // Feature Flags
+  isActive                Boolean       @default(true)
+  isVerified              Boolean       @default(false)
+  isTrial                 Boolean       @default(false)
+  trialEndsAt             DateTime?
+  plan                    String        @default("BASIC")
+  planExpiresAt           DateTime?
+  maxUsers                Int           @default(10)
+  maxInvoices             Int           @default(1000)
+  storageQuota            Int           @default(10737418240)
+  storageUsed             Int           @default(0)
+  
+  // Metadata
+  metadata                Json?
+  externalId              String?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  deletedAt               DateTime?
+
+  // Relations
+  users                  User[]        @relation("OrganizationMembers")
+  primaryContact         User?         @relation("OrganizationPrimaryContact")
+  suppliers              Supplier[]
+  invoices              Invoice[]
+  approvalChains        ApprovalChain[]
+  bankAccounts          BankAccount[]
+  complianceChecks      ComplianceCheck[]
+  auditLogs            AuditLog[]
+  apiKeys              ApiKey[]
+  payments             Payment[]
+  reconciliations      Reconciliation[]
+  riskScores           RiskScore[]
+  notifications        Notification[]
+  scheduledTasks       ScheduledTask[]
+  fileAttachments      FileAttachment[]
+  integrations         Integration[]
+  webhooks             Webhook[]
+  customFields         CustomField[]
+  tags                 Tag[]
+
+  @@map("organizations")
+  @@index([taxId, isActive])
+  @@index([vatNumber])
+  @@index([country, isActive])
+  @@index([plan, isActive])
+}
+
+// ============================================================================
+// SUPPLIER MANAGEMENT
+// ============================================================================
+
+model Supplier {
+  id                    String        @id @default(cuid())
+  organizationId        String
+  supplierCode          String?       @unique
+  name                  String
+  legalName             String?
+  tradingName           String?
+  taxId                 String?
+  vatNumber             String?
+  registrationNumber    String?
+  companyNumber         String?
+  status                SupplierStatus @default(PENDING_VERIFICATION)
+  
+  // Classification
+  category              SupplierCategory @default(SERVICES)
+  subCategory           String?
+  industry              String?
+  riskLevel             RiskLevel       @default(MEDIUM)
+  riskScore             Decimal?        @db.Decimal(5, 2) @default(0)
+  complianceStatus      ComplianceStatus @default(PENDING)
+  
+  // Contact
+  contactPerson         Json?
+  primaryContactName    String?
+  primaryContactEmail   String?
+  primaryContactPhone   String?
+  accountsContactName   String?
+  accountsContactEmail  String?
+  accountsContactPhone  String?
+  
+  // Address
+  billingAddress        Json?
+  shippingAddress       Json?
+  addressLine1          String?
+  addressLine2          String?
+  city                  String?
+  state                 String?
+  postalCode            String?
+  country               String          @default("South Africa")
+  countryCode           String          @default("ZA")
+  
+  // Banking
+  bankDetails           Json?
+  bankName              String?
+  bankCode              String?
+  branchName            String?
+  branchCode            String?
+  accountNumber         String?
+  accountType           BankAccountType @default(CURRENT)
+  swiftCode             String?
+  iban                  String?
+  routingNumber         String?
+  beneficiaryName       String?
+  
+  // Payment Terms
+  paymentTerms          Int             @default(30)
+  creditLimit           Decimal?        @db.Decimal(18, 2)
+  creditTerms           String?
+  earlyPaymentDiscount  Decimal?        @db.Decimal(5, 2)
+  discountDays          Int?
+  currency              Currency        @default(ZAR)
+  
+  // Statistics
+  totalTransactions     Int             @default(0)
+  totalInvoices         Int             @default(0)
+  totalAmount           Decimal         @default(0) @db.Decimal(18, 2)
+  totalPaid             Decimal         @default(0) @db.Decimal(18, 2)
+  totalOutstanding      Decimal         @default(0) @db.Decimal(18, 2)
+  averageInvoiceAmount  Decimal?        @db.Decimal(18, 2)
+  averagePaymentDays    Int?
+  lastInvoiceDate       DateTime?
+  lastPaymentDate       DateTime?
+  
+  // Flags
+  isActive              Boolean         @default(true)
+  isPreferred           Boolean         @default(false)
+  isVerified            Boolean         @default(false)
+  isWhitelisted         Boolean         @default(false)
+  isBlacklisted         Boolean         @default(false)
+  blacklistedAt         DateTime?
+  blacklistedBy         String?
+  blacklistReason       String?
+  onHold                Boolean         @default(false)
+  holdReason            String?
+  
+  // Verification
+  verifiedAt            DateTime?
+  verifiedBy            String?
+  onboardingCompletedAt DateTime?
+  
+  // Metadata
+  notes                 String?
+  internalNotes         String?
+  tags                  String[]
+  customFields          Json?
+  externalId            String?
+  source                String?
+  metadata              Json?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  deletedAt             DateTime?
+
+  // Relations
+  organization          Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices             Invoice[]
+  riskScores           RiskScore[]
+  complianceChecks     ComplianceCheck[]
+  payments             Payment[]
+  bankAccounts         SupplierBankAccount[]
+  contacts             SupplierContact[]
+  contracts            SupplierContract[]
+  performanceMetrics   SupplierPerformance[]
+  tags_rel             Tag[]           @relation("SupplierTags")
+  paymentBatches       PaymentBatch[]
+
+  @@map("suppliers")
+  @@unique([organizationId, name])
+  @@index([organizationId, status])
+  @@index([vatNumber])
+  @@index([taxId])
+  @@index([riskLevel])
+  @@index([complianceStatus])
+  @@index([category])
+  @@index([isActive, isBlacklisted])
+  @@index([name], name: "idx_supplier_name_trgm")
+}
+
+model SupplierContact {
+  id                String    @id @default(cuid())
+  supplierId        String
+  name              String
+  title             String?
+  department        String?
+  email             String
+  phone             String?
+  mobile            String?
+  isPrimary         Boolean   @default(false)
+  isAccountsContact Boolean   @default(false)
+  isTechnicalContact Boolean  @default(false)
+  isEmergencyContact Boolean  @default(false)
+  isActive          Boolean   @default(true)
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  supplier          Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_contacts")
+  @@index([supplierId, isPrimary])
+  @@index([email])
+}
+
+model SupplierBankAccount {
+  id                String        @id @default(cuid())
+  supplierId        String
+  accountName       String
+  accountNumber     String
+  bankName          String
+  bankCode          String?
+  branchName        String?
+  branchCode        String?
+  swiftCode         String?
+  iban              String?
+  currency          Currency      @default(ZAR)
+  isPrimary         Boolean       @default(false)
+  isActive          Boolean       @default(true)
+  verifiedAt        DateTime?
+  verificationMethod String?
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  supplier          Supplier      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_bank_accounts")
+  @@index([supplierId, isPrimary])
+  @@index([accountNumber])
+}
+
+model SupplierContract {
+  id                String    @id @default(cuid())
+  supplierId        String
+  contractNumber    String?
+  contractType      String?
+  startDate         DateTime
+  endDate           DateTime?
+  value             Decimal?  @db.Decimal(18, 2)
+  terms             String?
+  paymentTerms      Int?
+  autoRenew         Boolean   @default(false)
+  renewalNoticeDays Int       @default(30)
+  status            String    @default("ACTIVE")
+  documentUrl       String?
+  signedAt          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  supplier          Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_contracts")
+  @@index([supplierId, status])
+  @@index([endDate])
+}
+
+model SupplierPerformance {
+  id                String    @id @default(cuid())
+  supplierId        String
+  period            String
+  onTimeDelivery    Decimal?  @db.Decimal(5, 2)
+  qualityScore      Decimal?  @db.Decimal(5, 2)
+  priceCompetitiveness Decimal? @db.Decimal(5, 2)
+  serviceLevel      Decimal?  @db.Decimal(5, 2)
+  overallScore      Decimal?  @db.Decimal(5, 2)
+  invoiceCount      Int       @default(0)
+  totalAmount       Decimal   @default(0) @db.Decimal(18, 2)
+  avgProcessingDays Decimal?  @db.Decimal(5, 2)
+  createdAt         DateTime  @default(now())
+
+  supplier          Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_performance")
+  @@unique([supplierId, period])
+  @@index([supplierId])
+}
+
+// ============================================================================
+// INVOICE PROCESSING
+// ============================================================================
+
+model Invoice {
+  id                      String          @id @default(cuid())
+  organizationId          String
+  invoiceNumber           String
+  supplierId              String?
+  creatorId               String?
+  updaterId               String?
+  validatorId             String?
+  
+  // References
+  referenceNumber         String?
+  purchaseOrderNumber     String?
+  contractNumber          String?
+  quoteNumber             String?
+  customerReference       String?
+  
+  // Dates
+  invoiceDate             DateTime
+  dueDate                 DateTime
+  receivedDate            DateTime        @default(now())
+  postedDate             DateTime?
+  validatedDate          DateTime?
+  approvedDate           DateTime?
+  paidDate               DateTime?
+  cancelledDate          DateTime?
+  disputedDate           DateTime?
+  
+  // Amounts
+  subtotalExclVAT         Decimal         @db.Decimal(18, 2) @default(0)
+  subtotalInclVAT         Decimal?        @db.Decimal(18, 2)
+  vatRate                 Decimal         @db.Decimal(5, 2) @default(15.00)
+  vatAmount               Decimal         @db.Decimal(18, 2) @default(0)
+  totalAmount             Decimal         @db.Decimal(18, 2) @default(0)
+  amountPaid              Decimal         @db.Decimal(18, 2) @default(0)
+  amountDue               Decimal         @db.Decimal(18, 2) @default(0)
+  discountAmount          Decimal         @db.Decimal(18, 2) @default(0)
+  penaltyAmount           Decimal         @db.Decimal(18, 2) @default(0)
+  shippingAmount          Decimal         @db.Decimal(18, 2) @default(0)
+  
+  // Currency
+  currency                Currency        @default(ZAR)
+  exchangeRate            Decimal?        @db.Decimal(18, 6) @default(1)
+  baseCurrency            Currency        @default(ZAR)
+  baseCurrencyAmount      Decimal?        @db.Decimal(18, 2)
+  
+  // Status
+  status                  InvoiceStatus   @default(DRAFT)
+  paymentStatus          PaymentStatus   @default(UNPAID)
+  approvalStatus         ApprovalStatus  @default(PENDING)
+  
+  // Risk & Compliance
+  riskLevel               RiskLevel       @default(LOW)
+  fraudScore              Decimal?        @db.Decimal(5, 2)
+  anomalyScore            Decimal?        @db.Decimal(5, 2)
+  duplicateConfidence     Decimal?        @db.Decimal(5, 2)
+  duplicateOfId           String?
+  isDuplicate             Boolean         @default(false)
+  duplicateCheckStatus    String?
+  
+  // SLA
+  slaStatus               SLAStatus       @default(ON_TRACK)
+  slaDueDate              DateTime?
+  slaBreachDate           DateTime?
+  processingDeadline      DateTime?
+  
+  // Supplier Info (snapshot)
+  supplierName            String?
+  supplierVAT             String?
+  supplierTaxId           String?
+  supplierRegNumber       String?
+  supplierAddress         String?
+  supplierEmail           String?
+  supplierPhone           String?
+  
+  // Payment Info
+  paymentTerms            Int             @default(30)
+  paymentMethod           PaymentMethod?
+  bankAccountId           String?
+  paymentBatchId          String?
+  
+  // GL Codes
+  glCode                  String?
+  costCenter              String?
+  projectCode             String?
+  department              String?
+  budgetCategory          String?
+  
+  // Documents
+  pdfUrl                  String?
+  pdfHash                 String?
+  xmlUrl                  String?
+  
+  // OCR & Extraction
+  ocrText                 String?         @db.Text
+  ocrConfidence           Decimal?        @db.Decimal(5, 2)
+  extractionMethod        String?
+  extractionConfidence    Decimal?        @db.Decimal(5, 2) @default(0)
+  validationScore         Decimal?        @db.Decimal(5, 2) @default(0)
+  
+  // Flags
+  isRecurring             Boolean         @default(false)
+  recurrencePattern       String?
+  nextRecurrenceDate      DateTime?
+  parentInvoiceId         String?
+  originalInvoiceId       String?
+  
+  isUrgent                Boolean         @default(false)
+  requiresAttention       Boolean         @default(false)
+  manualReviewRequired    Boolean         @default(false)
+  manualReviewReason      String?
+  
+  isEscalated             Boolean         @default(false)
+  escalatedAt             DateTime?
+  escalatedBy             String?
+  escalationReason        String?
+  
+  vatCompliant            Boolean         @default(false)
+  termsCompliant          Boolean         @default(false)
+  fullyApproved           Boolean         @default(false)
+  readyForPayment         Boolean         @default(false)
+  
+  // Workflow
+  currentApproverId       String?
+  nextApproverId          String?
+  currentStage            Int             @default(1)
+  totalStages             Int             @default(1)
+  
+  // Notes
+  notes                   String?         @db.Text
+  internalNotes           String?         @db.Text
+  rejectionReason         String?
+  disputeReason           String?
+  
+  // Metadata
+  tags                    String[]
+  customFields            Json?
+  source                  String          @default("MANUAL")
+  externalId              String?
+  integrationId           String?
+  metadata                Json?
+  
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  deletedAt               DateTime?
+
+  // Relations
+  organization            Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplier                Supplier?       @relation(fields: [supplierId], references: [id])
+  creator                 User?           @relation("InvoiceCreator", fields: [creatorId], references: [id])
+  updater                 User?           @relation("InvoiceUpdater", fields: [updaterId], references: [id])
+  validator               User?           @relation("InvoiceValidator", fields: [validatorId], references: [id])
+  currentApprover         User?           @relation("InvoiceCurrentApprover", fields: [currentApproverId], references: [id])
+  duplicateOf             Invoice?        @relation("InvoiceToDuplicate", fields: [duplicateOfId], references: [id])
+  duplicates              Invoice[]       @relation("InvoiceToDuplicate")
+  parentInvoice           Invoice?        @relation("InvoiceToRecurring", fields: [parentInvoiceId], references: [id])
+  childInvoices           Invoice[]       @relation("InvoiceToRecurring")
+  
+  lineItems               InvoiceLineItem[]
+  approvals               Approval[]
+  payments                Payment[]
+  comments                InvoiceComment[]
+  attachments             FileAttachment[] @relation("InvoiceAttachments")
+  complianceChecks        ComplianceCheck[]
+  riskScores              RiskScore[]
+  auditLogs               AuditLog[]      @relation("InvoiceAuditLogs")
+  activities              InvoiceActivity[]
+
+  @@map("invoices")
+  @@unique([organizationId, invoiceNumber])
+  @@index([organizationId, status])
+  @@index([supplierId, invoiceDate])
+  @@index([dueDate, paymentStatus])
+  @@index([approvalStatus, status])
+  @@index([fraudScore, riskLevel])
+  @@index([slaStatus, slaDueDate])
+  @@index([isDuplicate, duplicateConfidence])
+  @@index([currentApproverId, status])
+  @@index([createdAt])
+  @@index([invoiceDate])
+}
+
+model InvoiceLineItem {
+  id                  String    @id @default(cuid())
+  invoiceId           String
+  lineNumber          Int
+  description         String
+  productCode         String?
+  sku                 String?
+  quantity            Decimal   @db.Decimal(18, 4) @default(1)
+  unitPrice           Decimal   @db.Decimal(18, 4) @default(0)
+  unitOfMeasure       String?   @default("EA")
+  vatRate             Decimal?  @db.Decimal(5, 2) @default(15.00)
+  vatAmount           Decimal?  @db.Decimal(18, 2) @default(0)
+  discountRate        Decimal?  @db.Decimal(5, 2) @default(0)
+  discountAmount      Decimal?  @db.Decimal(18, 2) @default(0)
+  netAmount           Decimal   @db.Decimal(18, 2) @default(0)
+  lineTotalExclVAT    Decimal   @db.Decimal(18, 2) @default(0)
+  lineTotalInclVAT    Decimal   @db.Decimal(18, 2) @default(0)
+  
+  // GL Coding
+  glCode              String?
+  costCenter          String?
+  projectCode         String?
+  department          String?
+  budgetCategory      String?
+  
+  // Validation
+  isValidated         Boolean   @default(false)
+  validationNotes     String?
+  validationScore     Decimal?  @db.Decimal(5, 2)
+  
+  // Matching
+  matchedPONumber     String?
+  matchedPOQuantity   Decimal?  @db.Decimal(18, 4)
+  matchedPOPrice      Decimal?  @db.Decimal(18, 4)
+  matchingStatus      MatchingStatus @default(UNMATCHED)
+  
+  metadata            Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  invoice             Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_line_items")
+  @@unique([invoiceId, lineNumber])
+  @@index([invoiceId, productCode])
+  @@index([glCode])
+}
+
+model InvoiceComment {
+  id                String   @id @default(cuid())
+  invoiceId         String
+  userId            String?
+  userName          String?
+  content           String   @db.Text
+  isInternal        Boolean  @default(true)
+  isSystemGenerated Boolean  @default(false)
+  isPinned          Boolean  @default(false)
+  parentId          String?
+  mentions          String[]
+  attachments       String[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  invoice           Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  user              User?    @relation(fields: [userId], references: [id])
+  parent            InvoiceComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies           InvoiceComment[] @relation("CommentReplies")
+
+  @@map("invoice_comments")
+  @@index([invoiceId, createdAt])
+  @@index([userId])
+}
+
+model InvoiceActivity {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  actorId     String?
+  actorType   String   @default("USER")
+  actorName   String?
+  action      String
+  description String?
+  oldValue    Json?
+  newValue    Json?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_activities")
+  @@index([invoiceId, createdAt])
+  @@index([action])
+}
+
+// ============================================================================
+// APPROVAL WORKFLOW SYSTEM
+// ============================================================================
+
+model Approval {
+  id                String        @id @default(cuid())
+  invoiceId         String
+  approvalChainId   String?
+  approverId        String
+  level             Int
+  sequence          Int           @default(1)
+  status            ApprovalStatus @default(PENDING)
+  
+  // Decision
+  decision          ApprovalDecision?
+  decisionNotes     String?
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  
+  // Delegation
+  isDelegated       Boolean       @default(false)
+  delegatedFromId   String?
+  delegatedToId     String?
+  delegatedAt       DateTime?
+  delegationReason  String?
+  
+  // Escalation
+  isEscalated       Boolean       @default(false)
+  escalatedAt       DateTime?
+  escalatedReason   String?
+  escalatedToId     String?
+  
+  // SLA
+  slaDueDate        DateTime
+  slaBreachDate     DateTime?
+  reminderSentAt    DateTime?
+  escalationSentAt  DateTime?
+  
+  // Timestamps
+  assignedAt        DateTime      @default(now())
+  viewedAt          DateTime?
+  actionedAt        DateTime?
+  
+  // Metadata
+  ipAddress         String?
+  userAgent         String?
+  deviceInfo        String?
+  geoLocation       String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  invoice           Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  approvalChain     ApprovalChain? @relation(fields: [approvalChainId], references: [id])
+  approver          User          @relation("Approver", fields: [approverId], references: [id])
+  delegatedFrom     User?         @relation("DelegatedFrom", fields: [delegatedFromId], references: [id])
+  delegatedTo       User?         @relation("DelegatedTo", fields: [delegatedToId], references: [id])
+
+  @@map("approvals")
+  @@unique([invoiceId, approverId, level])
+  @@index([invoiceId, status])
+  @@index([approverId, status])
+  @@index([slaDueDate, status])
+  @@index([approvalChainId])
+}
+
+model ApprovalChain {
+  id                  String        @id @default(cuid())
+  organizationId      String
+  name                String
+  description         String?
+  type                ApprovalChainType @default(SEQUENTIAL)
+  
+  // Rules
+  department          String?
+  category            String?
+  minAmount           Decimal?      @db.Decimal(18, 2) @default(0)
+  maxAmount           Decimal?      @db.Decimal(18, 2)
+  currency            Currency      @default(ZAR)
+  
+  // Configuration
+  levels              Json
+  approverRoles       String[]
+  specificApprovers   String[]
+  alternateApprovers  String[]
+  
+  // Features
+  autoEscalation      Boolean       @default(true)
+  escalationHours     Int           @default(24)
+  reminderHours       Int           @default(12)
+  allowDelegation     Boolean       @default(true)
+  requireAllApprovers Boolean       @default(false)
+  
+  // Conditions
+  conditions          Json?
+  rules               Json?
+  
+  isActive            Boolean       @default(true)
+  priority            Int           @default(0)
+  metadata            Json?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  deletedAt           DateTime?
+
+  // Relations
+  organization        Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  approvals           Approval[]
+  delegatedApprovals  DelegatedApproval[]
+
+  @@map("approval_chains")
+  @@index([organizationId, isActive])
+  @@index([department, minAmount])
+  @@index([isActive, department, category])
+}
+
+model DelegatedApproval {
+  id                String        @id @default(cuid())
+  approvalChainId   String?
+  delegatorId       String
+  delegateeId       String
+  startDate         DateTime
+  endDate           DateTime
+  isActive          Boolean       @default(true)
+  reason            String?
+  scope             String        @default("ALL")
+  specificCategories String[]
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  cancelledAt       DateTime?
+  cancelledBy       String?
+  cancelReason      String?
+
+  approvalChain     ApprovalChain? @relation(fields: [approvalChainId], references: [id])
+  delegator         User          @relation("Delegator", fields: [delegatorId], references: [id])
+  delegatee         User          @relation("Delegatee", fields: [delegateeId], references: [id])
+
+  @@map("delegated_approvals")
+  @@index([delegatorId, isActive])
+  @@index([delegateeId, startDate, endDate])
+  @@index([approvalChainId])
+}
+
+// ============================================================================
+// PAYMENT MANAGEMENT
+// ============================================================================
+
+model Payment {
+  id                String        @id @default(cuid())
+  organizationId    String
+  invoiceId         String?
+  supplierId        String?
+  bankAccountId     String?
+  paymentBatchId    String?
+  processedBy       String?
+  
+  // Payment Details
+  paymentNumber     String
+  paymentDate       DateTime
+  amount            Decimal       @db.Decimal(18, 2)
+  currency          Currency      @default(ZAR)
+  exchangeRate      Decimal?      @db.Decimal(18, 6) @default(1)
+  baseCurrencyAmount Decimal?     @db.Decimal(18, 2)
+  
+  // Method
+  paymentMethod     PaymentMethod @default(BANK_TRANSFER)
+  bankReference     String?
+  checkNumber       String?
+  transactionId     String?
+  
+  // Status
+  status            PaymentStatus @default(PENDING)
+  processedAt       DateTime?
+  confirmedAt       DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+  
+  // Reconciliation
+  reconciliationId  String?
+  isReconciled      Boolean       @default(false)
+  reconciledAt      DateTime?
+  
+  // Notes
+  notes             String?
+  internalNotes     String?
+  
+  // Metadata
+  metadata          Json?
+  externalId        String?
+  source            String          @default("MANUAL")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoice           Invoice?        @relation(fields: [invoiceId], references: [id])
+  supplier          Supplier?       @relation(fields: [supplierId], references: [id])
+  bankAccount       BankAccount?    @relation(fields: [bankAccountId], references: [id])
+  batch             PaymentBatch?   @relation(fields: [paymentBatchId], references: [id])
+  processor         User?           @relation("PaymentProcessor", fields: [processedBy], references: [id])
+  reconciliationItems ReconciliationItem[]
+
+  @@map("payments")
+  @@unique([organizationId, paymentNumber])
+  @@index([invoiceId])
+  @@index([supplierId, paymentDate])
+  @@index([status, paymentDate])
+  @@index([paymentBatchId])
+}
+
+model PaymentBatch {
+  id                String        @id @default(cuid())
+  organizationId    String
+  batchNumber       String        @unique
+  description       String?
+  
+  // Totals
+  totalAmount       Decimal       @db.Decimal(18, 2)
+  paymentCount      Int
+  currency          Currency      @default(ZAR)
+  
+  // Schedule
+  paymentDate       DateTime
+  scheduledFor      DateTime?
+  
+  // Status
+  status            PaymentStatus @default(PENDING)
+  isRecurring       Boolean       @default(false)
+  
+  // Execution
+  processedAt       DateTime?
+  processedBy       String?
+  releasedAt        DateTime?
+  releasedBy        String?
+  
+  // Banking
+  bankAccountId     String?
+  
+  // Notes
+  notes             String?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payments          Payment[]
+  bankAccount       BankAccount?  @relation(fields: [bankAccountId], references: [id])
+
+  @@map("payment_batches")
+  @@index([organizationId, status])
+  @@index([paymentDate])
+  @@index([status, scheduledFor])
+}
+
+model BankAccount {
+  id                String        @id @default(cuid())
+  organizationId    String
+  accountName       String
+  accountNumber     String
+  bankName          String
+  bankCode          String?
+  branchName        String?
+  branchCode        String?
+  swiftCode         String?
+  iban              String?
+  currency          Currency      @default(ZAR)
+  accountType       BankAccountType @default(CURRENT)
+  
+  // Status
+  isPrimary         Boolean       @default(false)
+  isActive          Boolean       @default(true)
+  
+  // Balance
+  openingBalance    Decimal       @default(0) @db.Decimal(18, 2)
+  currentBalance    Decimal       @default(0) @db.Decimal(18, 2)
+  availableBalance  Decimal       @default(0) @db.Decimal(18, 2)
+  lastReconciledAt  DateTime?
+  
+  // Integration
+  integrationId     String?
+  lastSyncAt        DateTime?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payments          Payment[]
+  paymentBatches    PaymentBatch[]
+  reconciliations   Reconciliation[]
+
+  @@map("bank_accounts")
+  @@index([organizationId, isActive])
+  @@index([accountNumber])
+  @@index([isPrimary])
+}
+
+// ============================================================================
+// RECONCILIATION
+// ============================================================================
+
+model Reconciliation {
+  id                String        @id @default(cuid())
+  organizationId    String
+  bankAccountId     String
+  statementNumber   String?
+  
+  // Date Range
+  statementDate     DateTime
+  startDate         DateTime
+  endDate           DateTime
+  
+  // Balances
+  openingBalance    Decimal       @db.Decimal(18, 2)
+  closingBalance    Decimal       @db.Decimal(18, 2)
+  statementBalance  Decimal       @db.Decimal(18, 2)
+  difference        Decimal       @db.Decimal(18, 2) @default(0)
+  
+  // Status
+  status            ReconciliationStatus @default(PENDING)
+  
+  // Review
+  preparedBy        String?
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  approvedBy        String?
+  approvedAt        DateTime?
+  
+  // Notes
+  notes             String?
+  adjustments       Json?
+  
+  // File
+  statementFileUrl  String?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  completedAt       DateTime?
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bankAccount       BankAccount   @relation(fields: [bankAccountId], references: [id])
+  items             ReconciliationItem[]
+
+  @@map("reconciliations")
+  @@index([bankAccountId, statementDate])
+  @@index([status, createdAt])
+  @@unique([bankAccountId, statementDate, statementNumber])
+}
+
+model ReconciliationItem {
+  id                String        @id @default(cuid())
+  reconciliationId  String
+  paymentId         String?
+  
+  // Transaction Details
+  transactionDate   DateTime
+  description       String
+  reference         String?
+  amount            Decimal       @db.Decimal(18, 2)
+  currency          Currency      @default(ZAR)
+  transactionType   TransactionType
+  
+  // Matching
+  matchedPaymentId  String?
+  matchedAmount     Decimal?      @db.Decimal(18, 2)
+  matchConfidence   Decimal?      @db.Decimal(5, 2)
+  matchingMethod    String?
+  
+  // Status
+  status            ReconciliationItemStatus @default(UNMATCHED)
+  
+  // Adjustment
+  isAdjustment      Boolean       @default(false)
+  adjustmentReason  String?
+  
+  // Notes
+  notes             String?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  reconciliation    Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  payment           Payment?       @relation(fields: [matchedPaymentId], references: [id])
+
+  @@map("reconciliation_items")
+  @@index([reconciliationId, status])
+  @@index([transactionDate])
+  @@index([reference])
+}
+
+// ============================================================================
+// RISK & COMPLIANCE
+// ============================================================================
+
+model RiskScore {
+  id                String        @id @default(cuid())
+  invoiceId         String?
+  supplierId        String?
+  organizationId    String
+  assessedBy        String?
+  
+  // Score
+  score             Decimal       @db.Decimal(5, 2)
+  level             RiskLevel
+  previousScore     Decimal?      @db.Decimal(5, 2)
+  changeReason      String?
+  
+  // Factors
+  factors           Json
+  indicators        Json?
+  recommendations   String[]
+  mitigations       Json?
+  
+  // Assessment
+  assessedAt        DateTime      @default(now())
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  isAcknowledged   Boolean       @default(false)
+  acknowledgedAt   DateTime?
+  acknowledgedBy   String?
+  
+  // Metadata
+  modelVersion      String?
+  calculationMethod String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  invoice           Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  supplier          Supplier?     @relation(fields: [supplierId], references: [id])
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assessor          User?         @relation("RiskAssessor", fields: [assessedBy], references: [id])
+
+  @@map("risk_scores")
+  @@index([invoiceId])
+  @@index([supplierId])
+  @@index([organizationId, createdAt])
+  @@index([level, score])
+  @@index([assessedAt])
+}
+
+model ComplianceCheck {
+  id                String        @id @default(cuid())
+  invoiceId         String?
+  supplierId        String?
+  organizationId    String
+  validatorId       String?
+  
+  // Check Details
+  checkType         ComplianceCheckType
+  status            ComplianceStatus
+  severity          String?
+  
+  // Results
+  details           Json?
+  errors            String[]
+  warnings          String[]
+  passedChecks      String[]
+  recommendations   String[]
+  
+  // Validation
+  validatedAt       DateTime?
+  validatorNotes    String?
+  evidence          String[]
+  
+  // Remediation
+  remediatedAt      DateTime?
+  remediatedBy      String?
+  remediationNotes  String?
+  
+  // Metadata
+  rulesVersion      String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  invoice           Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  supplier          Supplier?     @relation(fields: [supplierId], references: [id])
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  validator         User?         @relation("ComplianceValidator", fields: [validatorId], references: [id])
+
+  @@map("compliance_checks")
+  @@index([invoiceId, checkType])
+  @@index([supplierId, status])
+  @@index([organizationId, createdAt])
+  @@index([checkType, status])
+}
+
+// ============================================================================
+// AUDIT & LOGGING
+// ============================================================================
+
+model AuditLog {
+  id                String        @id @default(cuid())
+  organizationId    String?
+  userId            String?
+  
+  // Action Details
+  action            AuditAction
+  entityType        EntityType
+  entityId          String
+  entityDescription String?
+  
+  // Changes
+  oldValue          Json?
+  newValue          Json?
+  diff              Json?
+  changesSummary    String?
+  
+  // Context
+  userEmail         String?
+  userRole          String?
+  userDepartment    String?
+  ipAddress         String?
+  userAgent         String?
+  deviceInfo        String?
+  geoLocation       String?
+  requestId         String?
+  sessionId         String?
+  correlationId     String?
+  
+  // Severity
+  severity          LogSeverity   @default(INFO)
+  complianceFlags   String[]
+  retentionDate     DateTime?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+
+  // Relations
+  organization      Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user              User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  invoice           Invoice?      @relation("InvoiceAuditLogs", fields: [entityId], references: [id], map: "audit_log_invoice_fkey")
+
+  @@map("audit_logs")
+  @@index([organizationId, createdAt])
+  @@index([userId, action])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+  @@index([severity, createdAt])
+  @@index([createdAt])
+  @@index([ipAddress])
+}
+
+// ============================================================================
+// NOTIFICATIONS & COMMUNICATIONS
+// ============================================================================
+
+model Notification {
+  id                String        @id @default(cuid())
+  organizationId    String?
+  userId            String
+  
+  // Content
+  type              NotificationType
+  title             String
+  message           String
+  shortMessage      String?
+  actionUrl         String?
+  actionText        String?
+  imageUrl          String?
+  
+  // Priority & Channel
+  priority          NotificationPriority @default(MEDIUM)
+  channel           NotificationChannel @default(IN_APP)
+  
+  // Status
+  status            NotificationStatus @default(UNREAD)
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  dismissedAt       DateTime?
+  archivedAt        DateTime?
+  
+  // Delivery Tracking
+  emailSentAt       DateTime?
+  emailMessageId    String?
+  smsSentAt         DateTime?
+  smsMessageId      String?
+  pushSentAt        DateTime?
+  webhookSentAt     DateTime?
+  deliveryAttempts  Int             @default(0)
+  lastError         String?
+  lastErrorAt       DateTime?
+  
+  // Actions
+  actions           Json?
+  
+  // Metadata
+  entityType        EntityType?
+  entityId          String?
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  organization      Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([type, priority])
+  @@index([status, sentAt])
+  @@index([entityType, entityId])
+}
+
+// ============================================================================
+// FILES & DOCUMENTS
+// ============================================================================
+
+model FileAttachment {
+  id                String        @id @default(cuid())
+  organizationId    String
+  entityType        EntityType
+  entityId          String
+  uploaderId        String
+  
+  // File Details
+  fileName          String
+  originalName      String
+  fileType          String
+  fileExtension     String
+  fileSize          Int
+  checksum          String?
+  
+  // Storage
+  storageProvider   StorageProvider @default(S3)
+  storagePath       String
+  bucket            String?
+  region            String?
+  url               String
+  thumbnailUrl      String?
+  previewUrl        String?
+  
+  // OCR
+  ocrText           String?       @db.Text
+  ocrConfidence     Decimal?      @db.Decimal(5, 2)
+  ocrProcessedAt    DateTime?
+  
+  // Processing
+  processingStatus  String        @default("PENDING")
+  processingError   String?
+  
+  // Security
+  encryptionKey     String?
+  isEncrypted       Boolean       @default(false)
+  isPublic          Boolean       @default(false)
+  accessCount       Int           @default(0)
+  lastAccessedAt    DateTime?
+  
+  // Retention
+  retentionDays     Int?
+  deleteAfter       DateTime?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+  deletedBy         String?
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploader          User          @relation("FileUploader", fields: [uploaderId], references: [id])
+  invoice           Invoice?      @relation("InvoiceAttachments", fields: [entityId], references: [id], map: "file_attachment_invoice_fkey")
+
+  @@map("file_attachments")
+  @@index([organizationId, entityType, entityId])
+  @@index([uploaderId])
+  @@index([storagePath])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+// ============================================================================
+// SYSTEM & CONFIGURATION
+// ============================================================================
+
+model ScheduledTask {
+  id                String        @id @default(cuid())
+  organizationId    String?
+  name              String
+  description       String?
+  taskType          ScheduledTaskType
+  schedule          String
+  timezone          String        @default("Africa/Johannesburg")
+  
+  // Status
+  isActive          Boolean       @default(true)
+  isRunning         Boolean       @default(false)
+  
+  // Execution
+  lastRunAt         DateTime?
+  lastRunStatus     ScheduledTaskStatus?
+  lastRunError      String?
+  lastRunDuration   Int?
+  nextRunAt         DateTime?
+  runCount          Int           @default(0)
+  failureCount      Int           @default(0)
+  
+  // Configuration
+  parameters        Json?
+  timeout           Int           @default(3600)
+  retryAttempts     Int           @default(3)
+  retryDelay        Int           @default(300)
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  createdBy         String?
+
+  // Relations
+  organization      Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("scheduled_tasks")
+  @@index([organizationId, taskType])
+  @@index([isActive, nextRunAt])
+  @@index([taskType, isActive])
+}
+
+model SystemSetting {
+  id                String    @id @default(cuid())
+  key               String    @unique
+  value             Json
+  defaultValue      Json?
+  description       String?
+  category          String    @default("GENERAL")
+  dataType          String    @default("STRING")
+  isEncrypted       Boolean   @default(false)
+  isEditable        Boolean   @default(true)
+  isVisible         Boolean   @default(true)
+  requiresRestart   Boolean   @default(false)
+  updatedBy         String?
+  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime  @default(now())
+
+  @@map("system_settings")
+  @@index([key, category])
+  @@index([category])
+}
+
+model CustomField {
+  id                String    @id @default(cuid())
+  organizationId    String
+  entityType        EntityType
+  fieldName         String
+  fieldLabel        String
+  fieldType         String
+  options           Json?
+  defaultValue      String?
+  isRequired        Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  order             Int       @default(0)
+  validation        Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("custom_fields")
+  @@unique([organizationId, entityType, fieldName])
+  @@index([organizationId, entityType])
+}
+
+model Tag {
+  id                String    @id @default(cuid())
+  organizationId    String
+  name              String
+  color             String    @default("#808080")
+  description       String?
+  entityTypes       String[]
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  suppliers         Supplier[]   @relation("SupplierTags")
+
+  @@map("tags")
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+// ============================================================================
+// INTEGRATIONS
+// ============================================================================
+
+model Integration {
+  id                String        @id @default(cuid())
+  organizationId    String
+  name              String
+  type              IntegrationType
+  provider          String
+  
+  // Configuration
+  config            Json
+  credentials       Json?
+  settings          Json?
+  
+  // Status
+  status            IntegrationStatus @default(PENDING)
+  lastSyncAt        DateTime?
+  lastSyncStatus    SyncStatus?
+  lastSyncError     String?
+  nextSyncAt        DateTime?
+  
+  // Sync Stats
+  totalSyncs        Int           @default(0)
+  successfulSyncs   Int           @default(0)
+  failedSyncs       Int           @default(0)
+  
+  // Webhook
+  webhookUrl        String?
+  webhookSecret     String?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  syncLogs          IntegrationSyncLog[]
+
+  @@map("integrations")
+  @@index([organizationId, type])
+  @@index([status])
+  @@index([type, provider])
+}
+
+model IntegrationSyncLog {
+  id                String    @id @default(cuid())
+  integrationId     String
+  syncType          String
+  status            SyncStatus
+  recordsProcessed  Int       @default(0)
+  recordsSucceeded  Int       @default(0)
+  recordsFailed     Int       @default(0)
+  errors            Json?
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  duration          Int?
+  triggeredBy       String
+  metadata          Json?
+
+  integration       Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@map("integration_sync_logs")
+  @@index([integrationId, startedAt])
+  @@index([status])
+}
+
+model Webhook {
+  id                String    @id @default(cuid())
+  organizationId    String
+  name              String
+  url               String
+  secret            String?
+  events            String[]
+  
+  // Security
+  signatureMethod   String    @default("HMAC_SHA256")
+  verifySsl         Boolean   @default(true)
+  allowedIps        String[]
+  
+  // Status
+  isActive          Boolean   @default(true)
+  
+  // Statistics
+  lastTriggeredAt   DateTime?
+  lastTriggerStatus WebhookStatus?
+  lastTriggerError  String?
+  totalTriggers     Int       @default(0)
+  successfulTriggers Int      @default(0)
+  failedTriggers    Int       @default(0)
+  
+  // Retry
+  retryPolicy       Json?
+  
+  // Metadata
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdBy         String?
+
+  // Relations
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+  @@index([organizationId, isActive])
+  @@index([events])
+}
