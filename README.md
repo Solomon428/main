@@ -1,29 +1,17 @@
-# CREDITORFLOW - Enterprise Invoice Management System
+set -euo pipefail
 
-## Technology Stack
-- **Frontend**: Next.js 14 (App Router) with TypeScript
-- **Backend**: Python gRPC Microservices
-- **Database**: PostgreSQL 15+
-- **Cache/Queue**: Redis
-- **ORM**: Prisma
-- **Authentication**: Supabase Auth
-- **Styling**: Tailwind CSS + shadcn/ui
-- **Containerization**: Docker & Docker Compose
+PROJECT="CREDITORFLOW"
 
-## Quick Start
+mkdir -p "$PROJECT"
+cd "$PROJECT"
 
-### Prerequisites
-- Node.js 18+
-- Python 3.11+
-- Docker & Docker Compose
-- PostgreSQL 15+
-- Redis 7+
+# Safety: don't overwrite an existing project by accident
+if [ -f package.json ]; then
+  echo "ERROR: package.json already exists in $(pwd). Aborting to avoid overwrite."
+  exit 1
+fi
 
-### Installation
-
-1. **Clone and navigate to project**
-```bash
-cd CREDITORFLOW# Create the full directory structure
+# Create the full directory structure
 mkdir -p src/app/{api,dashboard,invoices,approvals,suppliers,reports}
 mkdir -p src/components/{ui,dashboard,invoices}
 mkdir -p src/lib/{database,utils}
@@ -34,9 +22,8 @@ mkdir -p uploads/invoices
 mkdir -p tests/{unit,integration,e2e}
 mkdir -p supabase
 
-# Create key files with basic structure
-# 1. Package.json for Node.js/Next.js
-cat > package.json << 'EOF'
+# Create package.json (heredoc must end with EOF on its own line)
+cat > package.json <<'EOF'
 {
   "name": "creditorflow",
   "version": "1.0.0",
@@ -90,3 +77,5 @@ cat > package.json << 'EOF'
     "@testing-library/user-event": "^14.0.0"
   }
 }
+EOF
+
