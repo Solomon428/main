@@ -2,7 +2,5 @@
 export * from './cn';
 export * from './formatters';
 export * from './audit-logger';
-export * from './pdf-processor';
-export * from '@/lib/pdf-processor';
-export * from '../pdf-processor';
+// PDF extraction utilities are accessed via the canonical pdf-processor module.
 export * from '../job-queue';
