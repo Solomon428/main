@@ -18,37 +18,7 @@ export * from './types';
 // Constants
 export * from './constants';
 
-// Utility functions
-export {
-  saveTempFile,
-  cleanupTempFiles,
-  readFile,
-  normalizeText,
-  cleanText,
-  detectLanguage,
-  detectDocumentType,
-  detectDocumentSubType,
-  categorizeDocument,
-  detectDocumentCountry,
-  detectDocumentCurrency,
-  generateRandomString,
-  createAuditEntry,
-  getSystemInfo,
-  getEnvironmentInfo,
-  getSecurityInfo,
-  generateIntegrityCheck,
-  persistProcessingResults,
-  getFallbackExtractionMethod,
-  calculateCompletenessScore,
-  extractKeyValuePairs,
-  detectSections,
-  detectForms,
-  detectAndExtractTables,
-  extractFieldsWithPatterns,
-  checkForTextContent,
-  checkForImages,
-  detectTables
-} from './utils';
+// Do not re-export utilities here to avoid cross-module coupling.
 
 // Data extractors
 export {
