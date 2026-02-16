@@ -10,7 +10,7 @@
 
 import { readFile } from 'fs/promises';
 import { ExtractedInvoiceData } from '@/types';
-import { PDFExtractor } from './pdf-extractor';
+import { PDFExtractor } from '@/lib/pdf-processor';
 import { ollamaClient } from '../ollama';
 
 // Use require for pdf-parse to avoid ES module issues
