@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { mkdir } from 'fs/promises';
-import { PDFExtractor } from '@/lib/utils/pdf-extractor';
+import { PDFExtractor } from '@/lib/pdf-processor';
 import { prisma } from '../../../lib/prisma';
 import { AuditLogger } from '@/lib/utils/audit-logger';
 import { authMiddleware } from '@/lib/middleware/auth';

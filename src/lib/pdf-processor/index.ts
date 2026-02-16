@@ -9,6 +9,9 @@
 // Core exports
 export { PDFProcessor, pdfProcessor } from './core';
 
+// Re-export PDFExtractor to support wrapper-based migration
+export { PDFExtractor } from '../utils/pdf-extractor';
+
 // Type exports
 export * from './types';
 

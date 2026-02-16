@@ -136,7 +136,7 @@ export class InvoiceParser {
 
     try {
       // Import PDFExtractor for actual text extraction
-      const { PDFExtractor } = await import('@/lib/utils/pdf-extractor');
+      const { PDFExtractor } = await import('@/lib/pdf-processor');
       const text = await PDFExtractor.extractText(filePath);
 
       // Estimate page count (approximately 3000 chars per page)
