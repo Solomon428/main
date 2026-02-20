@@ -1,5 +1,5 @@
-import { ScheduledTaskType } from '../enums/ScheduledTaskType';
-import { ScheduledTaskStatus } from '../enums/ScheduledTaskStatus';
+import { ScheduledTaskType } from "../enums/ScheduledTaskType";
+import { ScheduledTaskStatus } from "../enums/ScheduledTaskStatus";
 
 export interface ScheduledTask {
   id: string;

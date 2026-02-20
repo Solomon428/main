@@ -2,16 +2,16 @@
  * Spending Analytics API Route
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { SupplierAnalyticsService } from '@/services/supplier-analytics-service';
-import { prisma } from '../../../lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { SupplierAnalyticsService } from "@/services/supplier-analytics-service";
+import { prisma } from "@/db/prisma";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const startDateStr = searchParams.get('startDate');
-    const endDateStr = searchParams.get('endDate');
-    const groupBy = searchParams.get('groupBy') || 'month';
+    const startDateStr = searchParams.get("startDate");
+    const endDateStr = searchParams.get("endDate");
+    const groupBy = searchParams.get("groupBy") || "month";
 
     const startDate = startDateStr
       ? new Date(startDateStr)
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
           lte: endDate,
         },
         status: {
-          notIn: ['CANCELLED', 'REJECTED'],
+          notIn: ["CANCELLED", "REJECTED"],
         },
       },
     });
@@ -46,9 +46,9 @@ export async function GET(req: NextRequest) {
       const date = new Date(invoice.invoiceDate);
       let periodKey: string;
 
-      if (groupBy === 'month') {
-        periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      } else if (groupBy === 'quarter') {
+      if (groupBy === "month") {
+        periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      } else if (groupBy === "quarter") {
         const quarter = Math.ceil((date.getMonth() + 1) / 3);
         periodKey = `${date.getFullYear()}-Q${quarter}`;
       } else {
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       period.invoiceCount += 1;
 
       // By supplier
-      const supplierId = invoice.supplierId || 'unknown';
+      const supplierId = invoice.supplierId || "unknown";
       const existing = period.bySupplier.get(supplierId) || {
         name: invoice.supplierName,
         amount: 0,
@@ -112,10 +112,10 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Spending analytics error:', error);
+    console.error("Spending analytics error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to get spending analytics' },
-      { status: 500 }
+      { success: false, error: "Failed to get spending analytics" },
+      { status: 500 },
     );
   }
 }

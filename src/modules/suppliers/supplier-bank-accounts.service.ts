@@ -2,10 +2,10 @@
 // Supplier Bank Accounts Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { generateId } from '../../utils/ids';
-import { info, error } from '../../observability/logger';
-import { Currency } from '../../domain/enums/Currency';
+import { prisma } from "../../db/prisma";
+import { generateId } from "../../utils/ids";
+import { info, error } from "../../observability/logger";
+import { Currency } from "../../domain/enums/Currency";
 
 interface AddBankAccountInput {
   supplierId: string;
@@ -38,7 +38,9 @@ interface UpdateBankAccountInput {
 /**
  * Add a new bank account to a supplier
  */
-export async function addBankAccount(input: AddBankAccountInput): Promise<{ id: string }> {
+export async function addBankAccount(
+  input: AddBankAccountInput,
+): Promise<{ id: string }> {
   try {
     // If this is the primary account, unset any existing primary
     if (input.isPrimary) {
@@ -71,18 +73,18 @@ export async function addBankAccount(input: AddBankAccountInput): Promise<{ id: 
       },
     });
 
-    info('Supplier bank account added', { 
-      bankAccountId: bankAccount.id, 
+    info("Supplier bank account added", {
+      bankAccountId: bankAccount.id,
       supplierId: input.supplierId,
-      accountName: input.accountName 
+      accountName: input.accountName,
     });
 
     return { id: bankAccount.id };
   } catch (err) {
-    error('Failed to add supplier bank account', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
+    error("Failed to add supplier bank account", {
+      error: err instanceof Error ? err.message : "Unknown error",
       supplierId: input.supplierId,
-      accountName: input.accountName 
+      accountName: input.accountName,
     });
     throw err;
   }
@@ -92,8 +94,8 @@ export async function addBankAccount(input: AddBankAccountInput): Promise<{ id: 
  * Update an existing bank account
  */
 export async function updateBankAccount(
-  bankAccountId: string, 
-  input: UpdateBankAccountInput
+  bankAccountId: string,
+  input: UpdateBankAccountInput,
 ): Promise<boolean> {
   try {
     const existingAccount = await prisma.supplierBankAccount.findUnique({
@@ -101,7 +103,7 @@ export async function updateBankAccount(
     });
 
     if (!existingAccount) {
-      throw new Error('Bank account not found');
+      throw new Error("Bank account not found");
     }
 
     // If setting as primary, unset existing primary
@@ -135,13 +137,13 @@ export async function updateBankAccount(
       },
     });
 
-    info('Supplier bank account updated', { bankAccountId });
+    info("Supplier bank account updated", { bankAccountId });
 
     return true;
   } catch (err) {
-    error('Failed to update supplier bank account', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      bankAccountId 
+    error("Failed to update supplier bank account", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      bankAccountId,
     });
     throw err;
   }
@@ -150,7 +152,9 @@ export async function updateBankAccount(
 /**
  * Remove a bank account (soft delete)
  */
-export async function removeBankAccount(bankAccountId: string): Promise<boolean> {
+export async function removeBankAccount(
+  bankAccountId: string,
+): Promise<boolean> {
   try {
     await prisma.supplierBankAccount.update({
       where: { id: bankAccountId },
@@ -160,13 +164,13 @@ export async function removeBankAccount(bankAccountId: string): Promise<boolean>
       },
     });
 
-    info('Supplier bank account removed', { bankAccountId });
+    info("Supplier bank account removed", { bankAccountId });
 
     return true;
   } catch (err) {
-    error('Failed to remove supplier bank account', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      bankAccountId 
+    error("Failed to remove supplier bank account", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      bankAccountId,
     });
     throw err;
   }
@@ -175,24 +179,24 @@ export async function removeBankAccount(bankAccountId: string): Promise<boolean>
 /**
  * List all bank accounts for a supplier
  */
-export async function listBankAccounts(supplierId: string, includeInactive: boolean = false) {
+export async function listBankAccounts(
+  supplierId: string,
+  includeInactive: boolean = false,
+) {
   try {
     const bankAccounts = await prisma.supplierBankAccount.findMany({
       where: {
         supplierId,
         ...(includeInactive ? {} : { isActive: true }),
       },
-      orderBy: [
-        { isPrimary: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ isPrimary: "desc" }, { createdAt: "desc" }],
     });
 
     return bankAccounts;
   } catch (err) {
-    error('Failed to list supplier bank accounts', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierId 
+    error("Failed to list supplier bank accounts", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierId,
     });
     throw err;
   }
@@ -213,9 +217,9 @@ export async function getPrimaryBankAccount(supplierId: string) {
 
     return bankAccount;
   } catch (err) {
-    error('Failed to get primary bank account', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierId 
+    error("Failed to get primary bank account", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierId,
     });
     throw err;
   }
@@ -225,20 +229,22 @@ export async function getPrimaryBankAccount(supplierId: string) {
  * Validate bank account format
  */
 export async function validateBankAccount(
-  accountNumber: string, 
-  bankCode: string
+  accountNumber: string,
+  bankCode: string,
 ): Promise<boolean> {
   // Basic validation - should be enhanced with actual bank validation API
   const isValidAccountNumber = /^[0-9]{8,16}$/.test(accountNumber);
   const isValidBankCode = /^[0-9]{6}$/.test(bankCode);
-  
+
   return isValidAccountNumber && isValidBankCode;
 }
 
 /**
  * Verify bank account with micro-deposit or API
  */
-export async function verifyBankAccount(bankAccountId: string): Promise<boolean> {
+export async function verifyBankAccount(
+  bankAccountId: string,
+): Promise<boolean> {
   try {
     // In a real implementation, this would trigger a verification process
     // For now, just mark it as verified
@@ -249,13 +255,13 @@ export async function verifyBankAccount(bankAccountId: string): Promise<boolean>
       },
     });
 
-    info('Bank account verified', { bankAccountId });
+    info("Bank account verified", { bankAccountId });
 
     return true;
   } catch (err) {
-    error('Failed to verify bank account', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      bankAccountId 
+    error("Failed to verify bank account", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      bankAccountId,
     });
     throw err;
   }

@@ -1,11 +1,6 @@
-export enum ApprovalDecision {
-  APPROVE = 'APPROVE',
-  REJECT = 'REJECT',
-  ESCALATE = 'ESCALATE',
-  DELEGATE = 'DELEGATE',
-  REQUEST_CHANGES = 'REQUEST_CHANGES',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED',
-  REQUESTED_CHANGES = 'REQUESTED_CHANGES',
-  SKIPPED = 'SKIPPED',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { ApprovalDecision as ApprovalDecision } from "@prisma/client";

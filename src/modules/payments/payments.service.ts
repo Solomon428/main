@@ -2,7 +2,7 @@
 // Payments Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export async function listPayments() {
   return prisma.payment.findMany({
@@ -11,7 +11,7 @@ export async function listPayments() {
       supplier: true,
       bankAccount: true,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 }
 
@@ -31,7 +31,7 @@ export async function createPayment(data: any) {
   return prisma.payment.create({
     data: {
       ...data,
-      status: 'PENDING',
+      status: "PENDING",
       createdAt: new Date(),
     },
     include: {
@@ -43,15 +43,17 @@ export async function createPayment(data: any) {
 
 export async function createPaymentBatch(data: any) {
   const { paymentIds, ...batchData } = data;
-  
+
   return prisma.paymentBatch.create({
     data: {
       ...batchData,
-      status: 'PENDING',
+      status: "PENDING",
       paymentCount: paymentIds?.length || 0,
-      payments: paymentIds ? {
-        connect: paymentIds.map((id: string) => ({ id })),
-      } : undefined,
+      payments: paymentIds
+        ? {
+            connect: paymentIds.map((id: string) => ({ id })),
+          }
+        : undefined,
     },
     include: {
       payments: true,
@@ -78,7 +80,7 @@ export async function processPayment(id: string) {
   return prisma.payment.update({
     where: { id },
     data: {
-      status: 'PROCESSING',
+      status: "PROCESSING",
       processedAt: new Date(),
     },
   });

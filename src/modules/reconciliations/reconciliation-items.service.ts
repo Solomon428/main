@@ -2,10 +2,10 @@
 // Reconciliation Items Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { ReconciliationItemStatus } from '../../domain/enums/ReconciliationItemStatus';
-import { TransactionType } from '../../domain/enums/TransactionType';
-import { Currency } from '../../domain/enums/Currency';
+import { prisma } from "../../db/prisma";
+import { ReconciliationItemStatus } from "../../domain/enums/ReconciliationItemStatus";
+import { TransactionType } from "../../domain/enums/TransactionType";
+import { Currency } from "../../domain/enums/Currency";
 
 export interface CreateReconciliationItemInput {
   reconciliationId: string;
@@ -32,7 +32,7 @@ export async function listReconciliationItems(
     status?: ReconciliationItemStatus;
     page?: number;
     limit?: number;
-  }
+  },
 ) {
   const where: any = { reconciliationId };
 
@@ -61,7 +61,7 @@ export async function listReconciliationItems(
           },
         },
       },
-      orderBy: { transactionDate: 'desc' },
+      orderBy: { transactionDate: "desc" },
       skip,
       take: limit,
     }),
@@ -116,7 +116,9 @@ export async function getReconciliationItem(id: string) {
 /**
  * Create a new reconciliation item
  */
-export async function createReconciliationItem(data: CreateReconciliationItemInput) {
+export async function createReconciliationItem(
+  data: CreateReconciliationItemInput,
+) {
   return prisma.reconciliationItem.create({
     data: {
       reconciliationId: data.reconciliationId,
@@ -135,7 +137,7 @@ export async function createReconciliationItem(data: CreateReconciliationItemInp
  * Create multiple reconciliation items in bulk
  */
 export async function createReconciliationItemsBulk(
-  items: CreateReconciliationItemInput[]
+  items: CreateReconciliationItemInput[],
 ) {
   return prisma.$transaction(
     items.map((item) =>
@@ -150,8 +152,8 @@ export async function createReconciliationItemsBulk(
           transactionType: item.transactionType,
           status: ReconciliationItemStatus.UNMATCHED,
         },
-      })
-    )
+      }),
+    ),
   );
 }
 
@@ -160,14 +162,14 @@ export async function createReconciliationItemsBulk(
  */
 export async function matchReconciliationItem(
   id: string,
-  matchData: MatchItemInput
+  matchData: MatchItemInput,
 ) {
   const item = await prisma.reconciliationItem.findUnique({
     where: { id },
   });
 
   if (!item) {
-    throw new Error('Reconciliation item not found');
+    throw new Error("Reconciliation item not found");
   }
 
   const matchedAmount = matchData.matchedAmount || Number(item.amount);
@@ -180,7 +182,7 @@ export async function matchReconciliationItem(
       matchedPaymentId: matchData.paymentId,
       matchedAmount,
       matchConfidence,
-      matchingMethod: matchData.matchingMethod || 'MANUAL',
+      matchingMethod: matchData.matchingMethod || "MANUAL",
     },
     include: {
       payment: {
@@ -213,10 +215,7 @@ export async function unmatchReconciliationItem(id: string) {
 /**
  * Mark an item as disputed
  */
-export async function disputeReconciliationItem(
-  id: string,
-  notes?: string
-) {
+export async function disputeReconciliationItem(id: string, notes?: string) {
   return prisma.reconciliationItem.update({
     where: { id },
     data: {
@@ -232,7 +231,7 @@ export async function disputeReconciliationItem(
 export async function createAdjustment(
   id: string,
   adjustmentReason: string,
-  notes?: string
+  notes?: string,
 ) {
   return prisma.reconciliationItem.update({
     where: { id },
@@ -248,10 +247,7 @@ export async function createAdjustment(
 /**
  * Exclude an item from reconciliation
  */
-export async function excludeReconciliationItem(
-  id: string,
-  notes?: string
-) {
+export async function excludeReconciliationItem(id: string, notes?: string) {
   return prisma.reconciliationItem.update({
     where: { id },
     data: {
@@ -270,11 +266,11 @@ export async function deleteReconciliationItem(id: string) {
   });
 
   if (!item) {
-    throw new Error('Reconciliation item not found');
+    throw new Error("Reconciliation item not found");
   }
 
   if (item.status === ReconciliationItemStatus.MATCHED) {
-    throw new Error('Cannot delete a matched item. Unmatch it first.');
+    throw new Error("Cannot delete a matched item. Unmatch it first.");
   }
 
   return prisma.reconciliationItem.delete({
@@ -300,7 +296,10 @@ export async function autoMatchItems(reconciliationId: string) {
     const matchingPayment = await findMatchingPayment(item);
 
     if (matchingPayment) {
-      const matchConfidence = calculateMatchConfidence(item, matchingPayment.id);
+      const matchConfidence = calculateMatchConfidence(
+        item,
+        matchingPayment.id,
+      );
 
       if (matchConfidence >= 0.8) {
         // High confidence match
@@ -311,7 +310,7 @@ export async function autoMatchItems(reconciliationId: string) {
             matchedPaymentId: matchingPayment.id,
             matchedAmount: item.amount,
             matchConfidence,
-            matchingMethod: 'AUTO',
+            matchingMethod: "AUTO",
           },
         });
         matchedItems.push(matched);
@@ -331,22 +330,26 @@ export async function autoMatchItems(reconciliationId: string) {
  */
 export async function getReconciliationItemStats(reconciliationId: string) {
   const stats = await prisma.reconciliationItem.groupBy({
-    by: ['status'],
+    by: ["status"],
     where: { reconciliationId },
     _count: { status: true },
     _sum: { amount: true },
   });
 
-  const statusCounts = stats.reduce((acc, stat) => {
-    acc[stat.status] = {
-      count: stat._count.status,
-      totalAmount: stat._sum.amount || 0,
-    };
-    return acc;
-  }, {} as Record<string, { count: number; totalAmount: number }>);
+  const statusCounts = stats.reduce(
+    (acc, stat) => {
+      acc[stat.status] = {
+        count: stat._count.status,
+        totalAmount: stat._sum.amount || 0,
+      };
+      return acc;
+    },
+    {} as Record<string, { count: number; totalAmount: number }>,
+  );
 
   const totalItems = stats.reduce((sum, s) => sum + s._count.status, 0);
-  const matchedItems = statusCounts[ReconciliationItemStatus.MATCHED]?.count || 0;
+  const matchedItems =
+    statusCounts[ReconciliationItemStatus.MATCHED]?.count || 0;
 
   return {
     totalItems,
@@ -362,7 +365,7 @@ export async function getReconciliationItemStats(reconciliationId: string) {
  */
 export async function getUnmatchedItems(
   reconciliationId: string,
-  options?: { page?: number; limit?: number }
+  options?: { page?: number; limit?: number },
 ) {
   const page = options?.page || 1;
   const limit = options?.limit || 50;
@@ -374,7 +377,7 @@ export async function getUnmatchedItems(
         reconciliationId,
         status: ReconciliationItemStatus.UNMATCHED,
       },
-      orderBy: { transactionDate: 'desc' },
+      orderBy: { transactionDate: "desc" },
       skip,
       take: limit,
     }),
@@ -435,7 +438,7 @@ async function findMatchingPayment(item: {
 // Helper function to calculate match confidence
 function calculateMatchConfidence(
   item: { reference?: string | null; amount: number; transactionDate: Date },
-  paymentId: string
+  paymentId: string,
 ): number {
   // This is a simplified confidence calculation
   // In production, this would be more sophisticated

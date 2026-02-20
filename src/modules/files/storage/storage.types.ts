@@ -3,7 +3,7 @@
 // ============================================================================
 // Common types and interfaces for storage providers
 
-import { Readable } from 'stream';
+import { Readable } from "stream";
 
 /**
  * Upload result from storage provider
@@ -50,7 +50,7 @@ export interface StorageProvider {
     key: string,
     buffer: Buffer,
     contentType: string,
-    metadata?: Record<string, string>
+    metadata?: Record<string, string>,
   ): Promise<UploadResult>;
 
   /**
@@ -84,7 +84,7 @@ export interface StorageProvider {
   getPresignedUploadUrl(
     key: string,
     contentType: string,
-    expiresIn?: number
+    expiresIn?: number,
   ): Promise<string>;
 
   /**
@@ -107,7 +107,7 @@ export interface StorageProvider {
  * Storage configuration
  */
 export interface StorageConfig {
-  provider: 's3' | 'azure' | 'gcs' | 'minio' | 'local';
+  provider: "s3" | "azure" | "gcs" | "minio" | "local";
   bucket?: string;
   region?: string;
   endpoint?: string;
@@ -123,7 +123,7 @@ export interface StorageConfig {
 export interface UploadOptions {
   contentType?: string;
   metadata?: Record<string, string>;
-  encryption?: 'AES256' | 'aws:kms';
+  encryption?: "AES256" | "aws:kms";
   public?: boolean;
 }
 

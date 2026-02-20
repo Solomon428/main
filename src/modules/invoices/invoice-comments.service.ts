@@ -2,7 +2,7 @@
 // Invoice Comments Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export interface CreateCommentInput {
   invoiceId: string;
@@ -25,10 +25,13 @@ export interface UpdateCommentInput {
 /**
  * List all comments for an invoice
  */
-export async function listInvoiceComments(invoiceId: string, options?: {
-  includeInternal?: boolean;
-  includeDeleted?: boolean;
-}) {
+export async function listInvoiceComments(
+  invoiceId: string,
+  options?: {
+    includeInternal?: boolean;
+    includeDeleted?: boolean;
+  },
+) {
   const where: any = { invoiceId };
 
   if (!options?.includeInternal) {
@@ -67,10 +70,7 @@ export async function listInvoiceComments(invoiceId: string, options?: {
         },
       },
     },
-    orderBy: [
-      { isPinned: 'desc' },
-      { createdAt: 'desc' },
-    ],
+    orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
   });
 }
 
@@ -150,7 +150,10 @@ export async function createInvoiceComment(data: CreateCommentInput) {
 /**
  * Update an existing comment
  */
-export async function updateInvoiceComment(id: string, data: UpdateCommentInput) {
+export async function updateInvoiceComment(
+  id: string,
+  data: UpdateCommentInput,
+) {
   return prisma.invoiceComment.update({
     where: { id },
     data: {
@@ -207,7 +210,10 @@ export async function togglePinComment(id: string, isPinned: boolean) {
 /**
  * Add a reply to an existing comment
  */
-export async function addCommentReply(parentId: string, data: Omit<CreateCommentInput, 'parentId'>) {
+export async function addCommentReply(
+  parentId: string,
+  data: Omit<CreateCommentInput, "parentId">,
+) {
   return createInvoiceComment({
     ...data,
     parentId,
@@ -217,7 +223,10 @@ export async function addCommentReply(parentId: string, data: Omit<CreateComment
 /**
  * Get comment count for an invoice
  */
-export async function getInvoiceCommentCount(invoiceId: string, includeInternal = false) {
+export async function getInvoiceCommentCount(
+  invoiceId: string,
+  includeInternal = false,
+) {
   const where: any = {
     invoiceId,
     deletedAt: null,
@@ -270,7 +279,7 @@ export async function getRecentComments(options?: {
         },
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: options?.limit || 20,
   });
 }

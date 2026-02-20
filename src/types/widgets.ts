@@ -4,17 +4,17 @@
  */
 
 export type WidgetType =
-  | 'stats'
-  | 'pending'
-  | 'overdue'
-  | 'categories'
-  | 'topSuppliers'
-  | 'monthlyTrend'
-  | 'workload'
-  | 'currencyExposure'
-  | 'slaStatus'
-  | 'approvalQueue'
-  | 'recentActivity';
+  | "stats"
+  | "pending"
+  | "overdue"
+  | "categories"
+  | "topSuppliers"
+  | "monthlyTrend"
+  | "workload"
+  | "currencyExposure"
+  | "slaStatus"
+  | "approvalQueue"
+  | "recentActivity";
 
 export interface WidgetPosition {
   x: number;

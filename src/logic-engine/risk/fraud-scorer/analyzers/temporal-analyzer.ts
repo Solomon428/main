@@ -8,9 +8,9 @@ import type {
   FraudScoringInput,
   FraudScoringContext,
   FraudRiskFactor,
-  TemporalAnomalyRiskAnalysis
-} from '../types';
-import { FraudDetectionMethod } from '../types';
+  TemporalAnomalyRiskAnalysis,
+} from "../types";
+import { FraudDetectionMethod } from "../types";
 
 /**
  * Calculate risk score based on temporal anomaly detection
@@ -18,7 +18,7 @@ import { FraudDetectionMethod } from '../types';
 export function calculateTemporalAnomalyRisk(
   input: FraudScoringInput,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): TemporalAnomalyRiskAnalysis {
   // Placeholder for integration with TemporalAnomalyDetector service
 
@@ -29,15 +29,15 @@ export function calculateTemporalAnomalyRisk(
   if (input.invoiceDate && new Date(input.invoiceDate) > new Date()) {
     baseScore += 25;
     riskFactors.push({
-      category: 'TEMPORAL_ANOMALY',
-      factor: 'FUTURE_INVOICE_DATE',
-      description: 'Invoice date is in the future',
-      severity: 'HIGH',
+      category: "TEMPORAL_ANOMALY",
+      factor: "FUTURE_INVOICE_DATE",
+      description: "Invoice date is in the future",
+      severity: "HIGH",
       scoreImpact: 25,
       evidence: `invoiceDate=${input.invoiceDate}, currentDate=${new Date().toISOString()}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,
       confidence: 0.98,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -46,7 +46,7 @@ export function calculateTemporalAnomalyRisk(
     normalizedScore: baseScore / 100,
     riskFactors,
     detectionMethods: [FraudDetectionMethod.RULE_BASED],
-    confidence: riskFactors.length > 0 ? 0.95 : 0.50,
-    metadata: { scoringId }
+    confidence: riskFactors.length > 0 ? 0.95 : 0.5,
+    metadata: { scoringId },
   };
 }

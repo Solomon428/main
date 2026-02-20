@@ -1,12 +1,12 @@
-import { prisma } from '../../lib/prisma';
-import { generateId } from '../../utils/ids';
-import { logAuditEvent } from '../../observability/audit';
-import { AuditAction } from '../../domain/enums/AuditAction';
-import { EntityType } from '../../domain/enums/EntityType';
-import { NotificationType } from '../../domain/enums/NotificationType';
-import { NotificationPriority } from '../../domain/enums/NotificationPriority';
-import { NotificationChannel } from '../../domain/enums/NotificationChannel';
-import { NotificationStatus } from '../../domain/enums/NotificationStatus';
+import { prisma } from "../../lib/prisma";
+import { generateId } from "../../utils/ids";
+import { logAuditEvent } from "../../observability/audit";
+import { AuditAction } from "../../domain/enums/AuditAction";
+import { EntityType } from "../../domain/enums/EntityType";
+import { NotificationType } from "../../domain/enums/NotificationType";
+import { NotificationPriority } from "../../domain/enums/NotificationPriority";
+import { NotificationChannel } from "../../domain/enums/NotificationChannel";
+import { NotificationStatus } from "../../domain/enums/NotificationStatus";
 
 export interface CreateNotificationInput {
   type: NotificationType;
@@ -31,7 +31,7 @@ export interface CreateNotificationInput {
 export async function createNotification(
   userId: string,
   organizationId: string | null,
-  data: CreateNotificationInput
+  data: CreateNotificationInput,
 ) {
   const notification = await prisma.notification.create({
     data: {
@@ -61,18 +61,16 @@ export async function createNotification(
   return notification;
 }
 
-async function sendNotificationThroughChannel(
-  notification: {
-    id: string;
-    userId: string;
-    channel: NotificationChannel;
-    title: string;
-    message: string;
-    shortMessage?: string | null;
-    priority: NotificationPriority;
-    actionUrl?: string | null;
-  }
-) {
+async function sendNotificationThroughChannel(notification: {
+  id: string;
+  userId: string;
+  channel: NotificationChannel;
+  title: string;
+  message: string;
+  shortMessage?: string | null;
+  priority: NotificationPriority;
+  actionUrl?: string | null;
+}) {
   switch (notification.channel) {
     case NotificationChannel.EMAIL:
       await sendEmailNotification(notification);
@@ -104,15 +102,13 @@ async function sendNotificationThroughChannel(
   });
 }
 
-async function sendEmailNotification(
-  notification: {
-    id: string;
-    userId: string;
-    title: string;
-    message: string;
-    actionUrl?: string | null;
-  }
-) {
+async function sendEmailNotification(notification: {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  actionUrl?: string | null;
+}) {
   // Get user's email
   const user = await prisma.user.findUnique({
     where: { id: notification.userId },
@@ -125,7 +121,7 @@ async function sendEmailNotification(
 
   // In production, integrate with email service (SendGrid, AWS SES, etc.)
   console.log(`[EMAIL] To: ${user.email}, Subject: ${notification.title}`);
-  
+
   // Update email sent timestamp
   await prisma.notification.update({
     where: { id: notification.id },
@@ -135,18 +131,18 @@ async function sendEmailNotification(
   });
 }
 
-async function sendSMSNotification(
-  notification: {
-    id: string;
-    userId: string;
-    shortMessage?: string | null;
-    priority: NotificationPriority;
-  }
-) {
+async function sendSMSNotification(notification: {
+  id: string;
+  userId: string;
+  shortMessage?: string | null;
+  priority: NotificationPriority;
+}) {
   // Only send SMS for high priority notifications
-  if (notification.priority !== NotificationPriority.HIGH &&
-      notification.priority !== NotificationPriority.CRITICAL &&
-      notification.priority !== NotificationPriority.EMERGENCY) {
+  if (
+    notification.priority !== NotificationPriority.HIGH &&
+    notification.priority !== NotificationPriority.CRITICAL &&
+    notification.priority !== NotificationPriority.EMERGENCY
+  ) {
     return;
   }
 
@@ -161,7 +157,9 @@ async function sendSMSNotification(
   }
 
   // In production, integrate with SMS service (Twilio, etc.)
-  console.log(`[SMS] To: ${user.mobileNumber}, Message: ${notification.shortMessage}`);
+  console.log(
+    `[SMS] To: ${user.mobileNumber}, Message: ${notification.shortMessage}`,
+  );
 
   // Update SMS sent timestamp
   await prisma.notification.update({
@@ -172,15 +170,13 @@ async function sendSMSNotification(
   });
 }
 
-async function sendPushNotification(
-  notification: {
-    id: string;
-    userId: string;
-    title: string;
-    message: string;
-    actionUrl?: string | null;
-  }
-) {
+async function sendPushNotification(notification: {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  actionUrl?: string | null;
+}) {
   // Get user's push notification settings
   const user = await prisma.user.findUnique({
     where: { id: notification.userId },
@@ -192,7 +188,9 @@ async function sendPushNotification(
   }
 
   // In production, integrate with push notification service (Firebase, etc.)
-  console.log(`[PUSH] To: ${notification.userId}, Title: ${notification.title}`);
+  console.log(
+    `[PUSH] To: ${notification.userId}, Title: ${notification.title}`,
+  );
 
   // Update push sent timestamp
   await prisma.notification.update({
@@ -203,30 +201,30 @@ async function sendPushNotification(
   });
 }
 
-async function sendSlackNotification(
-  notification: {
-    id: string;
-    userId: string;
-    title: string;
-    message: string;
-  }
-) {
+async function sendSlackNotification(notification: {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+}) {
   // In production, integrate with Slack API
-  console.log(`[SLACK] To: ${notification.userId}, Title: ${notification.title}`);
+  console.log(
+    `[SLACK] To: ${notification.userId}, Title: ${notification.title}`,
+  );
 }
 
-async function sendWebhookNotification(
-  notification: {
-    id: string;
-    userId: string;
-    title: string;
-    message: string;
-    entityType?: EntityType | null;
-    entityId?: string | null;
-  }
-) {
+async function sendWebhookNotification(notification: {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  entityType?: EntityType | null;
+  entityId?: string | null;
+}) {
   // In production, send webhook to configured URL
-  console.log(`[WEBHOOK] User: ${notification.userId}, Event: ${notification.title}`);
+  console.log(
+    `[WEBHOOK] User: ${notification.userId}, Event: ${notification.title}`,
+  );
 
   // Update webhook sent timestamp
   await prisma.notification.update({
@@ -237,7 +235,10 @@ async function sendWebhookNotification(
   });
 }
 
-export async function markNotificationAsRead(notificationId: string, userId: string) {
+export async function markNotificationAsRead(
+  notificationId: string,
+  userId: string,
+) {
   const notification = await prisma.notification.update({
     where: {
       id: notificationId,
@@ -262,7 +263,10 @@ export async function markNotificationAsDelivered(notificationId: string) {
   });
 }
 
-export async function dismissNotification(notificationId: string, userId: string) {
+export async function dismissNotification(
+  notificationId: string,
+  userId: string,
+) {
   return prisma.notification.update({
     where: {
       id: notificationId,
@@ -275,7 +279,10 @@ export async function dismissNotification(notificationId: string, userId: string
   });
 }
 
-export async function archiveNotification(notificationId: string, userId: string) {
+export async function archiveNotification(
+  notificationId: string,
+  userId: string,
+) {
   return prisma.notification.update({
     where: {
       id: notificationId,
@@ -303,7 +310,7 @@ export async function listNotifications(
     unreadOnly?: boolean;
     page?: number;
     limit?: number;
-  }
+  },
 ) {
   const page = options?.page || 1;
   const limit = options?.limit || 20;
@@ -332,7 +339,7 @@ export async function listNotifications(
       where,
       skip,
       take: limit,
-      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
     }),
     prisma.notification.count({ where }),
     prisma.notification.count({
@@ -370,7 +377,10 @@ export async function markAllNotificationsAsRead(userId: string) {
   return result;
 }
 
-export async function deleteNotification(notificationId: string, userId: string) {
+export async function deleteNotification(
+  notificationId: string,
+  userId: string,
+) {
   return prisma.notification.delete({
     where: {
       id: notificationId,
@@ -386,15 +396,15 @@ export async function notifyInvoiceSubmitted(
   invoiceId: string,
   invoiceNumber: string,
   amount: string,
-  supplierName: string
+  supplierName: string,
 ) {
   return createNotification(userId, organizationId, {
     type: NotificationType.INVOICE_SUBMITTED,
-    title: 'New Invoice Submitted',
+    title: "New Invoice Submitted",
     message: `Invoice ${invoiceNumber} from ${supplierName} for ${amount} has been submitted for approval.`,
     priority: NotificationPriority.MEDIUM,
     actionUrl: `/invoices/${invoiceId}`,
-    actionText: 'View Invoice',
+    actionText: "View Invoice",
     entityType: EntityType.INVOICE,
     entityId: invoiceId,
   });
@@ -407,16 +417,16 @@ export async function notifyApprovalRequired(
   invoiceId: string,
   invoiceNumber: string,
   amount: string,
-  supplierName: string
+  supplierName: string,
 ) {
   return createNotification(userId, organizationId, {
     type: NotificationType.APPROVAL_REQUESTED,
-    title: 'Approval Required',
+    title: "Approval Required",
     message: `Invoice ${invoiceNumber} from ${supplierName} for ${amount} requires your approval.`,
     priority: NotificationPriority.HIGH,
     channel: NotificationChannel.IN_APP,
     actionUrl: `/approvals/${approvalId}`,
-    actionText: 'Review & Approve',
+    actionText: "Review & Approve",
     entityType: EntityType.INVOICE,
     entityId: invoiceId,
   });
@@ -429,15 +439,15 @@ export async function notifyPaymentProcessed(
   invoiceId: string,
   invoiceNumber: string,
   amount: string,
-  paymentDate: Date
+  paymentDate: Date,
 ) {
   return createNotification(userId, organizationId, {
     type: NotificationType.PAYMENT_PROCESSED,
-    title: 'Payment Processed',
+    title: "Payment Processed",
     message: `Payment of ${amount} for invoice ${invoiceNumber} has been processed successfully.`,
     priority: NotificationPriority.MEDIUM,
     actionUrl: `/payments/${paymentId}`,
-    actionText: 'View Payment',
+    actionText: "View Payment",
     entityType: EntityType.PAYMENT,
     entityId: paymentId,
   });
@@ -449,11 +459,11 @@ export async function notifySLABreach(
   entityType: EntityType,
   entityId: string,
   entityDescription: string,
-  breachType: string
+  breachType: string,
 ) {
   return createNotification(userId, organizationId, {
     type: NotificationType.SLA_BREACH,
-    title: 'SLA Breach Alert',
+    title: "SLA Breach Alert",
     message: `${entityDescription} has breached ${breachType}. Immediate attention required.`,
     priority: NotificationPriority.CRITICAL,
     channel: NotificationChannel.EMAIL,
@@ -468,7 +478,7 @@ export async function notifyRiskAlert(
   entityType: EntityType,
   entityId: string,
   riskLevel: string,
-  description: string
+  description: string,
 ) {
   return createNotification(userId, organizationId, {
     type: NotificationType.RISK_ALERT,
@@ -485,19 +495,23 @@ export async function notifyRiskAlert(
 export async function notifyMultipleUsers(
   userIds: string[],
   organizationId: string | null,
-  data: CreateNotificationInput
+  data: CreateNotificationInput,
 ) {
   const results = [];
-  
+
   for (const userId of userIds) {
     try {
-      const notification = await createNotification(userId, organizationId, data);
+      const notification = await createNotification(
+        userId,
+        organizationId,
+        data,
+      );
       results.push({ userId, success: true, notificationId: notification.id });
     } catch (error) {
       results.push({
         userId,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }

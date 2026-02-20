@@ -2,13 +2,16 @@
 // IAM Service - Main Coordination Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { UserRole } from '../../domain/enums/UserRole';
-import { hashPassword, verifyPassword } from '../../security/hashing';
-import { generateTwoFactorSecret, verifyTwoFactorToken } from '../../security/twofactor';
-import { encrypt } from '../../security/crypto';
-import { generateId } from '../../utils/ids';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../db/prisma";
+import { UserRole } from "../../domain/enums/UserRole";
+import { hashPassword, verifyPassword } from "../../security/hashing";
+import {
+  generateTwoFactorSecret,
+  verifyTwoFactorToken,
+} from "../../security/twofactor";
+import { encrypt } from "../../security/crypto";
+import { generateId } from "../../utils/ids";
+import { info, error } from "../../observability/logger";
 
 interface CreateUserInput {
   email: string;
@@ -40,27 +43,29 @@ interface AuthenticationResult {
 /**
  * Create a new user with hashed password
  */
-export async function createUser(input: CreateUserInput): Promise<{ id: string; email: string }> {
+export async function createUser(
+  input: CreateUserInput,
+): Promise<{ id: string; email: string }> {
   const existingUser = await prisma.user.findUnique({
     where: { email: input.email },
   });
 
   if (existingUser) {
-    throw new Error('User with this email already exists');
+    throw new Error("User with this email already exists");
   }
 
   const passwordHash = await hashPassword(input.password);
-  
+
   const user = await prisma.user.create({
     data: {
       id: generateId(),
       email: input.email,
       name: input.name || null,
       passwordHash,
-      role: (input.role || UserRole.VIEWER) as unknown as 'VIEWER',
-      timezone: 'Africa/Johannesburg',
-      language: 'en',
-      locale: 'en-ZA',
+      role: (input.role || UserRole.VIEWER) as unknown as "VIEWER",
+      timezone: "Africa/Johannesburg",
+      language: "en",
+      locale: "en-ZA",
       isActive: true,
       isLocked: false,
       failedLoginAttempts: 0,
@@ -68,17 +73,19 @@ export async function createUser(input: CreateUserInput): Promise<{ id: string; 
       emailNotifications: true,
       smsNotifications: false,
       pushNotifications: true,
-      theme: 'light',
+      theme: "light",
       sidebarCollapsed: false,
       sessionTimeout: 30,
       recoveryCodes: [],
-      organizations: input.organizationId ? {
-        connect: { id: input.organizationId }
-      } : undefined,
+      organizations: input.organizationId
+        ? {
+            connect: { id: input.organizationId },
+          }
+        : undefined,
     },
   });
 
-  info('User created', { userId: user.id, email: user.email });
+  info("User created", { userId: user.id, email: user.email });
 
   return {
     id: user.id,
@@ -89,7 +96,9 @@ export async function createUser(input: CreateUserInput): Promise<{ id: string; 
 /**
  * Authenticate user with email and password
  */
-export async function authenticateUser(input: LoginInput): Promise<AuthenticationResult> {
+export async function authenticateUser(
+  input: LoginInput,
+): Promise<AuthenticationResult> {
   try {
     const user = await prisma.user.findUnique({
       where: { email: input.email },
@@ -98,25 +107,28 @@ export async function authenticateUser(input: LoginInput): Promise<Authenticatio
     if (!user || !user.passwordHash) {
       return {
         success: false,
-        error: 'Invalid credentials',
+        error: "Invalid credentials",
       };
     }
 
     if (!user.isActive) {
       return {
         success: false,
-        error: 'Account is deactivated',
+        error: "Account is deactivated",
       };
     }
 
     if (user.isLocked && user.lockedUntil && user.lockedUntil > new Date()) {
       return {
         success: false,
-        error: 'Account is locked. Please try again later.',
+        error: "Account is locked. Please try again later.",
       };
     }
 
-    const isValidPassword = await verifyPassword(input.password, user.passwordHash);
+    const isValidPassword = await verifyPassword(
+      input.password,
+      user.passwordHash,
+    );
 
     if (!isValidPassword) {
       // Increment failed login attempts
@@ -124,16 +136,17 @@ export async function authenticateUser(input: LoginInput): Promise<Authenticatio
         where: { id: user.id },
         data: {
           failedLoginAttempts: { increment: 1 },
-          lockedUntil: user.failedLoginAttempts >= 4 
-            ? new Date(Date.now() + 30 * 60 * 1000) // Lock for 30 minutes after 5 attempts
-            : undefined,
+          lockedUntil:
+            user.failedLoginAttempts >= 4
+              ? new Date(Date.now() + 30 * 60 * 1000) // Lock for 30 minutes after 5 attempts
+              : undefined,
           isLocked: user.failedLoginAttempts >= 4,
         },
       });
 
       return {
         success: false,
-        error: 'Invalid credentials',
+        error: "Invalid credentials",
       };
     }
 
@@ -143,17 +156,20 @@ export async function authenticateUser(input: LoginInput): Promise<Authenticatio
         return {
           success: false,
           requiresTwoFactor: true,
-          error: 'Two-factor authentication required',
+          error: "Two-factor authentication required",
         };
       }
 
       const decryptedSecret = user.twoFactorSecret; // Would need decryption in production
-      const isValidToken = verifyTwoFactorToken(decryptedSecret, input.twoFactorToken);
+      const isValidToken = verifyTwoFactorToken(
+        decryptedSecret,
+        input.twoFactorToken,
+      );
 
       if (!isValidToken) {
         return {
           success: false,
-          error: 'Invalid two-factor authentication code',
+          error: "Invalid two-factor authentication code",
         };
       }
     }
@@ -164,7 +180,7 @@ export async function authenticateUser(input: LoginInput): Promise<Authenticatio
       data: {
         failedLoginAttempts: 0,
         lastLoginAt: new Date(),
-        lastLoginIp: '127.0.0.1', // Should get from request
+        lastLoginIp: "127.0.0.1", // Should get from request
         isLocked: false,
         lockedUntil: null,
       },
@@ -182,7 +198,7 @@ export async function authenticateUser(input: LoginInput): Promise<Authenticatio
       },
     });
 
-    info('User authenticated', { userId: user.id, email: user.email });
+    info("User authenticated", { userId: user.id, email: user.email });
 
     return {
       success: true,
@@ -195,10 +211,12 @@ export async function authenticateUser(input: LoginInput): Promise<Authenticatio
       sessionToken,
     };
   } catch (err) {
-    error('Authentication error', { error: err instanceof Error ? err.message : 'Unknown error' });
+    error("Authentication error", {
+      error: err instanceof Error ? err.message : "Unknown error",
+    });
     return {
       success: false,
-      error: 'Authentication failed',
+      error: "Authentication failed",
     };
   }
 }
@@ -206,22 +224,24 @@ export async function authenticateUser(input: LoginInput): Promise<Authenticatio
 /**
  * Enable two-factor authentication for user
  */
-export async function enableTwoFactorAuth(userId: string): Promise<{ secret: string; qrCodeUrl: string; backupCodes: string[] }> {
+export async function enableTwoFactorAuth(
+  userId: string,
+): Promise<{ secret: string; qrCodeUrl: string; backupCodes: string[] }> {
   const { secret, qrCodeUrl, backupCodes } = generateTwoFactorSecret();
-  
+
   const encryptedSecret = encrypt(secret);
-  
+
   await prisma.user.update({
     where: { id: userId },
     data: {
       twoFactorEnabled: true,
       twoFactorSecret: encryptedSecret,
-      twoFactorMethod: 'TOTP',
+      twoFactorMethod: "TOTP",
       recoveryCodes: backupCodes,
     },
   });
 
-  info('Two-factor authentication enabled', { userId });
+  info("Two-factor authentication enabled", { userId });
 
   return {
     secret,
@@ -233,19 +253,26 @@ export async function enableTwoFactorAuth(userId: string): Promise<{ secret: str
 /**
  * Change user password
  */
-export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
+export async function changePassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
   });
 
   if (!user || !user.passwordHash) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 
-  const isValidPassword = await verifyPassword(currentPassword, user.passwordHash);
-  
+  const isValidPassword = await verifyPassword(
+    currentPassword,
+    user.passwordHash,
+  );
+
   if (!isValidPassword) {
-    throw new Error('Current password is incorrect');
+    throw new Error("Current password is incorrect");
   }
 
   const newPasswordHash = await hashPassword(newPassword);
@@ -258,7 +285,7 @@ export async function changePassword(userId: string, currentPassword: string, ne
     },
   });
 
-  info('Password changed', { userId });
+  info("Password changed", { userId });
 
   return true;
 }

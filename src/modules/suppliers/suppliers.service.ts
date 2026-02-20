@@ -2,7 +2,7 @@
 // Suppliers Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export async function listSuppliers() {
   return prisma.suppliers.findMany({
@@ -11,7 +11,7 @@ export async function listSuppliers() {
       bankAccounts: true,
       contracts: true,
     },
-    orderBy: { name: 'asc' },
+    orderBy: { name: "asc" },
   });
 }
 
@@ -23,7 +23,7 @@ export async function getSupplier(id: string) {
       bankAccounts: true,
       contracts: true,
       performanceMetrics: {
-        orderBy: { period: 'desc' },
+        orderBy: { period: "desc" },
         take: 12,
       },
     },
@@ -67,9 +67,9 @@ export async function searchSuppliers(query: string) {
   return prisma.suppliers.findMany({
     where: {
       OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { email: { contains: query, mode: 'insensitive' } },
-        { vatNumber: { contains: query, mode: 'insensitive' } },
+        { name: { contains: query, mode: "insensitive" } },
+        { email: { contains: query, mode: "insensitive" } },
+        { vatNumber: { contains: query, mode: "insensitive" } },
       ],
     },
     take: 20,

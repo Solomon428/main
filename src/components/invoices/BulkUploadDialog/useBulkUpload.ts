@@ -6,7 +6,7 @@ import { FileWithStatus, BulkUploadDialogProps } from "./types";
 
 export function useBulkUpload(
   onSuccess: () => void,
-  onOpenChange: (open: boolean) => void
+  onOpenChange: (open: boolean) => void,
 ) {
   const [files, setFiles] = useState<FileWithStatus[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -17,12 +17,14 @@ export function useBulkUpload(
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newFiles: FileWithStatus[] = Array.from(e.target.files).map((file) => ({
-        file,
-        id: Math.random().toString(36).substring(7),
-        status: 'pending',
-        progress: 0,
-      }));
+      const newFiles: FileWithStatus[] = Array.from(e.target.files).map(
+        (file) => ({
+          file,
+          id: Math.random().toString(36).substring(7),
+          status: "pending",
+          progress: 0,
+        }),
+      );
       setFiles((prev) => [...prev, ...newFiles]);
     }
   };
@@ -34,10 +36,10 @@ export function useBulkUpload(
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const validFiles = Array.from(e.dataTransfer.files).filter((file) => {
         const allowedTypes = [
-          'application/pdf',
-          'image/jpeg',
-          'image/png',
-          'image/tiff',
+          "application/pdf",
+          "image/jpeg",
+          "image/png",
+          "image/tiff",
         ];
         return allowedTypes.includes(file.type);
       });
@@ -45,7 +47,7 @@ export function useBulkUpload(
       const newFiles: FileWithStatus[] = validFiles.map((file) => ({
         file,
         id: Math.random().toString(36).substring(7),
-        status: 'pending',
+        status: "pending",
         progress: 0,
       }));
       setFiles((prev) => [...prev, ...newFiles]);
@@ -70,7 +72,7 @@ export function useBulkUpload(
       const fileList = files.map((f) => f.file);
       const results = await uploadMultiple(fileList, {
         autoProcess: true,
-        extractionMethod: 'ocr',
+        extractionMethod: "ocr",
       });
 
       setFiles((prev) =>
@@ -80,7 +82,7 @@ export function useBulkUpload(
 
           return {
             ...fileStatus,
-            status: result.status === 'completed' ? 'completed' : 'failed',
+            status: result.status === "completed" ? "completed" : "failed",
             progress: 100,
             result: {
               invoiceId: result.invoiceId,
@@ -90,12 +92,14 @@ export function useBulkUpload(
             },
             error: result.errors?.[0],
           };
-        })
+        }),
       );
 
       setOverallProgress(100);
 
-      const successCount = results.filter((r) => r.status === 'completed').length;
+      const successCount = results.filter(
+        (r) => r.status === "completed",
+      ).length;
       if (successCount > 0) {
         setTimeout(() => {
           onSuccess();
@@ -104,15 +108,15 @@ export function useBulkUpload(
         }, 2000);
       }
     } catch (error) {
-      console.error('Bulk upload failed:', error);
+      console.error("Bulk upload failed:", error);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const completedCount = files.filter((f) => f.status === 'completed').length;
-  const failedCount = files.filter((f) => f.status === 'failed').length;
-  const pendingCount = files.filter((f) => f.status === 'pending').length;
+  const completedCount = files.filter((f) => f.status === "completed").length;
+  const failedCount = files.filter((f) => f.status === "failed").length;
+  const pendingCount = files.filter((f) => f.status === "pending").length;
 
   return {
     files,

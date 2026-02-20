@@ -2,7 +2,7 @@
 // Delegated Approvals Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export interface CreateDelegationInput {
   delegatorId: string;
@@ -78,7 +78,7 @@ export async function listDelegations(options?: {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
@@ -139,7 +139,7 @@ export async function getDelegation(id: string) {
 export async function createDelegation(data: CreateDelegationInput) {
   // Validate dates
   if (data.endDate <= data.startDate) {
-    throw new Error('End date must be after start date');
+    throw new Error("End date must be after start date");
   }
 
   // Check for overlapping delegations
@@ -157,7 +157,7 @@ export async function createDelegation(data: CreateDelegationInput) {
   });
 
   if (overlapping) {
-    throw new Error('Overlapping delegation exists for this period');
+    throw new Error("Overlapping delegation exists for this period");
   }
 
   return prisma.delegatedApproval.create({
@@ -169,7 +169,7 @@ export async function createDelegation(data: CreateDelegationInput) {
       endDate: data.endDate,
       isActive: true,
       reason: data.reason,
-      scope: data.scope || 'ALL',
+      scope: data.scope || "ALL",
       specificCategories: data.specificCategories || [],
     },
     include: {
@@ -194,7 +194,10 @@ export async function createDelegation(data: CreateDelegationInput) {
 /**
  * Update an existing delegation
  */
-export async function updateDelegation(id: string, data: UpdateDelegationInput) {
+export async function updateDelegation(
+  id: string,
+  data: UpdateDelegationInput,
+) {
   return prisma.delegatedApproval.update({
     where: { id },
     data: {
@@ -226,7 +229,7 @@ export async function updateDelegation(id: string, data: UpdateDelegationInput) 
 export async function cancelDelegation(
   id: string,
   cancelledBy: string,
-  cancelReason?: string
+  cancelReason?: string,
 ) {
   return prisma.delegatedApproval.update({
     where: { id },
@@ -284,7 +287,7 @@ export async function getDelegatorActiveDelegations(delegatorId: string) {
         },
       },
     },
-    orderBy: { endDate: 'asc' },
+    orderBy: { endDate: "asc" },
   });
 }
 
@@ -316,7 +319,7 @@ export async function getDelegateeActiveDelegations(delegateeId: string) {
         },
       },
     },
-    orderBy: { endDate: 'asc' },
+    orderBy: { endDate: "asc" },
   });
 }
 
@@ -325,7 +328,7 @@ export async function getDelegateeActiveDelegations(delegateeId: string) {
  */
 export async function checkDelegation(
   approverId: string,
-  approvalChainId?: string
+  approvalChainId?: string,
 ) {
   const now = new Date();
 
@@ -335,10 +338,7 @@ export async function checkDelegation(
       isActive: true,
       startDate: { lte: now },
       endDate: { gte: now },
-      OR: [
-        { approvalChainId: null },
-        { approvalChainId },
-      ],
+      OR: [{ approvalChainId: null }, { approvalChainId }],
     },
     include: {
       delegatee: {
@@ -364,7 +364,7 @@ export async function getUserDelegationHistory(
     asDelegatee?: boolean;
     page?: number;
     limit?: number;
-  }
+  },
 ) {
   const where: any = {};
 
@@ -405,7 +405,7 @@ export async function getUserDelegationHistory(
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),

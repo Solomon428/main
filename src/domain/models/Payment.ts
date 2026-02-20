@@ -1,6 +1,6 @@
-import { PaymentStatus } from '../enums/PaymentStatus';
-import { PaymentMethod } from '../enums/PaymentMethod';
-import { Currency } from '../enums/Currency';
+import { PaymentStatus } from "../enums/PaymentStatus";
+import { PaymentMethod } from "../enums/PaymentMethod";
+import { Currency } from "../enums/Currency";
 
 export interface Payment {
   id: string;

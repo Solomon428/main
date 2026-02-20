@@ -1,14 +1,14 @@
-import { z } from 'zod';
-import { SupplierStatus } from '../../domain/enums/SupplierStatus';
-import { SupplierCategory } from '../../domain/enums/SupplierCategory';
-import { RiskLevel } from '../../domain/enums/RiskLevel';
-import { ComplianceStatus } from '../../domain/enums/ComplianceStatus';
-import { BankAccountType } from '../../domain/enums/BankAccountType';
-import { Currency } from '../../domain/enums/Currency';
+import { z } from "zod";
+import { SupplierStatus } from "../../domain/enums/SupplierStatus";
+import { SupplierCategory } from "../../domain/enums/SupplierCategory";
+import { RiskLevel } from "../../domain/enums/RiskLevel";
+import { ComplianceStatus } from "../../domain/enums/ComplianceStatus";
+import { BankAccountType } from "../../domain/enums/BankAccountType";
+import { Currency } from "../../domain/enums/Currency";
 
-const decimalSchema = z.union([z.string(), z.number()]).transform(val =>
-  typeof val === 'string' ? parseFloat(val) : val
-);
+const decimalSchema = z
+  .union([z.string(), z.number()])
+  .transform((val) => (typeof val === "string" ? parseFloat(val) : val));
 
 export const contactPersonSchema = z.object({
   name: z.string(),
@@ -23,7 +23,7 @@ export const addressSchema = z.object({
   city: z.string(),
   state: z.string().optional(),
   postalCode: z.string(),
-  country: z.string().default('South Africa'),
+  country: z.string().default("South Africa"),
 });
 
 export const bankDetailsSchema = z.object({
@@ -40,7 +40,7 @@ export const bankDetailsSchema = z.object({
 });
 
 export const createSupplierSchema = z.object({
-  name: z.string().min(1, 'Supplier name is required'),
+  name: z.string().min(1, "Supplier name is required"),
   legalName: z.string().optional(),
   tradingName: z.string().optional(),
   taxId: z.string().optional(),
@@ -62,8 +62,8 @@ export const createSupplierSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   postalCode: z.string().optional(),
-  country: z.string().default('South Africa'),
-  countryCode: z.string().default('ZA'),
+  country: z.string().default("South Africa"),
+  countryCode: z.string().default("ZA"),
   billingAddress: addressSchema.optional(),
   shippingAddress: addressSchema.optional(),
   bankName: z.string().optional(),
@@ -94,10 +94,10 @@ export const createSupplierSchema = z.object({
 export const updateSupplierSchema = createSupplierSchema.partial();
 
 export const supplierContactSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, "Name is required"),
   title: z.string().optional(),
   department: z.string().optional(),
-  email: z.string().email('Invalid email address'),
+  email: z.string().email("Invalid email address"),
   phone: z.string().optional(),
   mobile: z.string().optional(),
   isPrimary: z.boolean().default(false),
@@ -108,9 +108,9 @@ export const supplierContactSchema = z.object({
 });
 
 export const supplierBankAccountSchema = z.object({
-  accountName: z.string().min(1, 'Account name is required'),
-  accountNumber: z.string().min(1, 'Account number is required'),
-  bankName: z.string().min(1, 'Bank name is required'),
+  accountName: z.string().min(1, "Account name is required"),
+  accountNumber: z.string().min(1, "Account number is required"),
+  bankName: z.string().min(1, "Bank name is required"),
   bankCode: z.string().optional(),
   branchName: z.string().optional(),
   branchCode: z.string().optional(),
@@ -160,8 +160,12 @@ export const listSuppliersQuerySchema = z.object({
 export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
 export type UpdateSupplierInput = z.infer<typeof updateSupplierSchema>;
 export type SupplierContactInput = z.infer<typeof supplierContactSchema>;
-export type SupplierBankAccountInput = z.infer<typeof supplierBankAccountSchema>;
+export type SupplierBankAccountInput = z.infer<
+  typeof supplierBankAccountSchema
+>;
 export type SupplierContractInput = z.infer<typeof supplierContractSchema>;
-export type SupplierVerificationInput = z.infer<typeof supplierVerificationSchema>;
+export type SupplierVerificationInput = z.infer<
+  typeof supplierVerificationSchema
+>;
 export type SupplierBlacklistInput = z.infer<typeof supplierBlacklistSchema>;
 export type ListSuppliersQuery = z.infer<typeof listSuppliersQuerySchema>;

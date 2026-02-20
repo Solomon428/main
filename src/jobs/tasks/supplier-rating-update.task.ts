@@ -1,15 +1,15 @@
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { info } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { info } from "../../observability/logger";
 
 /**
  * Update supplier performance ratings
  */
 export async function runTask(
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
-  info('Starting supplier rating update task', { taskId: task.id });
+  info("Starting supplier rating update task", { taskId: task.id });
 
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
@@ -31,13 +31,17 @@ export async function runTask(
     if (signal.aborted) return;
 
     const invoices = supplier.invoices;
-    const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.totalAmount.toString()), 0);
-    
+    const totalAmount = invoices.reduce(
+      (sum, inv) => sum + parseFloat(inv.totalAmount.toString()),
+      0,
+    );
+
     // Calculate metrics
-    const onTimeCount = invoices.filter(inv => 
-      inv.paidDate && inv.dueDate && inv.paidDate <= inv.dueDate
+    const onTimeCount = invoices.filter(
+      (inv) => inv.paidDate && inv.dueDate && inv.paidDate <= inv.dueDate,
     ).length;
-    const onTimeRate = invoices.length > 0 ? (onTimeCount / invoices.length) * 100 : 0;
+    const onTimeRate =
+      invoices.length > 0 ? (onTimeCount / invoices.length) * 100 : 0;
 
     // Update or create performance record
     await prisma.supplierPerformance.upsert({
@@ -71,6 +75,8 @@ export async function runTask(
     });
   }
 
-  info(`Updated ratings for ${suppliers.length} suppliers`, { taskId: task.id });
-  info('Supplier rating update task completed', { taskId: task.id });
+  info(`Updated ratings for ${suppliers.length} suppliers`, {
+    taskId: task.id,
+  });
+  info("Supplier rating update task completed", { taskId: task.id });
 }

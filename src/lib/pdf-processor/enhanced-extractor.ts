@@ -8,26 +8,52 @@
 // 4. Confidence scoring and validation
 // ============================================================================
 
-import { readFile } from 'fs/promises';
-import { ExtractedInvoiceData } from '@/types';
-import { PDFExtractor } from '@/lib/pdf-processor';
-import { ollamaClient } from '../ollama';
+import { readFile } from "fs/promises";
+import { ollamaClient } from "../ollama";
 
-// Use require for pdf-parse to avoid ES module issues
+interface ExtractedInvoiceData {
+  invoiceNumber?: string;
+  referenceNumber?: string;
+  invoiceDate?: Date;
+  dueDate?: Date;
+  currency?: string;
+  totalAmount?: number;
+  subtotalExclVAT?: number;
+  vatAmount?: number;
+  vatRate?: number;
+  amountDue?: number;
+  supplierName?: string;
+  supplierAddress?: string;
+  supplierVAT?: string;
+  supplierEmail?: string;
+  buyerName?: string;
+  buyerAddress?: string;
+  buyerVAT?: string;
+  lineItems: ExtractedLineItem[];
+}
+
+interface ExtractedLineItem {
+  description?: string;
+  quantity?: number;
+  unitPrice?: number;
+  taxRate?: number;
+  taxAmount?: number;
+  totalAmount?: number;
+}
+
 let pdfParse: any;
 try {
-  pdfParse = require('pdf-parse');
+  pdfParse = require("pdf-parse");
 } catch {
   pdfParse = null;
 }
 
-// Lazy load tesseract.js
 let Tesseract: any = null;
 
 export interface EnhancedExtractionResult {
   success: boolean;
   data?: ExtractedInvoiceData;
-  strategy: 'TEXT' | 'OLLAMA' | 'OCR' | 'MANUAL' | 'NONE';
+  strategy: "TEXT" | "OLLAMA" | "OCR" | "MANUAL" | "NONE";
   errors: string[];
   warnings: string[];
   confidence: number;
@@ -41,33 +67,46 @@ export interface EnhancedExtractionResult {
   aiReasoning?: string;
 }
 
-export class EnhancedPDFExtractor {
+export class EnhancedExtractor {
   private static readonly MATH_TOLERANCE = 0.05;
 
-  /**
-   * Main extraction method - tries all strategies in order
-   */
-  static async extractInvoiceData(filePath: string): Promise<EnhancedExtractionResult> {
+  static async extractInvoiceData(
+    filePath: string,
+  ): Promise<EnhancedExtractionResult> {
     const startTime = Date.now();
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    // Strategy 1: Try basic text extraction
     try {
-      const basicResult = await PDFExtractor.extractInvoiceData(filePath);
+      const basicResult: EnhancedExtractionResult = {
+        success: false,
+        strategy: "TEXT",
+        data: undefined,
+        errors: ["BASE TEXT EXTRACTION NOT AVAILABLE (circular dep removed)"],
+        warnings: [],
+        confidence: 0,
+        processingTime: Date.now() - startTime,
+        mathValidation: {
+          passed: false,
+          expectedTotal: 0,
+          actualTotal: 0,
+          difference: 0,
+        },
+      };
       if (basicResult.success && basicResult.confidence > 0.6) {
         return {
           ...basicResult,
-          strategy: 'TEXT',
+          strategy: "TEXT",
           processingTime: Date.now() - startTime,
         };
       }
       warnings.push(...basicResult.warnings);
     } catch (error) {
-      errors.push(`Text extraction failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      errors.push(
+        `Text extraction failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
     }
 
-    // Strategy 2: Try Ollama LLM extraction if available
     const ollamaAvailable = await ollamaClient.isAvailable();
     if (ollamaAvailable) {
       try {
@@ -75,36 +114,41 @@ export class EnhancedPDFExtractor {
         if (ollamaResult.success && ollamaResult.confidence > 0.5) {
           return {
             ...ollamaResult,
-            strategy: 'OLLAMA',
+            strategy: "OLLAMA",
             processingTime: Date.now() - startTime,
           };
         }
         warnings.push(...ollamaResult.warnings);
       } catch (error) {
-        errors.push(`Ollama extraction failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+        errors.push(
+          `Ollama extraction failed: ${error instanceof Error ? error.message : "Unknown"}`,
+        );
       }
     }
 
-    // Strategy 3: Try OCR for scanned PDFs
     try {
       const ocrResult = await this.extractWithOCR(filePath);
       if (ocrResult.success && ocrResult.confidence > 0.4) {
         return {
           ...ocrResult,
-          strategy: 'OCR',
+          strategy: "OCR",
           processingTime: Date.now() - startTime,
         };
       }
       warnings.push(...ocrResult.warnings);
     } catch (error) {
-      errors.push(`OCR extraction failed: ${error instanceof Error ? error.message : 'Unknown'}`);
+      errors.push(
+        `OCR extraction failed: ${error instanceof Error ? error.message : "Unknown"}`,
+      );
     }
 
-    // Strategy 4: Return manual entry fallback
     return {
       success: false,
-      strategy: 'NONE',
-      errors: [...errors, 'All extraction strategies failed. Manual entry required.'],
+      strategy: "NONE",
+      errors: [
+        ...errors,
+        "All extraction strategies failed. Manual entry required.",
+      ],
       warnings,
       confidence: 0,
       processingTime: Date.now() - startTime,
@@ -117,28 +161,26 @@ export class EnhancedPDFExtractor {
     };
   }
 
-  /**
-   * Extract using Ollama LLM
-   */
-  private static async extractWithOllama(filePath: string): Promise<EnhancedExtractionResult> {
+  private static async extractWithOllama(
+    filePath: string,
+  ): Promise<EnhancedExtractionResult> {
     const startTime = Date.now();
     const warnings: string[] = [];
 
     try {
-      // Extract raw text from PDF
-      let rawText = '';
+      let rawText = "";
       if (pdfParse) {
         const buffer = await readFile(filePath);
         const pdfData = await pdfParse(buffer);
-        rawText = pdfData.text || '';
+        rawText = pdfData.text || "";
       }
 
       if (!rawText || rawText.trim().length < 50) {
         return {
           success: false,
-          strategy: 'OLLAMA',
-          errors: ['PDF contains insufficient text'],
-          warnings: ['May be a scanned PDF requiring OCR'],
+          strategy: "OLLAMA",
+          errors: ["PDF contains insufficient text"],
+          warnings: ["May be a scanned PDF requiring OCR"],
           confidence: 0,
           processingTime: Date.now() - startTime,
           mathValidation: {
@@ -150,32 +192,29 @@ export class EnhancedPDFExtractor {
         };
       }
 
-      // Use Ollama to extract structured data
       const extractedData = await ollamaClient.extractInvoiceData(rawText);
-
-      // Validate the extracted data
       const validated = this.validateExtractedData(extractedData, warnings);
       const mathValidation = this.validateMath(validated);
-      
-      // Calculate confidence based on field completeness
       const confidence = this.calculateConfidence(validated);
 
       return {
         success: confidence > 0.5,
         data: validated,
-        strategy: 'OLLAMA',
-        errors: confidence <= 0.5 ? ['Low extraction confidence'] : [],
+        strategy: "OLLAMA",
+        errors: confidence <= 0.5 ? ["Low extraction confidence"] : [],
         warnings,
         confidence,
         processingTime: Date.now() - startTime,
         mathValidation,
-        aiReasoning: 'Extracted using LLM-powered analysis',
+        aiReasoning: "Extracted using LLM-powered analysis",
       };
     } catch (error) {
       return {
         success: false,
-        strategy: 'OLLAMA',
-        errors: [`Ollama extraction error: ${error instanceof Error ? error.message : 'Unknown'}`],
+        strategy: "OLLAMA",
+        errors: [
+          `Ollama extraction error: ${error instanceof Error ? error.message : "Unknown"}`,
+        ],
         warnings,
         confidence: 0,
         processingTime: Date.now() - startTime,
@@ -189,25 +228,25 @@ export class EnhancedPDFExtractor {
     }
   }
 
-  /**
-   * Extract using OCR (tesseract.js)
-   */
-  private static async extractWithOCR(filePath: string): Promise<EnhancedExtractionResult> {
+  private static async extractWithOCR(
+    filePath: string,
+  ): Promise<EnhancedExtractionResult> {
     const startTime = Date.now();
     const errors: string[] = [];
     const warnings: string[] = [];
 
     try {
-      // Lazy load tesseract.js
       if (!Tesseract) {
         try {
-          Tesseract = await import('tesseract.js');
+          Tesseract = await import("tesseract.js");
         } catch {
           return {
             success: false,
-            strategy: 'OCR',
-            errors: ['tesseract.js not installed. Run: npm install tesseract.js'],
-            warnings: ['OCR unavailable'],
+            strategy: "OCR",
+            errors: [
+              "tesseract.js not installed. Run: npm install tesseract.js",
+            ],
+            warnings: ["OCR unavailable"],
             confidence: 0,
             processingTime: Date.now() - startTime,
             mathValidation: {
@@ -220,13 +259,12 @@ export class EnhancedPDFExtractor {
         }
       }
 
-      // For PDFs, we need to convert to images first
-      // This is a simplified version - in production, use pdf2pic or similar
-      warnings.push('PDF to image conversion not implemented. OCR works best with image files.');
+      warnings.push(
+        "PDF to image conversion not implemented. OCR works best with image files.",
+      );
 
-      // If it's an image file, process directly
       if (filePath.match(/\.(png|jpg|jpeg)$/i)) {
-        const result = await Tesseract.recognize(filePath, 'eng', {
+        const result = await Tesseract.recognize(filePath, "eng", {
           logger: (m: any) => console.log(m),
         });
 
@@ -235,8 +273,8 @@ export class EnhancedPDFExtractor {
         if (!rawText || rawText.trim().length < 20) {
           return {
             success: false,
-            strategy: 'OCR',
-            errors: ['OCR produced insufficient text'],
+            strategy: "OCR",
+            errors: ["OCR produced insufficient text"],
             warnings,
             confidence: 0,
             processingTime: Date.now() - startTime,
@@ -249,18 +287,17 @@ export class EnhancedPDFExtractor {
           };
         }
 
-        // Try to use Ollama on OCR text for better extraction
         if (await ollamaClient.isAvailable()) {
           const extractedData = await ollamaClient.extractInvoiceData(rawText);
           const validated = this.validateExtractedData(extractedData, warnings);
           const mathValidation = this.validateMath(validated);
-          const confidence = this.calculateConfidence(validated) * 0.9; // Slightly lower confidence for OCR
+          const confidence = this.calculateConfidence(validated) * 0.9;
 
           return {
             success: confidence > 0.4,
             data: validated,
-            strategy: 'OCR',
-            errors: confidence <= 0.4 ? ['Low OCR confidence'] : [],
+            strategy: "OCR",
+            errors: confidence <= 0.4 ? ["Low OCR confidence"] : [],
             warnings,
             confidence,
             processingTime: Date.now() - startTime,
@@ -268,19 +305,34 @@ export class EnhancedPDFExtractor {
           };
         }
 
-        // Fallback to basic extraction from OCR text
-        const basicResult = await PDFExtractor.extractInvoiceData('__text_input__');
+        const basicResultFallback: EnhancedExtractionResult = {
+          success: false,
+          data: undefined,
+          strategy: "TEXT",
+          errors: ["BASE TEXT EXTRACTION NOT AVAILABLE (fallback)"],
+          warnings: [],
+          confidence: 0,
+          processingTime: Date.now() - startTime,
+          mathValidation: {
+            passed: false,
+            expectedTotal: 0,
+            actualTotal: 0,
+            difference: 0,
+          },
+        } as EnhancedExtractionResult;
         return {
-          ...basicResult,
-          strategy: 'OCR',
+          ...basicResultFallback,
+          strategy: "TEXT",
           processingTime: Date.now() - startTime,
         };
       }
 
       return {
         success: false,
-        strategy: 'OCR',
-        errors: ['OCR only supported for image files (PNG, JPG). PDF conversion not implemented.'],
+        strategy: "OCR",
+        errors: [
+          "OCR only supported for image files (PNG, JPG). PDF conversion not implemented.",
+        ],
         warnings,
         confidence: 0,
         processingTime: Date.now() - startTime,
@@ -294,8 +346,10 @@ export class EnhancedPDFExtractor {
     } catch (error) {
       return {
         success: false,
-        strategy: 'OCR',
-        errors: [`OCR error: ${error instanceof Error ? error.message : 'Unknown'}`],
+        strategy: "OCR",
+        errors: [
+          `OCR error: ${error instanceof Error ? error.message : "Unknown"}`,
+        ],
         warnings,
         confidence: 0,
         processingTime: Date.now() - startTime,
@@ -309,29 +363,26 @@ export class EnhancedPDFExtractor {
     }
   }
 
-  /**
-   * Validate and calculate missing fields
-   */
   private static validateExtractedData(
     data: Partial<ExtractedInvoiceData>,
-    warnings: string[]
+    warnings: string[],
   ): ExtractedInvoiceData {
     const validated = { ...data } as ExtractedInvoiceData;
 
-    // Ensure required amounts
     if (!validated.subtotalExclVAT) {
       validated.subtotalExclVAT = 0;
-      warnings.push('Subtotal not found, defaulting to 0');
+      warnings.push("Subtotal not found, defaulting to 0");
     }
 
     if (!validated.vatAmount) {
-      validated.vatAmount = validated.subtotalExclVAT * ((validated.vatRate || 15) / 100);
-      warnings.push('VAT amount calculated from subtotal');
+      validated.vatAmount =
+        validated.subtotalExclVAT * ((validated.vatRate || 15) / 100);
+      warnings.push("VAT amount calculated from subtotal");
     }
 
     if (!validated.totalAmount) {
       validated.totalAmount = validated.subtotalExclVAT + validated.vatAmount;
-      warnings.push('Total calculated from subtotal + VAT');
+      warnings.push("Total calculated from subtotal + VAT");
     }
 
     if (!validated.amountDue) {
@@ -340,26 +391,28 @@ export class EnhancedPDFExtractor {
 
     if (!validated.invoiceDate) {
       validated.invoiceDate = new Date();
-      warnings.push('Invoice date not found, using current date');
+      warnings.push("Invoice date not found, using current date");
     }
 
     if (!validated.dueDate) {
-      validated.dueDate = new Date(validated.invoiceDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-      warnings.push('Due date not found, using 30 days from invoice date');
+      validated.dueDate = new Date(
+        validated.invoiceDate.getTime() + 30 * 24 * 60 * 60 * 1000,
+      );
+      warnings.push("Due date not found, using 30 days from invoice date");
     }
 
     if (!validated.invoiceNumber) {
       validated.invoiceNumber = `UNKNOWN-${Date.now()}`;
-      warnings.push('Invoice number not found, generated placeholder');
+      warnings.push("Invoice number not found, generated placeholder");
     }
 
     if (!validated.supplierName) {
-      validated.supplierName = 'Unknown Supplier';
-      warnings.push('Supplier name not found');
+      validated.supplierName = "Unknown Supplier";
+      warnings.push("Supplier name not found");
     }
 
     if (!validated.currency) {
-      validated.currency = 'ZAR';
+      validated.currency = "ZAR";
     }
 
     if (!validated.lineItems) {
@@ -369,9 +422,6 @@ export class EnhancedPDFExtractor {
     return validated;
   }
 
-  /**
-   * Validate mathematical consistency
-   */
   private static validateMath(data: ExtractedInvoiceData): {
     passed: boolean;
     expectedTotal: number;
@@ -390,15 +440,13 @@ export class EnhancedPDFExtractor {
     };
   }
 
-  /**
-   * Calculate extraction confidence
-   */
   private static calculateConfidence(data: ExtractedInvoiceData): number {
     let score = 0;
-    let maxScore = 10;
+    const maxScore = 10;
 
-    if (data.invoiceNumber && !data.invoiceNumber.startsWith('UNKNOWN')) score++;
-    if (data.supplierName && data.supplierName !== 'Unknown Supplier') score++;
+    if (data.invoiceNumber && !data.invoiceNumber.startsWith("UNKNOWN"))
+      score++;
+    if (data.supplierName && data.supplierName !== "Unknown Supplier") score++;
     if (data.invoiceDate && data.invoiceDate.getFullYear() > 2000) score++;
     if (data.dueDate && data.dueDate > data.invoiceDate) score++;
     if (data.subtotalExclVAT > 0) score++;
@@ -412,4 +460,4 @@ export class EnhancedPDFExtractor {
   }
 }
 
-export default EnhancedPDFExtractor;
+export default EnhancedExtractor;

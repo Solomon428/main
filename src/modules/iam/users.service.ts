@@ -1,15 +1,15 @@
-import { prisma } from '../../lib/prisma';
-import { hashPassword, verifyPassword } from '../../security/hashing';
-import { generateId } from '../../utils/ids';
-import { CreateUserInput, UpdateUserInput } from './iam.validators';
-import { UserRole } from '../../domain/enums/UserRole';
-import { logAuditEvent } from '../../observability/audit';
-import { AuditAction } from '../../domain/enums/AuditAction';
-import { EntityType } from '../../domain/enums/EntityType';
+import { prisma } from "../../lib/prisma";
+import { hashPassword, verifyPassword } from "../../security/hashing";
+import { generateId } from "../../utils/ids";
+import { CreateUserInput, UpdateUserInput } from "./iam.validators";
+import { UserRole } from "../../domain/enums/UserRole";
+import { logAuditEvent } from "../../observability/audit";
+import { AuditAction } from "../../domain/enums/AuditAction";
+import { EntityType } from "../../domain/enums/EntityType";
 
 export async function createUser(data: CreateUserInput, createdBy?: string) {
   const passwordHash = await hashPassword(data.password);
-  
+
   const user = await prisma.user.create({
     data: {
       id: generateId(),
@@ -42,7 +42,11 @@ export async function createUser(data: CreateUserInput, createdBy?: string) {
   return user;
 }
 
-export async function updateUser(userId: string, data: UpdateUserInput, updatedBy?: string) {
+export async function updateUser(
+  userId: string,
+  data: UpdateUserInput,
+  updatedBy?: string,
+) {
   const oldUser = await prisma.user.findUnique({
     where: { id: userId },
   });
@@ -103,35 +107,38 @@ export async function findUserByEmail(email: string) {
   });
 }
 
-export async function listUsers(organizationId?: string, options?: {
-  role?: UserRole;
-  isActive?: boolean;
-  search?: string;
-  page?: number;
-  limit?: number;
-}) {
+export async function listUsers(
+  organizationId?: string,
+  options?: {
+    role?: UserRole;
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  },
+) {
   const page = options?.page || 1;
   const limit = options?.limit || 20;
   const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = {};
-  
+
   if (organizationId) {
     where.organizations = { some: { id: organizationId } };
   }
-  
+
   if (options?.role) {
     where.role = options.role;
   }
-  
+
   if (options?.isActive !== undefined) {
     where.isActive = options.isActive;
   }
-  
+
   if (options?.search) {
     where.OR = [
-      { name: { contains: options.search, mode: 'insensitive' } },
-      { email: { contains: options.search, mode: 'insensitive' } },
+      { name: { contains: options.search, mode: "insensitive" } },
+      { email: { contains: options.search, mode: "insensitive" } },
     ];
   }
 
@@ -140,7 +147,7 @@ export async function listUsers(organizationId?: string, options?: {
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         primaryOrganization: {
           select: { id: true, name: true },
@@ -176,22 +183,22 @@ export async function updateLastLogin(userId: string, ipAddress?: string) {
 export async function incrementFailedLogin(email: string) {
   const maxAttempts = 5;
   const lockoutMinutes = 30;
-  
+
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase() },
     select: { id: true, failedLoginAttempts: true },
   });
-  
+
   if (!user) return;
-  
+
   const newAttempts = user.failedLoginAttempts + 1;
   const shouldLock = newAttempts >= maxAttempts;
-  
+
   await prisma.user.update({
     where: { id: user.id },
     data: {
       failedLoginAttempts: newAttempts,
-      lockedUntil: shouldLock 
+      lockedUntil: shouldLock
         ? new Date(Date.now() + lockoutMinutes * 60 * 1000)
         : undefined,
     },

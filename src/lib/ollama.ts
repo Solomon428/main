@@ -13,7 +13,7 @@
 // Models: llama3.2 (recommended), mistral, or llama2
 // ============================================================================
 
-import { ExtractedInvoiceData, ExtractedLineItem } from '@/types';
+import { ExtractedInvoiceData, ExtractedLineItem } from "@/types";
 
 interface OllamaResponse {
   model: string;
@@ -39,8 +39,8 @@ export class OllamaClient {
 
   constructor(config: Partial<OllamaConfig> = {}) {
     this.config = {
-      host: config.host || process.env.OLLAMA_HOST || 'http://localhost:11434',
-      model: config.model || process.env.OLLAMA_MODEL || 'llama3.2',
+      host: config.host || process.env.OLLAMA_HOST || "http://localhost:11434",
+      model: config.model || process.env.OLLAMA_MODEL || "llama3.2",
       temperature: config.temperature || 0.1, // Low temperature for consistent extraction
       maxTokens: config.maxTokens || 4096,
     };
@@ -52,7 +52,7 @@ export class OllamaClient {
   async isAvailable(): Promise<boolean> {
     try {
       const response = await fetch(`${this.config.host}/api/tags`, {
-        method: 'GET',
+        method: "GET",
         signal: AbortSignal.timeout(5000),
       });
       return response.ok;
@@ -68,7 +68,7 @@ export class OllamaClient {
     try {
       const response = await fetch(`${this.config.host}/api/tags`);
       if (!response.ok) return [];
-      
+
       const data = await response.json();
       return data.models?.map((m: any) => m.name) || [];
     } catch {
@@ -81,8 +81,8 @@ export class OllamaClient {
    */
   async generate(prompt: string): Promise<string> {
     const response = await fetch(`${this.config.host}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: this.config.model,
         prompt,
@@ -105,7 +105,9 @@ export class OllamaClient {
   /**
    * Extract invoice data from text using LLM
    */
-  async extractInvoiceData(rawText: string): Promise<Partial<ExtractedInvoiceData>> {
+  async extractInvoiceData(
+    rawText: string,
+  ): Promise<Partial<ExtractedInvoiceData>> {
     const prompt = `
 You are an expert invoice processing system. Extract structured data from the following invoice text.
 Return ONLY a valid JSON object with no markdown formatting or additional text.
@@ -159,15 +161,15 @@ Important:
 
     try {
       const response = await this.generate(prompt);
-      
+
       // Clean up the response - remove markdown formatting if present
       const cleanedResponse = response
-        .replace(/```json\s*/g, '')
-        .replace(/```\s*/g, '')
+        .replace(/```json\s*/g, "")
+        .replace(/```\s*/g, "")
         .trim();
 
       const extractedData = JSON.parse(cleanedResponse);
-      
+
       // Convert date strings to Date objects
       if (extractedData.invoiceDate) {
         extractedData.invoiceDate = new Date(extractedData.invoiceDate);
@@ -182,7 +184,7 @@ Important:
 
       return extractedData;
     } catch (error) {
-      console.error('Ollama extraction failed:', error);
+      console.error("Ollama extraction failed:", error);
       return {
         rawText,
         extractionConfidence: 0,
@@ -195,16 +197,16 @@ Important:
    */
   async explainFraudScore(
     fraudScore: number,
-    riskFactors: Array<{ factor: string; score: number; description: string }>
+    riskFactors: Array<{ factor: string; score: number; description: string }>,
   ): Promise<string> {
     const prompt = `
 You are a fraud detection expert. Explain the following fraud assessment in clear, business-friendly language.
 
 Fraud Score: ${fraudScore}/100
-Risk Level: ${fraudScore >= 80 ? 'CRITICAL' : fraudScore >= 60 ? 'HIGH' : fraudScore >= 40 ? 'MEDIUM' : 'LOW'}
+Risk Level: ${fraudScore >= 80 ? "CRITICAL" : fraudScore >= 60 ? "HIGH" : fraudScore >= 40 ? "MEDIUM" : "LOW"}
 
 Risk Factors:
-${riskFactors.map(rf => `- ${rf.factor}: ${rf.score}/100 - ${rf.description}`).join('\n')}
+${riskFactors.map((rf) => `- ${rf.factor}: ${rf.score}/100 - ${rf.description}`).join("\n")}
 
 Provide a concise 2-3 sentence explanation of:
 1. Why this invoice was flagged (if score > 40)
@@ -217,7 +219,7 @@ Keep it professional and actionable.
     try {
       return await this.generate(prompt);
     } catch {
-      return 'Unable to generate fraud explanation. Please review the risk factors manually.';
+      return "Unable to generate fraud explanation. Please review the risk factors manually.";
     }
   }
 
@@ -227,14 +229,14 @@ Keep it professional and actionable.
   async categorizeInvoice(
     supplierName: string,
     lineItems: string[],
-    totalAmount: number
+    totalAmount: number,
   ): Promise<{ category: string; confidence: number; reason: string }> {
     const prompt = `
 You are an accounting expert. Categorize this invoice based on the following information:
 
 Supplier: ${supplierName}
 Line Items:
-${lineItems.map(item => `- ${item}`).join('\n')}
+${lineItems.map((item) => `- ${item}`).join("\n")}
 Total Amount: R${totalAmount}
 
 Available categories:
@@ -264,16 +266,16 @@ Return ONLY a JSON object:
     try {
       const response = await this.generate(prompt);
       const cleanedResponse = response
-        .replace(/```json\s*/g, '')
-        .replace(/```\s*/g, '')
+        .replace(/```json\s*/g, "")
+        .replace(/```\s*/g, "")
         .trim();
-      
+
       return JSON.parse(cleanedResponse);
     } catch {
       return {
-        category: 'OTHER',
+        category: "OTHER",
         confidence: 0,
-        reason: 'Unable to categorize',
+        reason: "Unable to categorize",
       };
     }
   }
@@ -298,7 +300,7 @@ Provide a clear, concise answer. If you don't have enough information, say so.
     try {
       return await this.generate(prompt);
     } catch {
-      return 'I apologize, but I was unable to process your question at this time.';
+      return "I apologize, but I was unable to process your question at this time.";
     }
   }
 
@@ -307,7 +309,7 @@ Provide a clear, concise answer. If you don't have enough information, say so.
    */
   async detectAnomaliesWithReasoning(
     currentInvoice: any,
-    historicalInvoices: any[]
+    historicalInvoices: any[],
   ): Promise<Array<{ type: string; description: string; severity: string }>> {
     const prompt = `
 You are a data analyst specializing in invoice pattern detection. Compare the current invoice against historical data to identify anomalies.
@@ -333,10 +335,10 @@ If no anomalies detected, return an empty array [].
     try {
       const response = await this.generate(prompt);
       const cleanedResponse = response
-        .replace(/```json\s*/g, '')
-        .replace(/```\s*/g, '')
+        .replace(/```json\s*/g, "")
+        .replace(/```\s*/g, "")
         .trim();
-      
+
       return JSON.parse(cleanedResponse);
     } catch {
       return [];

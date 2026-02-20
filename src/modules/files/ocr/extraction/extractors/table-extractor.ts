@@ -1,20 +1,28 @@
-import { Decimal } from 'decimal.js';
-import type { ExtractionConfig, ExtractedInvoiceData, ExtractedLineItem } from '../types';
-import { parseDateString, parseAmountString, extractSupplierName } from './field-extractor';
-import type { Logger } from '../../../../observability/logger';
+import { Decimal } from "decimal.js";
+import type {
+  ExtractionConfig,
+  ExtractedInvoiceData,
+  ExtractedLineItem,
+} from "../types";
+import {
+  parseDateString,
+  parseAmountString,
+  extractSupplierName,
+} from "./field-extractor";
+import type { Logger } from "../../../../observability/logger";
 
 export async function extractWithRegexInternal(
   text: string,
   config: ExtractionConfig,
-  logger: Logger
+  logger: Logger,
 ): Promise<ExtractedInvoiceData> {
   const extracted: ExtractedInvoiceData = {
     lineItems: [],
     confidence: 0,
-    extractionMethod: 'regex',
+    extractionMethod: "regex",
     metadata: {},
     warnings: [],
-    errors: []
+    errors: [],
   };
 
   let matchScore = 0;
@@ -31,14 +39,14 @@ export async function extractWithRegexInternal(
   }
 
   for (const pattern of config.regexPatterns.date) {
-    const matches = text.matchAll(new RegExp(pattern, 'gi'));
+    const matches = text.matchAll(new RegExp(pattern, "gi"));
     for (const match of matches) {
       if (match[1]) {
         const dateStr = match[1].trim();
         const parsedDate = parseDateString(dateStr, config);
         if (parsedDate) {
           const context = match[0].toLowerCase();
-          if (context.includes('due') || context.includes('payment')) {
+          if (context.includes("due") || context.includes("payment")) {
             extracted.dueDate = parsedDate;
           } else {
             extracted.issueDate = extracted.issueDate || parsedDate;
@@ -51,7 +59,7 @@ export async function extractWithRegexInternal(
   }
 
   for (const pattern of config.regexPatterns.amount) {
-    const matches = text.matchAll(new RegExp(pattern, 'gi'));
+    const matches = text.matchAll(new RegExp(pattern, "gi"));
     for (const match of matches) {
       if (match[1]) {
         const amountStr = match[1].trim();
@@ -59,14 +67,22 @@ export async function extractWithRegexInternal(
 
         if (amount) {
           const context = match[0].toLowerCase();
-          if (context.includes('total') || context.includes('balance') || context.includes('grand')) {
+          if (
+            context.includes("total") ||
+            context.includes("balance") ||
+            context.includes("grand")
+          ) {
             extracted.totalAmount = extracted.totalAmount || amount;
             if (!extracted.currency && currency) {
               extracted.currency = currency;
             }
-          } else if (context.includes('sub') || context.includes('sub-total')) {
+          } else if (context.includes("sub") || context.includes("sub-total")) {
             extracted.subtotalAmount = extracted.subtotalAmount || amount;
-          } else if (context.includes('tax') || context.includes('vat') || context.includes('gst')) {
+          } else if (
+            context.includes("tax") ||
+            context.includes("vat") ||
+            context.includes("gst")
+          ) {
             extracted.taxAmount = extracted.taxAmount || amount;
           }
           matchScore += 10;
@@ -110,21 +126,26 @@ export async function extractWithRegexInternal(
   extracted.supplierName = extractSupplierName(text);
 
   const maxPossibleScore = 100;
-  extracted.confidence = totalMatches > 0 ? (matchScore / maxPossibleScore) * 100 : 0;
+  extracted.confidence =
+    totalMatches > 0 ? (matchScore / maxPossibleScore) * 100 : 0;
 
   extracted.metadata = {
     regexMatches: totalMatches,
     matchScore,
     lineItemsExtracted: extracted.lineItems.length,
-    extractionTimestamp: new Date().toISOString()
+    extractionTimestamp: new Date().toISOString(),
   };
 
   return extracted;
 }
 
-export function extractLineItems(text: string, config: ExtractionConfig, logger: Logger): ExtractedLineItem[] {
+export function extractLineItems(
+  text: string,
+  config: ExtractionConfig,
+  logger: Logger,
+): ExtractedLineItem[] {
   const lineItems: ExtractedLineItem[] = [];
-  const lines = text.split('\n');
+  const lines = text.split("\n");
 
   let lineNumber = 1;
   let inLineItemsSection = false;
@@ -132,8 +153,11 @@ export function extractLineItems(text: string, config: ExtractionConfig, logger:
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
 
-    if (line.toLowerCase().includes('description') &&
-        (line.toLowerCase().includes('quantity') || line.toLowerCase().includes('amount'))) {
+    if (
+      line.toLowerCase().includes("description") &&
+      (line.toLowerCase().includes("quantity") ||
+        line.toLowerCase().includes("amount"))
+    ) {
       inLineItemsSection = true;
       continue;
     }
@@ -143,7 +167,12 @@ export function extractLineItems(text: string, config: ExtractionConfig, logger:
         const match = line.match(pattern);
         if (match) {
           try {
-            const lineItem = parseLineItemMatch(match, lineNumber, line, config);
+            const lineItem = parseLineItemMatch(
+              match,
+              lineNumber,
+              line,
+              config,
+            );
             if (lineItem) {
               lineItems.push(lineItem);
               lineNumber++;
@@ -155,8 +184,12 @@ export function extractLineItems(text: string, config: ExtractionConfig, logger:
         }
       }
 
-      if (line.toLowerCase().includes('total') || line.toLowerCase().includes('subtotal') ||
-          line.toLowerCase().includes('balance') || line === '') {
+      if (
+        line.toLowerCase().includes("total") ||
+        line.toLowerCase().includes("subtotal") ||
+        line.toLowerCase().includes("balance") ||
+        line === ""
+      ) {
         let nextLineHasItem = false;
         for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
           const nextLine = lines[j].trim();
@@ -186,28 +219,28 @@ function parseLineItemMatch(
   match: RegExpMatchArray,
   lineNumber: number,
   originalText: string,
-  config: ExtractionConfig
+  config: ExtractionConfig,
 ): ExtractedLineItem | null {
   try {
-    let description = '';
+    let description = "";
     let quantity = new Decimal(1);
     let unitPrice = new Decimal(0);
     let totalAmount = new Decimal(0);
 
     if (match.length >= 6) {
-      quantity = new Decimal(match[3].replace(',', '.'));
+      quantity = new Decimal(match[3].replace(",", "."));
       description = match[2].trim();
-      unitPrice = new Decimal(match[4].replace(',', '.'));
-      totalAmount = new Decimal(match[5].replace(',', '.'));
+      unitPrice = new Decimal(match[4].replace(",", "."));
+      totalAmount = new Decimal(match[5].replace(",", "."));
     } else if (match.length >= 5) {
       description = match[1].trim();
       quantity = new Decimal(match[2]);
-      unitPrice = new Decimal(match[3].replace(',', '.'));
-      totalAmount = new Decimal(match[4].replace(',', '.'));
+      unitPrice = new Decimal(match[3].replace(",", "."));
+      totalAmount = new Decimal(match[4].replace(",", "."));
     } else if (match.length >= 4) {
       description = match[2].trim();
-      unitPrice = new Decimal(match[3].replace(',', '.'));
-      totalAmount = new Decimal(match[4].replace(',', '.'));
+      unitPrice = new Decimal(match[3].replace(",", "."));
+      totalAmount = new Decimal(match[4].replace(",", "."));
       if (!unitPrice.equals(0)) {
         quantity = totalAmount.dividedBy(unitPrice);
       }
@@ -232,7 +265,7 @@ function parseLineItemMatch(
       taxRate,
       taxAmount,
       confidence: Math.min(100, confidence),
-      extractedText: originalText
+      extractedText: originalText,
     };
   } catch {
     return null;
@@ -241,7 +274,7 @@ function parseLineItemMatch(
 
 function extractLineItemsHeuristic(text: string): ExtractedLineItem[] {
   const lineItems: ExtractedLineItem[] = [];
-  const lines = text.split('\n');
+  const lines = text.split("\n");
 
   let lineNumber = 1;
   let collectingDescription = false;
@@ -253,12 +286,16 @@ function extractLineItemsHeuristic(text: string): ExtractedLineItem[] {
 
     const amountMatch = line.match(/(\d+[\.,]\d{2})/);
     if (amountMatch) {
-      const amount = new Decimal(amountMatch[1].replace(',', '.'));
+      const amount = new Decimal(amountMatch[1].replace(",", "."));
 
-      if (collectingDescription && currentDescription.length > 0 && lastAmount) {
-        const description = currentDescription.join(' ').trim();
+      if (
+        collectingDescription &&
+        currentDescription.length > 0 &&
+        lastAmount
+      ) {
+        const description = currentDescription.join(" ").trim();
 
-        const words = description.split(' ');
+        const words = description.split(" ");
         let quantity = new Decimal(1);
         let unitPrice = amount;
 
@@ -269,12 +306,12 @@ function extractLineItemsHeuristic(text: string): ExtractedLineItem[] {
 
         const lineItem: ExtractedLineItem = {
           lineNumber,
-          description: words.slice(1).join(' ') || description,
+          description: words.slice(1).join(" ") || description,
           quantity,
           unitPrice,
           totalAmount: amount,
           confidence: 60,
-          extractedText: line
+          extractedText: line,
         };
 
         lineItems.push(lineItem);

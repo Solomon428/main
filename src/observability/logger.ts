@@ -2,7 +2,7 @@
 // Structured Logging Service
 // ============================================================================
 
-import { LogSeverity } from '../domain/enums/LogSeverity';
+import { LogSeverity } from "../domain/enums/LogSeverity";
 
 interface LogMeta {
   [key: string]: unknown;
@@ -22,9 +22,9 @@ interface LogEntry {
   meta?: LogMeta;
 }
 
-const SERVICE_NAME = process.env.APP_NAME || 'creditorflow';
-const SERVICE_VERSION = process.env.APP_VERSION || '2.0.0';
-const ENVIRONMENT = process.env.NODE_ENV || 'development';
+const SERVICE_NAME = process.env.APP_NAME || "creditorflow";
+const SERVICE_VERSION = process.env.APP_VERSION || "2.0.0";
+const ENVIRONMENT = process.env.NODE_ENV || "development";
 
 /**
  * Create a structured log entry
@@ -32,7 +32,7 @@ const ENVIRONMENT = process.env.NODE_ENV || 'development';
 function createLogEntry(
   severity: LogSeverity,
   message: string,
-  meta?: LogMeta
+  meta?: LogMeta,
 ): LogEntry {
   return {
     timestamp: new Date().toISOString(),
@@ -49,18 +49,24 @@ function createLogEntry(
  * Output log entry to console
  */
 function output(entry: LogEntry): void {
-  if (process.env.LOG_FORMAT === 'json') {
+  if (process.env.LOG_FORMAT === "json") {
     console.log(JSON.stringify(entry));
   } else {
-    const metaStr = entry.meta ? ` | ${JSON.stringify(entry.meta)}` : '';
-    console.log(`[${entry.timestamp}] ${entry.severity}: ${entry.message}${metaStr}`);
+    const metaStr = entry.meta ? ` | ${JSON.stringify(entry.meta)}` : "";
+    console.log(
+      `[${entry.timestamp}] ${entry.severity}: ${entry.message}${metaStr}`,
+    );
   }
 }
 
 /**
  * Log a message with specified severity
  */
-export function log(severity: LogSeverity, message: string, meta?: LogMeta): void {
+export function log(
+  severity: LogSeverity,
+  message: string,
+  meta?: LogMeta,
+): void {
   const entry = createLogEntry(severity, message, meta);
   output(entry);
 }
@@ -69,7 +75,7 @@ export function log(severity: LogSeverity, message: string, meta?: LogMeta): voi
  * Log debug message
  */
 export function debug(message: string, meta?: LogMeta): void {
-  if (process.env.LOG_LEVEL === 'debug' || process.env.DEBUG === 'true') {
+  if (process.env.LOG_LEVEL === "debug" || process.env.DEBUG === "true") {
     log(LogSeverity.DEBUG, message, meta);
   }
 }
@@ -128,13 +134,21 @@ export function compliance(message: string, meta?: LogMeta): void {
  */
 export function createChildLogger(defaultMeta: LogMeta) {
   return {
-    debug: (message: string, meta?: LogMeta) => debug(message, { ...defaultMeta, ...meta }),
-    info: (message: string, meta?: LogMeta) => info(message, { ...defaultMeta, ...meta }),
-    warn: (message: string, meta?: LogMeta) => warn(message, { ...defaultMeta, ...meta }),
-    error: (message: string, meta?: LogMeta) => error(message, { ...defaultMeta, ...meta }),
-    fatal: (message: string, meta?: LogMeta) => fatal(message, { ...defaultMeta, ...meta }),
-    security: (message: string, meta?: LogMeta) => security(message, { ...defaultMeta, ...meta }),
-    audit: (message: string, meta?: LogMeta) => audit(message, { ...defaultMeta, ...meta }),
-    compliance: (message: string, meta?: LogMeta) => compliance(message, { ...defaultMeta, ...meta }),
+    debug: (message: string, meta?: LogMeta) =>
+      debug(message, { ...defaultMeta, ...meta }),
+    info: (message: string, meta?: LogMeta) =>
+      info(message, { ...defaultMeta, ...meta }),
+    warn: (message: string, meta?: LogMeta) =>
+      warn(message, { ...defaultMeta, ...meta }),
+    error: (message: string, meta?: LogMeta) =>
+      error(message, { ...defaultMeta, ...meta }),
+    fatal: (message: string, meta?: LogMeta) =>
+      fatal(message, { ...defaultMeta, ...meta }),
+    security: (message: string, meta?: LogMeta) =>
+      security(message, { ...defaultMeta, ...meta }),
+    audit: (message: string, meta?: LogMeta) =>
+      audit(message, { ...defaultMeta, ...meta }),
+    compliance: (message: string, meta?: LogMeta) =>
+      compliance(message, { ...defaultMeta, ...meta }),
   };
 }

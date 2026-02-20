@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { z, ZodError, ZodSchema } from 'zod';
-import { AppError } from '@/lib/errors';
-import { logger } from '@/lib/logger';
+import { Request, Response, NextFunction } from "express";
+import { z, ZodError, ZodSchema } from "zod";
+import { AppError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 
 /**
  * Middleware to validate request body against a Zod schema
@@ -13,15 +13,18 @@ export function validateBody<T>(schema: ZodSchema<T>) {
 
       if (!result.success) {
         const formattedErrors = formatZodError(result.error);
-        logger.warn({ errors: formattedErrors, body: req.body }, 'Body validation failed');
-        
+        logger.warn(
+          { errors: formattedErrors, body: req.body },
+          "Body validation failed",
+        );
+
         return next(
           new AppError(
-            `Validation error: ${formattedErrors.join(', ')}`,
-            'VALIDATION_ERROR',
+            `Validation error: ${formattedErrors.join(", ")}`,
+            "VALIDATION_ERROR",
             400,
-            formattedErrors
-          )
+            formattedErrors,
+          ),
         );
       }
 
@@ -44,15 +47,18 @@ export function validateQuery<T>(schema: ZodSchema<T>) {
 
       if (!result.success) {
         const formattedErrors = formatZodError(result.error);
-        logger.warn({ errors: formattedErrors, query: req.query }, 'Query validation failed');
-        
+        logger.warn(
+          { errors: formattedErrors, query: req.query },
+          "Query validation failed",
+        );
+
         return next(
           new AppError(
-            `Query validation error: ${formattedErrors.join(', ')}`,
-            'VALIDATION_ERROR',
+            `Query validation error: ${formattedErrors.join(", ")}`,
+            "VALIDATION_ERROR",
             400,
-            formattedErrors
-          )
+            formattedErrors,
+          ),
         );
       }
 
@@ -75,15 +81,18 @@ export function validateParams<T>(schema: ZodSchema<T>) {
 
       if (!result.success) {
         const formattedErrors = formatZodError(result.error);
-        logger.warn({ errors: formattedErrors, params: req.params }, 'Params validation failed');
-        
+        logger.warn(
+          { errors: formattedErrors, params: req.params },
+          "Params validation failed",
+        );
+
         return next(
           new AppError(
-            `Parameter validation error: ${formattedErrors.join(', ')}`,
-            'VALIDATION_ERROR',
+            `Parameter validation error: ${formattedErrors.join(", ")}`,
+            "VALIDATION_ERROR",
             400,
-            formattedErrors
-          )
+            formattedErrors,
+          ),
         );
       }
 
@@ -101,7 +110,7 @@ export function validateParams<T>(schema: ZodSchema<T>) {
  */
 function formatZodError(error: ZodError): string[] {
   return error.errors.map((err) => {
-    const path = err.path.length > 0 ? err.path.join('.') : 'root';
+    const path = err.path.length > 0 ? err.path.join(".") : "root";
     return `${path}: ${err.message}`;
   });
 }
@@ -111,10 +120,10 @@ function formatZodError(error: ZodError): string[] {
  */
 export const commonSchemas = {
   // UUID string
-  uuid: z.string().uuid('Invalid UUID format'),
+  uuid: z.string().uuid("Invalid UUID format"),
 
   // Email string
-  email: z.string().email('Invalid email format'),
+  email: z.string().email("Invalid email format"),
 
   // Pagination params
   pagination: z.object({
@@ -131,7 +140,7 @@ export const commonSchemas = {
   // Sort params
   sortParams: z.object({
     sortBy: z.string().optional(),
-    sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+    sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
   }),
 };
 
@@ -141,8 +150,8 @@ export const commonSchemas = {
 export function sanitizeString(value: string): string {
   return value
     .trim()
-    .replace(/[<>]/g, '') // Remove < and > to prevent XSS
-    .replace(/\s+/g, ' '); // Normalize whitespace
+    .replace(/[<>]/g, "") // Remove < and > to prevent XSS
+    .replace(/\s+/g, " "); // Normalize whitespace
 }
 
 /**
@@ -151,19 +160,19 @@ export function sanitizeString(value: string): string {
 export function sanitizeCommonFields(
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const sanitizeObject = (obj: Record<string, unknown>) => {
     for (const key in obj) {
-      if (typeof obj[key] === 'string') {
+      if (typeof obj[key] === "string") {
         obj[key] = sanitizeString(obj[key] as string);
-      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+      } else if (typeof obj[key] === "object" && obj[key] !== null) {
         sanitizeObject(obj[key] as Record<string, unknown>);
       }
     }
   };
 
-  if (req.body && typeof req.body === 'object') {
+  if (req.body && typeof req.body === "object") {
     sanitizeObject(req.body);
   }
 

@@ -2,7 +2,7 @@
 // Database Transaction Utilities
 // ============================================================================
 
-import { prisma } from './prisma';
+import { prisma } from "./prisma";
 
 /**
  * Options for transaction execution
@@ -10,7 +10,11 @@ import { prisma } from './prisma';
 export interface TransactionOptions {
   maxWait?: number;
   timeout?: number;
-  isolationLevel?: 'ReadUncommitted' | 'ReadCommitted' | 'RepeatableRead' | 'Serializable';
+  isolationLevel?:
+    | "ReadUncommitted"
+    | "ReadCommitted"
+    | "RepeatableRead"
+    | "Serializable";
 }
 
 /**
@@ -29,10 +33,10 @@ const DEFAULT_OPTIONS: TransactionOptions = {
  */
 export async function runInTransaction<T>(
   fn: (tx: typeof prisma) => Promise<T>,
-  options: TransactionOptions = {}
+  options: TransactionOptions = {},
 ): Promise<T> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  
+
   return prisma.$transaction(async (tx: typeof prisma) => {
     return fn(tx);
   }, opts);
@@ -46,7 +50,7 @@ export async function runInTransaction<T>(
  */
 export async function runBatchTransaction<T>(
   operations: ((tx: typeof prisma) => Promise<T>)[],
-  options: TransactionOptions = {}
+  options: TransactionOptions = {},
 ): Promise<T[]> {
   return runInTransaction(async (tx) => {
     const results: T[] = [];
@@ -67,27 +71,27 @@ export async function runBatchTransaction<T>(
 export async function runInTransactionWithRetry<T>(
   fn: (tx: typeof prisma) => Promise<T>,
   maxRetries: number = 3,
-  options: TransactionOptions = {}
+  options: TransactionOptions = {},
 ): Promise<T> {
   let lastError: Error | undefined;
-  
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await runInTransaction(fn, options);
     } catch (error) {
       lastError = error as Error;
-      
+
       // Only retry on transaction conflicts
       if (isRetryableError(lastError)) {
         const delay = Math.pow(2, attempt) * 100; // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
-      
+
       throw error;
     }
   }
-  
+
   throw lastError;
 }
 
@@ -96,11 +100,9 @@ export async function runInTransactionWithRetry<T>(
  */
 function isRetryableError(error: Error): boolean {
   const retryableCodes = [
-    'P2034', // Transaction conflict
-    'P2037', // Write conflict
+    "P2034", // Transaction conflict
+    "P2037", // Write conflict
   ];
-  
-  return retryableCodes.some(code => 
-    error.message?.includes(code)
-  );
+
+  return retryableCodes.some((code) => error.message?.includes(code));
 }

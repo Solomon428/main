@@ -1,17 +1,17 @@
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { ReconciliationStatus } from '../../domain/enums/ReconciliationStatus';
-import { PaymentStatus } from '../../domain/enums/PaymentStatus';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { ReconciliationStatus } from "../../domain/enums/ReconciliationStatus";
+import { PaymentStatus } from "../../domain/enums/PaymentStatus";
+import { info, error } from "../../observability/logger";
 
 /**
  * Reconcile payments with bank statements
  */
 export async function runTask(
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
-  info('Starting payment reconciliation task', { taskId: task.id });
+  info("Starting payment reconciliation task", { taskId: task.id });
 
   // Get pending reconciliations
   const pendingReconciliations = await prisma.reconciliation.findMany({
@@ -53,9 +53,9 @@ export async function runTask(
             where: { id: item.id },
             data: {
               matchedPaymentId: matchingPayment.id,
-              status: 'MATCHED',
+              status: "MATCHED",
               matchConfidence: 100,
-              matchingMethod: 'AUTO',
+              matchingMethod: "AUTO",
             },
           });
 
@@ -75,26 +75,32 @@ export async function runTask(
       }
 
       // Update reconciliation status
-      const allMatched = reconciliation.items.every(item => item.status === 'MATCHED');
+      const allMatched = reconciliation.items.every(
+        (item) => item.status === "MATCHED",
+      );
       await prisma.reconciliation.update({
         where: { id: reconciliation.id },
         data: {
-          status: allMatched ? ReconciliationStatus.RECONCILED : ReconciliationStatus.REVIEWED,
+          status: allMatched
+            ? ReconciliationStatus.RECONCILED
+            : ReconciliationStatus.REVIEWED,
           completedAt: new Date(),
         },
       });
 
-      info(`Reconciliation ${reconciliation.id} processed: ${matchedCount} items matched`, {
-        taskId: task.id,
-      });
-
+      info(
+        `Reconciliation ${reconciliation.id} processed: ${matchedCount} items matched`,
+        {
+          taskId: task.id,
+        },
+      );
     } catch (err) {
       error(`Failed to reconcile ${reconciliation.id}`, {
         taskId: task.id,
-        error: err instanceof Error ? err.message : 'Unknown error',
+        error: err instanceof Error ? err.message : "Unknown error",
       });
     }
   }
 
-  info('Payment reconciliation task completed', { taskId: task.id });
+  info("Payment reconciliation task completed", { taskId: task.id });
 }

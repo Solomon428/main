@@ -1,22 +1,24 @@
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { info } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { info } from "../../observability/logger";
 
 /**
  * Generate scheduled reports
  */
 export async function runTask(
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
-  info('Starting report generation task', { taskId: task.id });
+  info("Starting report generation task", { taskId: task.id });
 
   // Get parameters from task
-  const reportType = (task.parameters?.reportType as string) || 'MONTHLY';
+  const reportType = (task.parameters?.reportType as string) || "MONTHLY";
   const organizationId = task.parameters?.organizationId as string;
 
   if (!organizationId) {
-    info('No organization specified, skipping report generation', { taskId: task.id });
+    info("No organization specified, skipping report generation", {
+      taskId: task.id,
+    });
     return;
   }
 
@@ -24,20 +26,20 @@ export async function runTask(
 
   // Generate different reports based on type
   switch (reportType) {
-    case 'DAILY':
+    case "DAILY":
       await generateDailyReport(organizationId);
       break;
-    case 'WEEKLY':
+    case "WEEKLY":
       await generateWeeklyReport(organizationId);
       break;
-    case 'MONTHLY':
+    case "MONTHLY":
       await generateMonthlyReport(organizationId);
       break;
     default:
       info(`Unknown report type: ${reportType}`, { taskId: task.id });
   }
 
-  info('Report generation task completed', { taskId: task.id });
+  info("Report generation task completed", { taskId: task.id });
 }
 
 async function generateDailyReport(organizationId: string) {
@@ -60,7 +62,9 @@ async function generateDailyReport(organizationId: string) {
   });
 
   // Store or send report
-  info(`Daily report for ${organizationId}: ${invoicesToday} invoices, payments: ${paymentsToday._sum.amount || 0}`);
+  info(
+    `Daily report for ${organizationId}: ${invoicesToday} invoices, payments: ${paymentsToday._sum.amount || 0}`,
+  );
 }
 
 async function generateWeeklyReport(organizationId: string) {
@@ -69,7 +73,7 @@ async function generateWeeklyReport(organizationId: string) {
   const pendingApprovals = await prisma.approval.count({
     where: {
       invoice: { organizationId },
-      status: 'PENDING',
+      status: "PENDING",
     },
   });
 
@@ -77,11 +81,13 @@ async function generateWeeklyReport(organizationId: string) {
     where: {
       organizationId,
       dueDate: { lt: new Date() },
-      paymentStatus: { in: ['UNPAID', 'PARTIALLY_PAID'] },
+      paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID"] },
     },
   });
 
-  info(`Weekly report for ${organizationId}: ${pendingApprovals} pending approvals, ${overdueInvoices} overdue invoices`);
+  info(
+    `Weekly report for ${organizationId}: ${pendingApprovals} pending approvals, ${overdueInvoices} overdue invoices`,
+  );
 }
 
 async function generateMonthlyReport(organizationId: string) {
@@ -93,7 +99,7 @@ async function generateMonthlyReport(organizationId: string) {
     where: {
       organizationId,
       createdAt: { gte: firstDayOfMonth },
-      status: 'COMPLETED',
+      status: "COMPLETED",
     },
     _sum: { amount: true },
   });
@@ -105,5 +111,7 @@ async function generateMonthlyReport(organizationId: string) {
     },
   });
 
-  info(`Monthly report for ${organizationId}: Total spent: ${totalSpent._sum.amount || 0}, New suppliers: ${supplierCount}`);
+  info(
+    `Monthly report for ${organizationId}: Total spent: ${totalSpent._sum.amount || 0}, New suppliers: ${supplierCount}`,
+  );
 }

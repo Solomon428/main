@@ -9,9 +9,9 @@ import {
   ExtractionResult,
   StructuredInvoiceData,
   SemiStructuredData,
-  ProcessingException
-} from './types';
-import { auditLogger } from '../audit-logger';
+  ProcessingException,
+} from "./types";
+import { auditLogger } from "../utils/audit-logger";
 import {
   detectDocumentType,
   detectDocumentSubType,
@@ -20,8 +20,8 @@ import {
   detectDocumentCurrency,
   extractKeyValuePairs,
   detectSections,
-  detectForms
-} from './utils';
+  detectForms,
+} from "./utils";
 import {
   extractInvoiceNumber,
   extractInvoiceDate,
@@ -31,22 +31,22 @@ import {
   extractVATAmount,
   extractSupplierName,
   extractDueDate,
-  extractLineItems
-} from './data-extractors';
+  extractLineItems,
+} from "./data-extractors";
 
 export function structureExtractedData(
   extractionResult: ExtractionResult,
-  processingId: string
+  processingId: string,
 ): StructuredDataResult {
   try {
     const cleanedText = extractionResult.cleanedText;
-    
+
     const documentType = detectDocumentType(cleanedText);
     const documentSubType = detectDocumentSubType(cleanedText, documentType);
     const documentCategory = categorizeDocument(documentType);
     const documentCountry = detectDocumentCountry(cleanedText);
     const documentCurrency = detectDocumentCurrency(cleanedText);
-    
+
     const invoiceNumber = extractInvoiceNumber(cleanedText);
     const invoiceDate = extractInvoiceDate(cleanedText);
     const dueDate = extractDueDate(cleanedText);
@@ -55,9 +55,13 @@ export function structureExtractedData(
     const subtotalExclVAT = extractSubtotalExclVAT(cleanedText);
     const vatAmount = extractVATAmount(cleanedText);
     const totalAmount = extractTotalAmount(cleanedText);
-    
-    const lineItems = extractLineItems(extractionResult.tables, cleanedText, processingId);
-    
+
+    const lineItems = extractLineItems(
+      extractionResult.tables,
+      cleanedText,
+      processingId,
+    );
+
     const structuredData: StructuredInvoiceData = {
       invoiceNumber,
       invoiceDate,
@@ -71,27 +75,30 @@ export function structureExtractedData(
       metadata: {
         extractionMethod: extractionResult.engine,
         confidence: extractionResult.textMetrics.extractionConfidence,
-        processingId
-      }
+        processingId,
+      },
     };
-    
+
     const semiStructuredData: SemiStructuredData = {
       rawKeyValuePairs: extractKeyValuePairs(cleanedText),
       detectedSections: detectSections(cleanedText, processingId),
-      detectedTables: extractionResult.tables.map(table => ({
+      detectedTables: extractionResult.tables.map((table) => ({
         tableId: table.tableId,
         pageNumber: 1,
         boundingBox: { x: 0, y: 0, width: 0, height: 0 },
-        confidence: extractionResult.tableConfidences.find(tc => tc.tableId === table.tableId)?.overallConfidence || 0.50,
-        metadata: {}
+        confidence:
+          extractionResult.tableConfidences.find(
+            (tc) => tc.tableId === table.tableId,
+          )?.overallConfidence || 0.5,
+        metadata: {},
       })),
       detectedForms: detectForms(cleanedText, processingId),
       metadata: {
         processingId,
-        extractionTimestamp: new Date().toISOString()
-      }
+        extractionTimestamp: new Date().toISOString(),
+      },
     };
-    
+
     return {
       documentType,
       documentSubType,
@@ -102,47 +109,47 @@ export function structureExtractedData(
       semiStructuredData,
       metadata: {
         processingId,
-        structuringTimestamp: new Date().toISOString()
-      }
+        structuringTimestamp: new Date().toISOString(),
+      },
     };
   } catch (error) {
     auditLogger.log(
-      'DATA_STRUCTURING_FAILED',
-      'invoice',
+      "DATA_STRUCTURING_FAILED",
+      "invoice",
       processingId,
-      'WARNING',
+      "WARNING",
       {
         processingId,
-        error: error instanceof Error ? error.message : String(error)
-      }
+        error: error instanceof Error ? error.message : String(error),
+      },
     );
-    
+
     return {
       documentType: DocumentType.STANDARD_INVOICE,
       documentSubType: undefined,
-      documentCategory: 'invoice',
-      documentCountry: 'ZA',
-      documentCurrency: 'ZAR',
+      documentCategory: "invoice",
+      documentCountry: "ZA",
+      documentCurrency: "ZAR",
       structuredData: {
         invoiceNumber: `UNKNOWN_${Date.now()}`,
         invoiceDate: new Date(),
         dueDate: new Date(Date.now() + 30 * 86400000),
-        supplierName: 'Unknown Supplier',
+        supplierName: "Unknown Supplier",
         supplierVAT: undefined,
         subtotalExclVAT: 0,
         vatAmount: 0,
         totalAmount: 0,
         lineItems: [],
-        metadata: {}
+        metadata: {},
       },
       semiStructuredData: {
         rawKeyValuePairs: {},
         detectedSections: [],
         detectedTables: [],
         detectedForms: [],
-        metadata: {}
+        metadata: {},
       },
-      metadata: {}
+      metadata: {},
     };
   }
 }

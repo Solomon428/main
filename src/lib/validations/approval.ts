@@ -12,7 +12,9 @@ export const processApprovalSchema = z.object({
 });
 
 export const approvalFiltersSchema = z.object({
-  status: z.enum(["PENDING", "APPROVED", "REJECTED", "ESCALATED", "AUTO_APPROVED"]).optional(),
+  status: z
+    .enum(["PENDING", "APPROVED", "REJECTED", "ESCALATED", "AUTO_APPROVED"])
+    .optional(),
   page: z.number().int().positive().default(1),
   limit: z.number().int().positive().max(100).default(20),
 });

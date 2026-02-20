@@ -2,9 +2,9 @@
 // Bank Accounts Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { Currency } from '../../domain/enums/Currency';
-import { BankAccountType } from '../../domain/enums/BankAccountType';
+import { prisma } from "../../db/prisma";
+import { Currency } from "../../domain/enums/Currency";
+import { BankAccountType } from "../../domain/enums/BankAccountType";
 
 export interface CreateBankAccountInput {
   organizationId: string;
@@ -42,12 +42,15 @@ export interface UpdateBankAccountInput {
 /**
  * List all bank accounts for an organization
  */
-export async function listBankAccounts(organizationId: string, options?: {
-  isActive?: boolean;
-  isPrimary?: boolean;
-  page?: number;
-  limit?: number;
-}) {
+export async function listBankAccounts(
+  organizationId: string,
+  options?: {
+    isActive?: boolean;
+    isPrimary?: boolean;
+    page?: number;
+    limit?: number;
+  },
+) {
   const where: any = { organizationId };
 
   if (options?.isActive !== undefined) where.isActive = options.isActive;
@@ -68,10 +71,7 @@ export async function listBankAccounts(organizationId: string, options?: {
           },
         },
       },
-      orderBy: [
-        { isPrimary: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ isPrimary: "desc" }, { createdAt: "desc" }],
       skip,
       take: limit,
     }),
@@ -98,7 +98,7 @@ export async function getBankAccount(id: string) {
     include: {
       payments: {
         take: 10,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         select: {
           id: true,
           paymentNumber: true,
@@ -109,7 +109,7 @@ export async function getBankAccount(id: string) {
       },
       reconciliations: {
         take: 5,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         select: {
           id: true,
           statementDate: true,
@@ -176,13 +176,16 @@ export async function createBankAccount(data: CreateBankAccountInput) {
 /**
  * Update an existing bank account
  */
-export async function updateBankAccount(id: string, data: UpdateBankAccountInput) {
+export async function updateBankAccount(
+  id: string,
+  data: UpdateBankAccountInput,
+) {
   const account = await prisma.bankAccount.findUnique({
     where: { id },
   });
 
   if (!account) {
-    throw new Error('Bank account not found');
+    throw new Error("Bank account not found");
   }
 
   // If setting as primary, unset existing primary
@@ -222,11 +225,13 @@ export async function deleteBankAccount(id: string) {
   });
 
   if (!account) {
-    throw new Error('Bank account not found');
+    throw new Error("Bank account not found");
   }
 
   if (account._count.payments > 0 || account._count.reconciliations > 0) {
-    throw new Error('Cannot delete bank account with associated payments or reconciliations');
+    throw new Error(
+      "Cannot delete bank account with associated payments or reconciliations",
+    );
   }
 
   return prisma.bankAccount.delete({
@@ -243,7 +248,7 @@ export async function setPrimaryBankAccount(id: string) {
   });
 
   if (!account) {
-    throw new Error('Bank account not found');
+    throw new Error("Bank account not found");
   }
 
   // Unset existing primary
@@ -273,7 +278,7 @@ export async function updateAccountBalance(
   balances: {
     currentBalance?: number;
     availableBalance?: number;
-  }
+  },
 ) {
   return prisma.bankAccount.update({
     where: { id },
@@ -306,11 +311,11 @@ export async function deactivateBankAccount(id: string) {
   });
 
   if (!account) {
-    throw new Error('Bank account not found');
+    throw new Error("Bank account not found");
   }
 
   if (account.isPrimary) {
-    throw new Error('Cannot deactivate the primary bank account');
+    throw new Error("Cannot deactivate the primary bank account");
   }
 
   return prisma.bankAccount.update({
@@ -345,29 +350,32 @@ export async function getBankAccountSummary(organizationId: string) {
 
   const totalBalance = accounts.reduce(
     (sum, account) => sum + Number(account.currentBalance),
-    0
+    0,
   );
 
   const totalAvailable = accounts.reduce(
     (sum, account) => sum + Number(account.availableBalance),
-    0
+    0,
   );
 
   return {
     totalAccounts: accounts.length,
-    activeAccounts: accounts.filter(a => a.isActive).length,
-    primaryAccount: accounts.find(a => a.isPrimary),
+    activeAccounts: accounts.filter((a) => a.isActive).length,
+    primaryAccount: accounts.find((a) => a.isPrimary),
     totalBalance,
     totalAvailable,
-    accountsByCurrency: accounts.reduce((acc, account) => {
-      const currency = account.currency;
-      if (!acc[currency]) {
-        acc[currency] = { count: 0, balance: 0 };
-      }
-      acc[currency].count++;
-      acc[currency].balance += Number(account.currentBalance);
-      return acc;
-    }, {} as Record<string, { count: number; balance: number }>),
+    accountsByCurrency: accounts.reduce(
+      (acc, account) => {
+        const currency = account.currency;
+        if (!acc[currency]) {
+          acc[currency] = { count: 0, balance: 0 };
+        }
+        acc[currency].count++;
+        acc[currency].balance += Number(account.currentBalance);
+        return acc;
+      },
+      {} as Record<string, { count: number; balance: number }>,
+    ),
   };
 }
 
@@ -377,14 +385,14 @@ export async function getBankAccountSummary(organizationId: string) {
 export async function searchBankAccounts(
   organizationId: string,
   query: string,
-  options?: { page?: number; limit?: number }
+  options?: { page?: number; limit?: number },
 ) {
   const where: any = {
     organizationId,
     OR: [
-      { accountName: { contains: query, mode: 'insensitive' } },
-      { accountNumber: { contains: query, mode: 'insensitive' } },
-      { bankName: { contains: query, mode: 'insensitive' } },
+      { accountName: { contains: query, mode: "insensitive" } },
+      { accountNumber: { contains: query, mode: "insensitive" } },
+      { bankName: { contains: query, mode: "insensitive" } },
     ],
   };
 
@@ -395,7 +403,7 @@ export async function searchBankAccounts(
   const [accounts, total] = await Promise.all([
     prisma.bankAccount.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),

@@ -13,7 +13,7 @@ export interface SupplierMetric {
   qualityScore: number; // 0-100
   totalSpend: number;
   invoiceVolume: number;
-  trend: 'IMPROVING' | 'STABLE' | 'DECLINING';
+  trend: "IMPROVING" | "STABLE" | "DECLINING";
   riskFactors: string[];
   lastUpdated: Date;
 }
@@ -49,7 +49,7 @@ export interface SupplierComparison {
 export interface RiskReport {
   highRiskSuppliers: Array<{
     supplier: { id: string; name: string };
-    riskLevel: 'HIGH' | 'CRITICAL';
+    riskLevel: "HIGH" | "CRITICAL";
     factors: string[];
     recommendedAction: string;
   }>;
@@ -104,7 +104,7 @@ export interface DashboardAnalytics {
 }
 
 export interface ReportConfig {
-  type: 'approval' | 'spending' | 'compliance' | 'supplier' | 'custom';
+  type: "approval" | "spending" | "compliance" | "supplier" | "custom";
   title: string;
   dateRange: {
     from: Date;
@@ -113,13 +113,13 @@ export interface ReportConfig {
   filters: Record<string, unknown>;
   groupBy?: string[];
   includeCharts: boolean;
-  format: 'pdf' | 'xlsx' | 'csv';
+  format: "pdf" | "xlsx" | "csv";
 }
 
 export interface GeneratedReport {
   id: string;
   config: ReportConfig;
-  status: 'PENDING' | 'GENERATING' | 'COMPLETED' | 'FAILED';
+  status: "PENDING" | "GENERATING" | "COMPLETED" | "FAILED";
   downloadUrl?: string;
   generatedAt?: Date;
   expiresAt?: Date;

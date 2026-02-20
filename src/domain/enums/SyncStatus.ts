@@ -1,9 +1,6 @@
-export enum SyncStatus {
-  PENDING = 'PENDING',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  SUCCESS = 'SUCCESS',
-  PARTIAL = 'PARTIAL',
-  CANCELLED = 'CANCELLED',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { SyncStatus as SyncStatus } from "@prisma/client";

@@ -8,9 +8,9 @@ import type {
   FraudScoringInput,
   FraudScoringContext,
   FraudRiskFactor,
-  PaymentPatternRiskAnalysis
-} from '../types';
-import { FraudDetectionMethod } from '../types';
+  PaymentPatternRiskAnalysis,
+} from "../types";
+import { FraudDetectionMethod } from "../types";
 
 /**
  * Calculate risk score based on payment pattern analysis
@@ -18,7 +18,7 @@ import { FraudDetectionMethod } from '../types';
 export function calculatePaymentPatternRisk(
   input: FraudScoringInput,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): PaymentPatternRiskAnalysis {
   // Placeholder for integration with PaymentPatternAnalyzer service
 
@@ -28,18 +28,19 @@ export function calculatePaymentPatternRisk(
   // Weekend/holiday submission detection
   if (input.invoiceDate) {
     const date = new Date(input.invoiceDate);
-    if (date.getDay() === 0 || date.getDay() === 6) { // Weekend
+    if (date.getDay() === 0 || date.getDay() === 6) {
+      // Weekend
       baseScore += 10;
       riskFactors.push({
-        category: 'TEMPORAL_ANOMALY',
-        factor: 'WEEKEND_SUBMISSION',
-        description: 'Invoice submitted on weekend',
-        severity: 'LOW',
+        category: "TEMPORAL_ANOMALY",
+        factor: "WEEKEND_SUBMISSION",
+        description: "Invoice submitted on weekend",
+        severity: "LOW",
         scoreImpact: 10,
         evidence: `dayOfWeek=${date.getDay()}`,
         detectionMethod: FraudDetectionMethod.RULE_BASED,
         confidence: 0.95,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
   }
@@ -49,7 +50,7 @@ export function calculatePaymentPatternRisk(
     normalizedScore: baseScore / 100,
     riskFactors,
     detectionMethods: [FraudDetectionMethod.RULE_BASED],
-    confidence: riskFactors.length > 0 ? 0.90 : 0.60,
-    metadata: { scoringId }
+    confidence: riskFactors.length > 0 ? 0.9 : 0.6,
+    metadata: { scoringId },
   };
 }

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ApprovalService } from '@/services/approval-service';
-import { ApprovalDecision } from '@/types';
+import { NextRequest, NextResponse } from "next/server";
+import { ApprovalService } from "@/services/approval-service";
+import { ApprovalDecision } from "@/types";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const body = await request.json();
@@ -14,18 +14,18 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required fields: approvalId, decision',
+          error: "Missing required fields: approvalId, decision",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get userId from request headers (set by middleware)
-    const userId = request.headers.get('x-user-id');
+    const userId = request.headers.get("x-user-id");
     if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
       );
     }
 
@@ -35,14 +35,14 @@ export async function POST(
       userId,
       comments,
       ipAddress:
-        request.headers.get('x-forwarded-for') || request.ip || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
+        request.headers.get("x-forwarded-for") || request.ip || undefined,
+      userAgent: request.headers.get("user-agent") || undefined,
     });
 
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,10 +53,10 @@ export async function POST(
       fullyApproved: result.fullyApproved,
     });
   } catch (error) {
-    console.error('Error processing approval:', error);
+    console.error("Error processing approval:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to process approval' },
-      { status: 500 }
+      { success: false, error: "Failed to process approval" },
+      { status: 500 },
     );
   }
 }

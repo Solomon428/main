@@ -2,13 +2,13 @@
 // Google Cloud Storage Provider
 // ============================================================================
 
-import { Readable } from 'stream';
+import { Readable } from "stream";
 import {
   StorageProvider,
   UploadResult,
   DownloadResult,
   FileMetadata,
-} from './storage.types';
+} from "./storage.types";
 
 // GCS SDK types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,7 +20,7 @@ type File = any;
 
 let storageClient: Storage | null = null;
 
-const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'creditorflow-uploads';
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "creditorflow-uploads";
 
 /**
  * Get GCS client
@@ -29,7 +29,7 @@ function getStorageClient(): Storage {
   if (!storageClient) {
     // Dynamically import GCS SDK
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Storage } = require('@google-cloud/storage');
+    const { Storage } = require("@google-cloud/storage");
 
     const projectId = process.env.GCS_PROJECT_ID;
     const keyFilename = process.env.GCS_KEY_FILENAME;
@@ -61,7 +61,7 @@ export async function uploadFile(
   key: string,
   buffer: Buffer,
   contentType: string,
-  metadata?: Record<string, string>
+  metadata?: Record<string, string>,
 ): Promise<UploadResult> {
   const bucket = getBucket();
   const file = bucket.file(key);
@@ -94,7 +94,7 @@ export async function downloadFile(key: string): Promise<DownloadResult> {
 
   const [exists] = await file.exists();
   if (!exists) {
-    throw new Error('File not found');
+    throw new Error("File not found");
   }
 
   const [metadata] = await file.getMetadata();
@@ -102,7 +102,7 @@ export async function downloadFile(key: string): Promise<DownloadResult> {
 
   return {
     stream: stream as Readable,
-    contentType: metadata.contentType || 'application/octet-stream',
+    contentType: metadata.contentType || "application/octet-stream",
     contentLength: parseInt(metadata.size, 10) || 0,
     lastModified: metadata.updated ? new Date(metadata.updated) : undefined,
     metadata: metadata.metadata,
@@ -136,14 +136,16 @@ export async function fileExists(key: string): Promise<boolean> {
 /**
  * Get file metadata from Google Cloud Storage
  */
-export async function getFileMetadata(key: string): Promise<FileMetadata | null> {
+export async function getFileMetadata(
+  key: string,
+): Promise<FileMetadata | null> {
   try {
     const bucket = getBucket();
     const file = bucket.file(key);
     const [metadata] = await file.getMetadata();
 
     return {
-      contentType: metadata.contentType || 'application/octet-stream',
+      contentType: metadata.contentType || "application/octet-stream",
       size: parseInt(metadata.size, 10) || 0,
       lastModified: metadata.updated ? new Date(metadata.updated) : undefined,
       etag: metadata.etag,
@@ -159,13 +161,13 @@ export async function getFileMetadata(key: string): Promise<FileMetadata | null>
  */
 export async function getPresignedDownloadUrl(
   key: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<string> {
   const bucket = getBucket();
   const file = bucket.file(key);
 
   const [url] = await file.getSignedUrl({
-    action: 'read',
+    action: "read",
     expires: Date.now() + expiresIn * 1000,
   });
 
@@ -178,13 +180,13 @@ export async function getPresignedDownloadUrl(
 export async function getPresignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<string> {
   const bucket = getBucket();
   const file = bucket.file(key);
 
   const [url] = await file.getSignedUrl({
-    action: 'write',
+    action: "write",
     expires: Date.now() + expiresIn * 1000,
     contentType,
   });
@@ -205,7 +207,10 @@ export async function listFiles(prefix: string): Promise<string[]> {
 /**
  * Copy a file within Google Cloud Storage
  */
-export async function copyFile(sourceKey: string, destinationKey: string): Promise<void> {
+export async function copyFile(
+  sourceKey: string,
+  destinationKey: string,
+): Promise<void> {
   const bucket = getBucket();
   const sourceFile = bucket.file(sourceKey);
   const destinationFile = bucket.file(destinationKey);
@@ -216,7 +221,10 @@ export async function copyFile(sourceKey: string, destinationKey: string): Promi
 /**
  * Move a file within Google Cloud Storage
  */
-export async function moveFile(sourceKey: string, destinationKey: string): Promise<void> {
+export async function moveFile(
+  sourceKey: string,
+  destinationKey: string,
+): Promise<void> {
   await copyFile(sourceKey, destinationKey);
   await deleteFile(sourceKey);
 }

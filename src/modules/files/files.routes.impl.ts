@@ -1,71 +1,112 @@
 /**
  * File Routes
- * 
+ *
  * Handles file uploads, OCR processing, document parsing,
  * progress tracking, and retry mechanisms.
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
-import { Prisma, FileAttachment } from '@prisma/client';
-import { z } from 'zod';
-import { authenticate, requireAuth } from '@/middleware/auth.middleware';
-import { validateBody, validateQuery } from '@/middleware/validation.middleware';
-import { uploadSingle, uploadMultiple, handleMulterError } from '@/middleware/upload.middleware';
-import { AppError } from '@/lib/errors';
-import { logger } from '@/lib/logger';
-import { prisma } from '@/lib/prisma';
-import { auditService } from '@/lib/audit/audit.service';
-import { AuditAction, EntityType } from '@/domain/enums';
-import { OcrService } from './ocr/ocr.service';
-import { ExtractionService } from './ocr/extraction.service';
-import { documentParserService } from './services/document-parser.service';
-import { fileAttachmentsService } from './services/file-attachments.service';
-import { UploadedFile } from './types/file-types';
+import { Router, Request, Response, NextFunction } from "express";
+import { Prisma, FileAttachment } from "@prisma/client";
+import { z } from "zod";
+import { authenticate, requireAuth } from "@/middleware/auth.middleware";
+import {
+  validateBody,
+  validateQuery,
+} from "@/middleware/validation.middleware";
+import {
+  uploadSingle,
+  uploadMultiple,
+  handleMulterError,
+} from "@/middleware/upload.middleware";
+import { AppError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+import { auditService } from "@/lib/audit/audit.service";
+import { AuditAction, EntityType } from "@/domain/enums";
+import { OcrService } from "./ocr/ocr.service";
+import { ExtractionService } from "./ocr/extraction.service";
+import { documentParserService } from "./services/document-parser.service";
+import { fileAttachmentsService } from "./services/file-attachments.service";
+import { UploadedFile } from "./types/file-types";
 
 const router = Router();
 const ocrService = new OcrService();
 const extractionService = new ExtractionService();
 
 // Track active jobs for SSE progress updates
-const activeJobs = new Map<string, {
-  res: Response;
-  timeout: NodeJS.Timeout;
-}>();
+const activeJobs = new Map<
+  string,
+  {
+    res: Response;
+    timeout: NodeJS.Timeout;
+  }
+>();
 
 // Track upload progress for resumable uploads
-const uploadProgress = new Map<string, {
-  received: number;
-  total: number;
-  status: 'uploading' | 'processing' | 'completed' | 'failed';
-}>();
+const uploadProgress = new Map<
+  string,
+  {
+    received: number;
+    total: number;
+    status: "uploading" | "processing" | "completed" | "failed";
+  }
+>();
 
 // Helper function to get organizationId from authenticated user
 function getOrgId(req: Request): string {
   const orgId = req.user?.organizationId;
   if (!orgId) {
-    throw new AppError('Organization ID required', 'ORGANIZATION_REQUIRED', 400);
+    throw new AppError(
+      "Organization ID required",
+      "ORGANIZATION_REQUIRED",
+      400,
+    );
   }
   return orgId;
 }
 
 // Validation schemas
 const fileUploadQuerySchema = z.object({
-  entityType: z.enum(['INVOICE', 'SUPPLIER', 'PURCHASE_ORDER', 'PAYMENT', 'USER', 'ORGANIZATION']).optional(),
+  entityType: z
+    .enum([
+      "INVOICE",
+      "SUPPLIER",
+      "PURCHASE_ORDER",
+      "PAYMENT",
+      "USER",
+      "ORGANIZATION",
+    ])
+    .optional(),
   entityId: z.string().optional(),
   autoProcess: z.coerce.boolean().optional().default(true),
   language: z.string().optional(),
-  extractionMode: z.enum(['standard', 'aggressive']).optional().default('standard'),
+  extractionMode: z
+    .enum(["standard", "aggressive"])
+    .optional()
+    .default("standard"),
 });
 
 const bulkUploadSchema = z.object({
   files: z.array(z.any()).min(1).max(20),
-  entityType: z.enum(['INVOICE', 'SUPPLIER', 'PURCHASE_ORDER', 'PAYMENT', 'USER', 'ORGANIZATION']).optional(),
+  entityType: z
+    .enum([
+      "INVOICE",
+      "SUPPLIER",
+      "PURCHASE_ORDER",
+      "PAYMENT",
+      "USER",
+      "ORGANIZATION",
+    ])
+    .optional(),
   autoProcess: z.coerce.boolean().optional().default(true),
 });
 
 const retryProcessingSchema = z.object({
   useAdvancedOCR: z.coerce.boolean().optional().default(false),
-  extractionMode: z.enum(['standard', 'aggressive']).optional().default('standard'),
+  extractionMode: z
+    .enum(["standard", "aggressive"])
+    .optional()
+    .default("standard"),
 });
 
 // ============================================================================
@@ -77,32 +118,35 @@ const retryProcessingSchema = z.object({
  * Upload a single file with optional OCR processing
  */
 router.post(
-  '/upload',
+  "/upload",
   authenticate,
   requireAuth,
-  uploadSingle('file'),
+  uploadSingle("file"),
   handleMulterError,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
       const file = req.file as UploadedFile | undefined;
-      
+
       if (!file) {
-        throw new AppError('No file uploaded', 'NO_FILE', 400);
+        throw new AppError("No file uploaded", "NO_FILE", 400);
       }
 
       const entityType = req.body.entityType as EntityType | undefined;
       const entityId = req.body.entityId as string | undefined;
-      const autoProcess = req.body.autoProcess !== 'false';
+      const autoProcess = req.body.autoProcess !== "false";
       const language = req.body.language as string | undefined;
 
-      logger.info({ 
-        fileName: file.originalname, 
-        mimeType: file.mimetype,
-        organizationId,
-        autoProcess 
-      }, 'File upload started');
+      logger.info(
+        {
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          organizationId,
+          autoProcess,
+        },
+        "File upload started",
+      );
 
       // Save file attachment record
       const fileAttachment = await fileAttachmentsService.createFileAttachment({
@@ -110,12 +154,12 @@ router.post(
         originalName: file.originalname,
         mimeType: file.mimetype,
         size: file.size,
-        path: file.path || '',
+        path: file.path || "",
         entityType,
         entityId,
         organizationId,
         uploadedById: userId,
-        processingStatus: 'PENDING',
+        processingStatus: "PENDING",
         metadata: {
           uploadedAt: new Date().toISOString(),
           language,
@@ -140,8 +184,17 @@ router.post(
       // Start OCR processing if autoProcess is enabled and file is a document
       if (autoProcess && isDocumentFile(file.mimetype)) {
         // Process asynchronously
-        processFileWithOCR(fileAttachment.id, file, userId, organizationId, language).catch((error) => {
-          logger.error({ error, fileId: fileAttachment.id }, 'OCR processing failed');
+        processFileWithOCR(
+          fileAttachment.id,
+          file,
+          userId,
+          organizationId,
+          language,
+        ).catch((error) => {
+          logger.error(
+            { error, fileId: fileAttachment.id },
+            "OCR processing failed",
+          );
         });
       }
 
@@ -157,7 +210,7 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -165,34 +218,37 @@ router.post(
  * Specialized endpoint for invoice uploads with OCR
  */
 router.post(
-  '/invoice-upload',
+  "/invoice-upload",
   authenticate,
   requireAuth,
-  uploadSingle('file'),
+  uploadSingle("file"),
   handleMulterError,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
       const file = req.file as UploadedFile | undefined;
-      
+
       if (!file) {
-        throw new AppError('No file uploaded', 'NO_FILE', 400);
+        throw new AppError("No file uploaded", "NO_FILE", 400);
       }
 
       // Validate file type for invoices
       if (!isSupportedInvoiceFormat(file.mimetype)) {
         throw new AppError(
           `Unsupported file format: ${file.mimetype}. Supported: PDF, PNG, JPG, TIFF`,
-          'INVALID_FORMAT',
-          400
+          "INVALID_FORMAT",
+          400,
         );
       }
 
-      logger.info({ 
-        fileName: file.originalname, 
-        organizationId 
-      }, 'Invoice upload started');
+      logger.info(
+        {
+          fileName: file.originalname,
+          organizationId,
+        },
+        "Invoice upload started",
+      );
 
       // Save file attachment record
       const fileAttachment = await fileAttachmentsService.createFileAttachment({
@@ -200,35 +256,40 @@ router.post(
         originalName: file.originalname,
         mimeType: file.mimetype,
         size: file.size,
-        path: file.path || '',
+        path: file.path || "",
         entityType: EntityType.INVOICE,
         organizationId,
         uploadedById: userId,
-        processingStatus: 'PROCESSING',
+        processingStatus: "PROCESSING",
         metadata: {
           uploadedAt: new Date().toISOString(),
-          documentType: 'invoice',
+          documentType: "invoice",
         },
       });
 
       // Start OCR processing immediately
-      processFileWithOCR(fileAttachment.id, file, userId, organizationId).catch((error) => {
-        logger.error({ error, fileId: fileAttachment.id }, 'Invoice OCR processing failed');
-      });
+      processFileWithOCR(fileAttachment.id, file, userId, organizationId).catch(
+        (error) => {
+          logger.error(
+            { error, fileId: fileAttachment.id },
+            "Invoice OCR processing failed",
+          );
+        },
+      );
 
       res.status(201).json({
         success: true,
         data: {
           fileId: fileAttachment.id,
           fileName: fileAttachment.fileName,
-          processingStatus: 'PROCESSING',
-          message: 'Invoice upload accepted. OCR processing in progress.',
+          processingStatus: "PROCESSING",
+          message: "Invoice upload accepted. OCR processing in progress.",
         },
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -236,52 +297,64 @@ router.post(
  * Upload multiple files
  */
 router.post(
-  '/bulk-upload',
+  "/bulk-upload",
   authenticate,
   requireAuth,
-  uploadMultiple('files', 10),
+  uploadMultiple("files", 10),
   handleMulterError,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
       const files = req.files as UploadedFile[] | undefined;
-      
+
       if (!files || files.length === 0) {
-        throw new AppError('No files uploaded', 'NO_FILES', 400);
+        throw new AppError("No files uploaded", "NO_FILES", 400);
       }
 
       const entityType = req.body.entityType as EntityType | undefined;
-      const autoProcess = req.body.autoProcess !== 'false';
+      const autoProcess = req.body.autoProcess !== "false";
 
-      logger.info({ 
-        fileCount: files.length, 
-        organizationId 
-      }, 'Bulk upload started');
+      logger.info(
+        {
+          fileCount: files.length,
+          organizationId,
+        },
+        "Bulk upload started",
+      );
 
       const results = await Promise.all(
         files.map(async (file) => {
           try {
-            const fileAttachment = await fileAttachmentsService.createFileAttachment({
-              fileName: file.originalname,
-              originalName: file.originalname,
-              mimeType: file.mimetype,
-              size: file.size,
-              path: file.path || '',
-              entityType,
-              organizationId,
-              uploadedById: userId,
-              processingStatus: 'PENDING',
-              metadata: {
-                uploadedAt: new Date().toISOString(),
-                autoProcess,
-              },
-            });
+            const fileAttachment =
+              await fileAttachmentsService.createFileAttachment({
+                fileName: file.originalname,
+                originalName: file.originalname,
+                mimeType: file.mimetype,
+                size: file.size,
+                path: file.path || "",
+                entityType,
+                organizationId,
+                uploadedById: userId,
+                processingStatus: "PENDING",
+                metadata: {
+                  uploadedAt: new Date().toISOString(),
+                  autoProcess,
+                },
+              });
 
             // Start OCR if autoProcess and document
             if (autoProcess && isDocumentFile(file.mimetype)) {
-              processFileWithOCR(fileAttachment.id, file, userId, organizationId).catch((error) => {
-                logger.error({ error, fileId: fileAttachment.id }, 'Bulk OCR processing failed');
+              processFileWithOCR(
+                fileAttachment.id,
+                file,
+                userId,
+                organizationId,
+              ).catch((error) => {
+                logger.error(
+                  { error, fileId: fileAttachment.id },
+                  "Bulk OCR processing failed",
+                );
               });
             }
 
@@ -295,14 +368,14 @@ router.post(
             return {
               success: false,
               fileName: file.originalname,
-              error: error instanceof Error ? error.message : 'Unknown error',
+              error: error instanceof Error ? error.message : "Unknown error",
             };
           }
-        })
+        }),
       );
 
-      const successful = results.filter((r: {success: boolean}) => r.success);
-      const failed = results.filter((r: {success: boolean}) => !r.success);
+      const successful = results.filter((r: { success: boolean }) => r.success);
+      const failed = results.filter((r: { success: boolean }) => !r.success);
 
       res.status(201).json({
         success: true,
@@ -316,7 +389,7 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // ============================================================================
@@ -328,7 +401,7 @@ router.post(
  * Trigger OCR processing for a file
  */
 router.post(
-  '/:fileId/process',
+  "/:fileId/process",
   authenticate,
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -336,18 +409,21 @@ router.post(
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
       const { fileId } = req.params;
-      const { useAdvancedOCR, extractionMode } = req.body as { useAdvancedOCR?: boolean; extractionMode?: 'standard' | 'aggressive' };
+      const { useAdvancedOCR, extractionMode } = req.body as {
+        useAdvancedOCR?: boolean;
+        extractionMode?: "standard" | "aggressive";
+      };
 
       const fileAttachment = await prisma.fileAttachment.findUnique({
         where: { id: fileId },
       });
 
       if (!fileAttachment) {
-        throw new AppError('File not found', 'FILE_NOT_FOUND', 404);
+        throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
 
       if (fileAttachment.organizationId !== organizationId) {
-        throw new AppError('Access denied', 'ACCESS_DENIED', 403);
+        throw new AppError("Access denied", "ACCESS_DENIED", 403);
       }
 
       // Update status to processing
@@ -363,7 +439,7 @@ router.post(
         organizationId,
         options: {
           autoProcess: true,
-          extractionMode: extractionMode || 'standard',
+          extractionMode: extractionMode || "standard",
         },
       });
 
@@ -374,7 +450,7 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -382,7 +458,7 @@ router.post(
  * Retry OCR processing for a failed file
  */
 router.post(
-  '/:fileId/retry',
+  "/:fileId/retry",
   authenticate,
   requireAuth,
   validateBody(retryProcessingSchema),
@@ -410,7 +486,7 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -418,7 +494,7 @@ router.post(
  * Retry OCR processing for multiple files
  */
 router.post(
-  '/bulk-retry',
+  "/bulk-retry",
   authenticate,
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -428,17 +504,21 @@ router.post(
       const { fileIds } = req.body as { fileIds: string[] };
 
       if (!Array.isArray(fileIds) || fileIds.length === 0) {
-        throw new AppError('fileIds array required', 'VALIDATION_ERROR', 400);
+        throw new AppError("fileIds array required", "VALIDATION_ERROR", 400);
       }
 
       if (fileIds.length > 50) {
-        throw new AppError('Maximum 50 files per bulk retry', 'VALIDATION_ERROR', 400);
+        throw new AppError(
+          "Maximum 50 files per bulk retry",
+          "VALIDATION_ERROR",
+          400,
+        );
       }
 
       const result = await documentParserService.bulkReprocess(
         fileIds,
         userId,
-        organizationId
+        organizationId,
       );
 
       res.json({
@@ -448,7 +528,7 @@ router.post(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -456,7 +536,7 @@ router.post(
  * Get extraction results for a file
  */
 router.get(
-  '/:fileId/extraction',
+  "/:fileId/extraction",
   authenticate,
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -466,7 +546,7 @@ router.get(
 
       const result = await documentParserService.getExtractionResult(
         fileId,
-        organizationId
+        organizationId,
       );
 
       res.json({
@@ -476,7 +556,7 @@ router.get(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -484,7 +564,7 @@ router.get(
  * SSE endpoint for real-time progress updates
  */
 router.get(
-  '/:fileId/progress',
+  "/:fileId/progress",
   authenticate,
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -499,22 +579,24 @@ router.get(
       });
 
       if (!fileAttachment) {
-        throw new AppError('File not found', 'FILE_NOT_FOUND', 404);
+        throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
 
       if (fileAttachment.organizationId !== organizationId) {
-        throw new AppError('Access denied', 'ACCESS_DENIED', 403);
+        throw new AppError("Access denied", "ACCESS_DENIED", 403);
       }
 
       // Set up SSE
       res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
       });
 
       // Send initial status
-      res.write(`data: ${JSON.stringify({ type: 'connected', fileId, status: fileAttachment.status })}\n\n`);
+      res.write(
+        `data: ${JSON.stringify({ type: "connected", fileId, status: fileAttachment.status })}\n\n`,
+      );
 
       // Store connection for updates
       const timeout = setInterval(async () => {
@@ -525,33 +607,40 @@ router.get(
           });
 
           if (file) {
-            res.write(`data: ${JSON.stringify({ 
-              type: 'status', 
-              fileId, 
-              processingStatus: file.processingStatus,
-              progress: (file.metadata as { progress?: number })?.progress 
-            })}\n\n`);
+            res.write(
+              `data: ${JSON.stringify({
+                type: "status",
+                fileId,
+                processingStatus: file.processingStatus,
+                progress: (file.metadata as { progress?: number })?.progress,
+              })}\n\n`,
+            );
 
             // Close connection if processing is complete or failed
-            if (file.processingStatus === 'COMPLETED' || file.processingStatus === 'ERROR') {
-              res.write(`data: ${JSON.stringify({ type: 'complete', fileId, status: file.status })}\n\n`);
+            if (
+              file.processingStatus === "COMPLETED" ||
+              file.processingStatus === "ERROR"
+            ) {
+              res.write(
+                `data: ${JSON.stringify({ type: "complete", fileId, status: file.status })}\n\n`,
+              );
               res.end();
               clearInterval(timeout);
             }
           }
         } catch (error) {
-          logger.error({ error, fileId }, 'Progress polling error');
+          logger.error({ error, fileId }, "Progress polling error");
         }
       }, 2000);
 
       // Clean up on client disconnect
-      req.on('close', () => {
+      req.on("close", () => {
         clearInterval(timeout);
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // ============================================================================
@@ -563,23 +652,26 @@ router.get(
  * List files with filtering and pagination
  */
 router.get(
-  '/',
+  "/",
   authenticate,
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
-      const { 
-        entityType, 
-        entityId, 
+      const {
+        entityType,
+        entityId,
         status,
         search,
-        page = '1',
-        limit = '20',
+        page = "1",
+        limit = "20",
       } = req.query;
 
       const pageNum = Math.max(1, parseInt(page as string, 10));
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
+      const limitNum = Math.min(
+        100,
+        Math.max(1, parseInt(limit as string, 10)),
+      );
       const skip = (pageNum - 1) * limitNum;
 
       // Build where clause
@@ -590,8 +682,10 @@ router.get(
         ...(status && { processingStatus: status as string }),
         ...(search && {
           OR: [
-            { fileName: { contains: search as string, mode: 'insensitive' } },
-            { originalName: { contains: search as string, mode: 'insensitive' } },
+            { fileName: { contains: search as string, mode: "insensitive" } },
+            {
+              originalName: { contains: search as string, mode: "insensitive" },
+            },
           ],
         }),
       };
@@ -601,7 +695,7 @@ router.get(
           where,
           skip,
           take: limitNum,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           include: {
             uploadedBy: {
               select: { id: true, name: true, email: true },
@@ -624,7 +718,7 @@ router.get(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -632,7 +726,7 @@ router.get(
  * Get file details
  */
 router.get(
-  '/:fileId',
+  "/:fileId",
   authenticate,
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -650,11 +744,11 @@ router.get(
       });
 
       if (!file) {
-        throw new AppError('File not found', 'FILE_NOT_FOUND', 404);
+        throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
 
       if (file.organizationId !== organizationId) {
-        throw new AppError('Access denied', 'ACCESS_DENIED', 403);
+        throw new AppError("Access denied", "ACCESS_DENIED", 403);
       }
 
       res.json({
@@ -664,7 +758,7 @@ router.get(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -672,7 +766,7 @@ router.get(
  * Delete a file
  */
 router.delete(
-  '/:fileId',
+  "/:fileId",
   authenticate,
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -686,23 +780,27 @@ router.delete(
       });
 
       if (!file) {
-        throw new AppError('File not found', 'FILE_NOT_FOUND', 404);
+        throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
 
       if (file.organizationId !== organizationId) {
-        throw new AppError('Access denied', 'ACCESS_DENIED', 403);
+        throw new AppError("Access denied", "ACCESS_DENIED", 403);
       }
 
-      await fileAttachmentsService.deleteFileAttachment(fileId, userId, organizationId);
+      await fileAttachmentsService.deleteFileAttachment(
+        fileId,
+        userId,
+        organizationId,
+      );
 
       res.json({
         success: true,
-        message: 'File deleted successfully',
+        message: "File deleted successfully",
       });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 // ============================================================================
@@ -711,27 +809,27 @@ router.delete(
 
 function isDocumentFile(mimeType: string): boolean {
   const documentTypes = [
-    'application/pdf',
-    'image/png',
-    'image/jpeg',
-    'image/jpg',
-    'image/tiff',
-    'image/tif',
-    'image/webp',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/msword',
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/tiff",
+    "image/tif",
+    "image/webp",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
   ];
   return documentTypes.includes(mimeType);
 }
 
 function isSupportedInvoiceFormat(mimeType: string): boolean {
   const supportedFormats = [
-    'application/pdf',
-    'image/png',
-    'image/jpeg',
-    'image/jpg',
-    'image/tiff',
-    'image/tif',
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/tiff",
+    "image/tif",
   ];
   return supportedFormats.includes(mimeType);
 }
@@ -741,7 +839,7 @@ async function processFileWithOCR(
   file: UploadedFile,
   userId: string,
   organizationId: string,
-  language?: string
+  language?: string,
 ): Promise<void> {
   try {
     // Update status to processing
@@ -755,25 +853,25 @@ async function processFileWithOCR(
       file.buffer,
       file.originalname,
       file.mimetype,
-      fileId
+      fileId,
     );
 
     if (!ocrResult.success) {
-      throw new Error('OCR extraction failed');
+      throw new Error("OCR extraction failed");
     }
 
     // Extract invoice data
     const extractionResult = await extractionService.parseInvoice(
       ocrResult.text,
       fileId,
-      organizationId
+      organizationId,
     );
 
     // Update file with results
     await prisma.fileAttachment.update({
       where: { id: fileId },
       data: {
-        processingStatus: extractionResult.success ? 'COMPLETED' : 'ERROR',
+        processingStatus: extractionResult.success ? "COMPLETED" : "ERROR",
         metadata: {
           ocrResult: {
             text: ocrResult.text,
@@ -792,15 +890,18 @@ async function processFileWithOCR(
       },
     });
 
-    logger.info({ fileId, success: extractionResult.success }, 'OCR processing completed');
+    logger.info(
+      { fileId, success: extractionResult.success },
+      "OCR processing completed",
+    );
   } catch (error) {
     // Update status to error
     await prisma.fileAttachment.update({
       where: { id: fileId },
       data: {
-        processingStatus: 'ERROR',
+        processingStatus: "ERROR",
         metadata: {
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         },
       },
     });

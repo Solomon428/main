@@ -1,10 +1,10 @@
-import { prisma } from '../../lib/prisma';
-import { generateId } from '../../utils/ids';
-import { logAuditEvent } from '../../observability/audit';
-import { AuditAction } from '../../domain/enums/AuditAction';
-import { EntityType } from '../../domain/enums/EntityType';
-import { ScheduledTaskType } from '../../domain/enums/ScheduledTaskType';
-import { ScheduledTaskStatus } from '../../domain/enums/ScheduledTaskStatus';
+import { prisma } from "../../lib/prisma";
+import { generateId } from "../../utils/ids";
+import { logAuditEvent } from "../../observability/audit";
+import { AuditAction } from "../../domain/enums/AuditAction";
+import { EntityType } from "../../domain/enums/EntityType";
+import { ScheduledTaskType } from "../../domain/enums/ScheduledTaskType";
+import { ScheduledTaskStatus } from "../../domain/enums/ScheduledTaskStatus";
 
 export interface CreateScheduledTaskInput {
   name: string;
@@ -44,11 +44,16 @@ export type TaskHandler = (context: TaskExecutionContext) => Promise<void>;
 
 const taskRegistry = new Map<ScheduledTaskType, TaskHandler>();
 
-export function registerTaskHandler(type: ScheduledTaskType, handler: TaskHandler) {
+export function registerTaskHandler(
+  type: ScheduledTaskType,
+  handler: TaskHandler,
+) {
   taskRegistry.set(type, handler);
 }
 
-export function getTaskHandler(type: ScheduledTaskType): TaskHandler | undefined {
+export function getTaskHandler(
+  type: ScheduledTaskType,
+): TaskHandler | undefined {
   return taskRegistry.get(type);
 }
 
@@ -56,11 +61,11 @@ export function getTaskHandler(type: ScheduledTaskType): TaskHandler | undefined
 export async function createScheduledTask(
   organizationId: string | null,
   data: CreateScheduledTaskInput,
-  createdBy?: string
+  createdBy?: string,
 ) {
   // Validate cron expression
   if (!isValidCronExpression(data.schedule)) {
-    throw new Error('Invalid cron expression');
+    throw new Error("Invalid cron expression");
   }
 
   // Calculate next run time
@@ -74,7 +79,7 @@ export async function createScheduledTask(
       description: data.description,
       taskType: data.taskType,
       schedule: data.schedule,
-      timezone: data.timezone || 'Africa/Johannesburg',
+      timezone: data.timezone || "Africa/Johannesburg",
       parameters: data.parameters || {},
       timeout: data.timeout || 3600,
       retryAttempts: data.retryAttempts ?? 3,
@@ -104,19 +109,19 @@ export async function createScheduledTask(
 export async function updateScheduledTask(
   taskId: string,
   data: UpdateScheduledTaskInput,
-  updatedBy?: string
+  updatedBy?: string,
 ) {
   const task = await prisma.scheduledTask.findUnique({
     where: { id: taskId },
   });
 
   if (!task) {
-    throw new Error('Scheduled task not found');
+    throw new Error("Scheduled task not found");
   }
 
   // Validate cron expression if provided
   if (data.schedule && !isValidCronExpression(data.schedule)) {
-    throw new Error('Invalid cron expression');
+    throw new Error("Invalid cron expression");
   }
 
   // Recalculate next run if schedule or timezone changed
@@ -124,7 +129,7 @@ export async function updateScheduledTask(
   if (data.schedule || data.timezone) {
     nextRunAt = calculateNextRun(
       data.schedule || task.schedule,
-      data.timezone || task.timezone
+      data.timezone || task.timezone,
     );
   }
 
@@ -163,14 +168,14 @@ export async function listScheduledTasks(
     isActive?: boolean;
     page?: number;
     limit?: number;
-  }
+  },
 ) {
   const page = options?.page || 1;
   const limit = options?.limit || 20;
   const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = {};
-  
+
   if (organizationId) {
     where.organizationId = organizationId;
   }
@@ -188,7 +193,7 @@ export async function listScheduledTasks(
       where,
       skip,
       take: limit,
-      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ isActive: "desc" }, { createdAt: "desc" }],
     }),
     prisma.scheduledTask.count({ where }),
   ]);
@@ -224,7 +229,7 @@ export async function deleteScheduledTask(taskId: string, deletedBy?: string) {
 // Task execution
 export async function executeTask(
   taskId: string,
-  triggeredBy?: string
+  triggeredBy?: string,
 ): Promise<{ success: boolean; duration: number; error?: string }> {
   const startTime = Date.now();
   const task = await prisma.scheduledTask.findUnique({
@@ -232,11 +237,11 @@ export async function executeTask(
   });
 
   if (!task) {
-    throw new Error('Task not found');
+    throw new Error("Task not found");
   }
 
   if (!task.isActive) {
-    throw new Error('Task is not active');
+    throw new Error("Task is not active");
   }
 
   // Mark as running
@@ -259,7 +264,7 @@ export async function executeTask(
   try {
     // Get task handler
     const handler = getTaskHandler(task.taskType);
-    
+
     if (!handler) {
       throw new Error(`No handler registered for task type: ${task.taskType}`);
     }
@@ -296,7 +301,8 @@ export async function executeTask(
     return { success: true, duration };
   } catch (error) {
     const duration = Math.floor((Date.now() - startTime) / 1000);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
 
     // Update failure status
     await prisma.scheduledTask.update({
@@ -329,7 +335,7 @@ export async function executeTask(
 async function executeWithTimeout(
   handler: TaskHandler,
   context: TaskExecutionContext,
-  timeoutSeconds: number
+  timeoutSeconds: number,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
@@ -354,7 +360,7 @@ export async function runPendingTasks(): Promise<{
   results: Array<{ taskId: string; success: boolean; error?: string }>;
 }> {
   const now = new Date();
-  
+
   const pendingTasks = await prisma.scheduledTask.findMany({
     where: {
       isActive: true,
@@ -367,7 +373,7 @@ export async function runPendingTasks(): Promise<{
 
   for (const task of pendingTasks) {
     try {
-      const result = await executeTask(task.id, 'scheduler');
+      const result = await executeTask(task.id, "scheduler");
       results.push({
         taskId: task.id,
         success: result.success,
@@ -377,7 +383,7 @@ export async function runPendingTasks(): Promise<{
       results.push({
         taskId: task.id,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -404,7 +410,7 @@ export async function pauseTask(taskId: string, pausedBy?: string) {
     action: AuditAction.UPDATE,
     entityType: EntityType.AUDIT_LOG,
     entityId: taskId,
-    changesSummary: 'Task paused',
+    changesSummary: "Task paused",
   });
 
   return task;
@@ -416,7 +422,7 @@ export async function resumeTask(taskId: string, resumedBy?: string) {
   });
 
   if (!task) {
-    throw new Error('Task not found');
+    throw new Error("Task not found");
   }
 
   const updated = await prisma.scheduledTask.update({
@@ -434,7 +440,7 @@ export async function resumeTask(taskId: string, resumedBy?: string) {
     action: AuditAction.UPDATE,
     entityType: EntityType.AUDIT_LOG,
     entityId: taskId,
-    changesSummary: 'Task resumed',
+    changesSummary: "Task resumed",
   });
 
   return updated;
@@ -453,12 +459,12 @@ export async function getTaskStatistics(organizationId?: string) {
 
   const [byType, byStatus, recentFailures] = await Promise.all([
     prisma.scheduledTask.groupBy({
-      by: ['taskType'],
+      by: ["taskType"],
       where,
       _count: { id: true },
     }),
     prisma.scheduledTask.groupBy({
-      by: ['lastRunStatus'],
+      by: ["lastRunStatus"],
       where,
       _count: { id: true },
     }),
@@ -467,7 +473,7 @@ export async function getTaskStatistics(organizationId?: string) {
         ...where,
         lastRunStatus: ScheduledTaskStatus.FAILED,
       },
-      orderBy: { lastRunAt: 'desc' },
+      orderBy: { lastRunAt: "desc" },
       take: 10,
     }),
   ]);
@@ -498,7 +504,7 @@ export async function getTaskStatistics(organizationId?: string) {
 // Helper functions
 function isValidCronExpression(schedule: string): boolean {
   // Basic cron validation (5 parts: minute hour day month weekday)
-  const parts = schedule.split(' ');
+  const parts = schedule.split(" ");
   if (parts.length < 5 || parts.length > 6) {
     return false;
   }
@@ -521,12 +527,16 @@ registerTaskHandler(ScheduledTaskType.INVOICE_PROCESSING, async (context) => {
 });
 
 registerTaskHandler(ScheduledTaskType.APPROVAL_ESCALATION, async (context) => {
-  console.log(`[TASK] Checking approval escalations for ${context.organizationId}`);
+  console.log(
+    `[TASK] Checking approval escalations for ${context.organizationId}`,
+  );
   // Implement approval escalation logic
 });
 
 registerTaskHandler(ScheduledTaskType.APPROVAL_REMINDER, async (context) => {
-  console.log(`[TASK] Sending approval reminders for ${context.organizationId}`);
+  console.log(
+    `[TASK] Sending approval reminders for ${context.organizationId}`,
+  );
   // Implement approval reminder logic
 });
 
@@ -535,10 +545,13 @@ registerTaskHandler(ScheduledTaskType.PAYMENT_PROCESSING, async (context) => {
   // Implement payment processing logic
 });
 
-registerTaskHandler(ScheduledTaskType.PAYMENT_RECONCILIATION, async (context) => {
-  console.log(`[TASK] Reconciling payments for ${context.organizationId}`);
-  // Implement reconciliation logic
-});
+registerTaskHandler(
+  ScheduledTaskType.PAYMENT_RECONCILIATION,
+  async (context) => {
+    console.log(`[TASK] Reconciling payments for ${context.organizationId}`);
+    // Implement reconciliation logic
+  },
+);
 
 registerTaskHandler(ScheduledTaskType.RECONCILIATION, async (context) => {
   console.log(`[TASK] Running reconciliation for ${context.organizationId}`);
@@ -571,7 +584,9 @@ registerTaskHandler(ScheduledTaskType.BACKUP, async (context) => {
 });
 
 registerTaskHandler(ScheduledTaskType.NOTIFICATION_DIGEST, async (context) => {
-  console.log(`[TASK] Sending notification digests for ${context.organizationId}`);
+  console.log(
+    `[TASK] Sending notification digests for ${context.organizationId}`,
+  );
   // Implement notification digest logic
 });
 
@@ -580,7 +595,12 @@ registerTaskHandler(ScheduledTaskType.AUDIT_LOG_ARCHIVE, async (context) => {
   // Implement audit log archiving logic
 });
 
-registerTaskHandler(ScheduledTaskType.SUPPLIER_RATING_UPDATE, async (context) => {
-  console.log(`[TASK] Updating supplier ratings for ${context.organizationId}`);
-  // Implement supplier rating update logic
-});
+registerTaskHandler(
+  ScheduledTaskType.SUPPLIER_RATING_UPDATE,
+  async (context) => {
+    console.log(
+      `[TASK] Updating supplier ratings for ${context.organizationId}`,
+    );
+    // Implement supplier rating update logic
+  },
+);

@@ -1,1 +1,1 @@
-export * from './file-attachments.service.impl.ts';
+export * from "./file-attachments.service.impl.ts";

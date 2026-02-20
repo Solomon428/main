@@ -26,7 +26,9 @@ export class ApprovalService extends BaseService {
     }
 
     if (!["PENDING", "REJECTED"].includes(invoice.status)) {
-      throw new Error(`Invoice cannot be submitted for approval. Current status: ${invoice.status}`);
+      throw new Error(
+        `Invoice cannot be submitted for approval. Current status: ${invoice.status}`,
+      );
     }
 
     const approval = await this.prisma.approval.create({
@@ -66,7 +68,9 @@ export class ApprovalService extends BaseService {
     }
 
     if (approval.status !== "PENDING") {
-      throw new Error(`Approval has already been ${approval.status.toLowerCase()}`);
+      throw new Error(
+        `Approval has already been ${approval.status.toLowerCase()}`,
+      );
     }
 
     let newApprovalStatus: string;
@@ -139,7 +143,13 @@ export class ApprovalService extends BaseService {
       }),
     ]);
 
-    return { approvals, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+      approvals,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findByInvoice(invoiceId: string) {
@@ -162,12 +172,21 @@ export class ApprovalService extends BaseService {
   async getStats() {
     const orgId = this.requireOrg();
 
-    const [pendingCount, approvedCount, rejectedCount, escalatedCount] = await Promise.all([
-      this.prisma.approval.count({ where: { organizationId: orgId, status: "PENDING" } }),
-      this.prisma.approval.count({ where: { organizationId: orgId, status: "APPROVED" } }),
-      this.prisma.approval.count({ where: { organizationId: orgId, status: "REJECTED" } }),
-      this.prisma.approval.count({ where: { organizationId: orgId, status: "ESCALATED" } }),
-    ]);
+    const [pendingCount, approvedCount, rejectedCount, escalatedCount] =
+      await Promise.all([
+        this.prisma.approval.count({
+          where: { organizationId: orgId, status: "PENDING" },
+        }),
+        this.prisma.approval.count({
+          where: { organizationId: orgId, status: "APPROVED" },
+        }),
+        this.prisma.approval.count({
+          where: { organizationId: orgId, status: "REJECTED" },
+        }),
+        this.prisma.approval.count({
+          where: { organizationId: orgId, status: "ESCALATED" },
+        }),
+      ]);
 
     return {
       pendingCount,

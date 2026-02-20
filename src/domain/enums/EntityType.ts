@@ -1,13 +1,6 @@
-export enum EntityType {
-  USER = 'USER',
-  ORGANIZATION = 'ORGANIZATION',
-  SUPPLIER = 'SUPPLIER',
-  INVOICE = 'INVOICE',
-  PAYMENT = 'PAYMENT',
-  APPROVAL = 'APPROVAL',
-  COMPLIANCE_CHECK = 'COMPLIANCE_CHECK',
-  RISK_SCORE = 'RISK_SCORE',
-  AUDIT_LOG = 'AUDIT_LOG',
-  FILE_ATTACHMENT = 'FILE_ATTACHMENT',
-  INTEGRATION = 'INTEGRATION',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { EntityType as EntityType } from "@prisma/client";

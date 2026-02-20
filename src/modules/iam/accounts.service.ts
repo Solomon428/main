@@ -2,9 +2,9 @@
 // Accounts Service - OAuth Account Management
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { generateId } from '../../utils/ids';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../db/prisma";
+import { generateId } from "../../utils/ids";
+import { info, error } from "../../observability/logger";
 
 interface LinkAccountInput {
   userId: string;
@@ -24,7 +24,9 @@ interface LinkAccountInput {
 /**
  * Link an OAuth account to a user
  */
-export async function linkAccount(input: LinkAccountInput): Promise<{ id: string }> {
+export async function linkAccount(
+  input: LinkAccountInput,
+): Promise<{ id: string }> {
   try {
     // Check if account already exists
     const existingAccount = await prisma.account.findUnique({
@@ -52,10 +54,10 @@ export async function linkAccount(input: LinkAccountInput): Promise<{ id: string
         },
       });
 
-      info('OAuth account updated', { 
-        accountId: account.id, 
+      info("OAuth account updated", {
+        accountId: account.id,
         provider: input.provider,
-        userId: input.userId 
+        userId: input.userId,
       });
 
       return { id: account.id };
@@ -80,18 +82,18 @@ export async function linkAccount(input: LinkAccountInput): Promise<{ id: string
       },
     });
 
-    info('OAuth account linked', { 
-      accountId: account.id, 
+    info("OAuth account linked", {
+      accountId: account.id,
       provider: input.provider,
-      userId: input.userId 
+      userId: input.userId,
     });
 
     return { id: account.id };
   } catch (err) {
-    error('Failed to link account', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
+    error("Failed to link account", {
+      error: err instanceof Error ? err.message : "Unknown error",
       provider: input.provider,
-      userId: input.userId 
+      userId: input.userId,
     });
     throw err;
   }
@@ -100,7 +102,10 @@ export async function linkAccount(input: LinkAccountInput): Promise<{ id: string
 /**
  * Unlink an OAuth account from a user
  */
-export async function unlinkAccount(userId: string, provider: string): Promise<boolean> {
+export async function unlinkAccount(
+  userId: string,
+  provider: string,
+): Promise<boolean> {
   try {
     const account = await prisma.account.findFirst({
       where: {
@@ -117,18 +122,18 @@ export async function unlinkAccount(userId: string, provider: string): Promise<b
       where: { id: account.id },
     });
 
-    info('OAuth account unlinked', { 
-      accountId: account.id, 
+    info("OAuth account unlinked", {
+      accountId: account.id,
       provider,
-      userId 
+      userId,
     });
 
     return true;
   } catch (err) {
-    error('Failed to unlink account', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
+    error("Failed to unlink account", {
+      error: err instanceof Error ? err.message : "Unknown error",
       provider,
-      userId 
+      userId,
     });
     throw err;
   }
@@ -137,13 +142,15 @@ export async function unlinkAccount(userId: string, provider: string): Promise<b
 /**
  * Find all OAuth accounts for a user
  */
-export async function findAccountsByUserId(userId: string): Promise<Array<{
-  id: string;
-  type: string;
-  provider: string;
-  providerAccountId: string;
-  expiresAt: Date | null;
-}>> {
+export async function findAccountsByUserId(userId: string): Promise<
+  Array<{
+    id: string;
+    type: string;
+    provider: string;
+    providerAccountId: string;
+    expiresAt: Date | null;
+  }>
+> {
   try {
     const accounts = await prisma.account.findMany({
       where: { userId },
@@ -156,17 +163,19 @@ export async function findAccountsByUserId(userId: string): Promise<Array<{
       },
     });
 
-    return accounts.map(account => ({
+    return accounts.map((account) => ({
       id: account.id,
       type: account.type,
       provider: account.provider,
       providerAccountId: account.providerAccountId,
-      expiresAt: account.expires_at ? new Date(account.expires_at * 1000) : null,
+      expiresAt: account.expires_at
+        ? new Date(account.expires_at * 1000)
+        : null,
     }));
   } catch (err) {
-    error('Failed to find accounts', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      userId 
+    error("Failed to find accounts", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      userId,
     });
     throw err;
   }
@@ -176,8 +185,8 @@ export async function findAccountsByUserId(userId: string): Promise<Array<{
  * Find account by provider and provider account ID
  */
 export async function findAccountByProvider(
-  provider: string, 
-  providerAccountId: string
+  provider: string,
+  providerAccountId: string,
 ): Promise<{ id: string; userId: string } | null> {
   try {
     const account = await prisma.account.findUnique({
@@ -195,10 +204,10 @@ export async function findAccountByProvider(
 
     return account;
   } catch (err) {
-    error('Failed to find account by provider', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
+    error("Failed to find account by provider", {
+      error: err instanceof Error ? err.message : "Unknown error",
       provider,
-      providerAccountId 
+      providerAccountId,
     });
     throw err;
   }
@@ -208,10 +217,10 @@ export async function findAccountByProvider(
  * Refresh OAuth token
  */
 export async function refreshToken(
-  accountId: string, 
-  newAccessToken: string, 
+  accountId: string,
+  newAccessToken: string,
   newRefreshToken?: string,
-  expiresAt?: number
+  expiresAt?: number,
 ): Promise<boolean> {
   try {
     await prisma.account.update({
@@ -223,13 +232,13 @@ export async function refreshToken(
       },
     });
 
-    info('OAuth token refreshed', { accountId });
+    info("OAuth token refreshed", { accountId });
 
     return true;
   } catch (err) {
-    error('Failed to refresh token', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      accountId 
+    error("Failed to refresh token", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      accountId,
     });
     throw err;
   }

@@ -1,6 +1,9 @@
-import { prisma } from '../../lib/prisma';
-import { hashApiKey, generateApiKey as generateNewApiKey } from '../../security/hashing';
-import { generateId } from '../../utils/ids';
+import { prisma } from "../../lib/prisma";
+import {
+  hashApiKey,
+  generateApiKey as generateNewApiKey,
+} from "../../security/hashing";
+import { generateId } from "../../utils/ids";
 
 export async function generateApiKey(
   userId: string,
@@ -11,7 +14,7 @@ export async function generateApiKey(
     scopes: string[];
     expiresAt?: Date;
     rateLimit?: number;
-  }
+  },
 ) {
   const { key, prefix } = generateNewApiKey();
   const keyHash = hashApiKey(key);
@@ -36,17 +39,14 @@ export async function generateApiKey(
 }
 
 export async function validateApiKey(apiKey: string) {
-  const prefix = apiKey.split('_')[0] + '_' + apiKey.split('_')[1];
+  const prefix = apiKey.split("_")[0] + "_" + apiKey.split("_")[1];
   const keyHash = hashApiKey(apiKey);
 
   const keyRecord = await prisma.apiKey.findFirst({
     where: {
       keyHash,
       isActive: true,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
-      ],
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     },
     include: {
       user: true,
@@ -70,7 +70,7 @@ export async function validateApiKey(apiKey: string) {
 export async function revokeApiKey(
   keyId: string,
   revokedBy: string,
-  reason?: string
+  reason?: string,
 ) {
   return prisma.apiKey.update({
     where: { id: keyId },
@@ -88,7 +88,7 @@ export async function listApiKeys(
   options?: {
     userId?: string;
     isActive?: boolean;
-  }
+  },
 ) {
   return prisma.apiKey.findMany({
     where: {
@@ -96,7 +96,7 @@ export async function listApiKeys(
       ...(options?.userId && { userId: options.userId }),
       ...(options?.isActive !== undefined && { isActive: options.isActive }),
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       name: true,

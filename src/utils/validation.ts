@@ -38,7 +38,10 @@ export function validateEmail(email: string): boolean {
 /**
  * Validate VAT number
  */
-export function validateVAT(vatNumber: string, country: string = 'ZA'): boolean {
+export function validateVAT(
+  vatNumber: string,
+  country: string = "ZA",
+): boolean {
   const pattern = VAT_PATTERNS[country] || VAT_PATTERNS.ZA;
   return pattern.test(vatNumber);
 }
@@ -48,19 +51,19 @@ export function validateVAT(vatNumber: string, country: string = 'ZA'): boolean 
  */
 export function validateBankAccount(
   accountNumber: string,
-  bankCode?: string
+  bankCode?: string,
 ): boolean {
   // Basic validation - would need more sophisticated check per country
   if (!BANK_ACCOUNT_REGEX.test(accountNumber)) {
     return false;
   }
-  
+
   // Luhn check for certain countries
   if (bankCode) {
     // Additional validation based on bank code
     return true;
   }
-  
+
   return true;
 }
 
@@ -75,7 +78,7 @@ export function validateInvoiceNumber(invoiceNumber: string): boolean {
  * Validate phone number (South African)
  */
 export function validatePhoneNumber(phone: string): boolean {
-  const cleaned = phone.replace(/\s/g, '');
+  const cleaned = phone.replace(/\s/g, "");
   return PHONE_REGEX.test(cleaned);
 }
 
@@ -93,7 +96,7 @@ export function validateSAIDNumber(idNumber: string): boolean {
   if (!SA_ID_REGEX.test(idNumber)) {
     return false;
   }
-  
+
   // Luhn checksum validation
   return validateLuhn(idNumber);
 }
@@ -104,21 +107,21 @@ export function validateSAIDNumber(idNumber: string): boolean {
 function validateLuhn(value: string): boolean {
   let sum = 0;
   let isEven = false;
-  
+
   for (let i = value.length - 1; i >= 0; i--) {
     let digit = parseInt(value.charAt(i), 10);
-    
+
     if (isEven) {
       digit *= 2;
       if (digit > 9) {
         digit -= 9;
       }
     }
-    
+
     sum += digit;
     isEven = !isEven;
   }
-  
+
   return sum % 10 === 0;
 }
 
@@ -127,7 +130,7 @@ function validateLuhn(value: string): boolean {
  */
 export function validateRequired(value: unknown): boolean {
   if (value === null || value === undefined) return false;
-  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === "string") return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
   return true;
 }
@@ -138,7 +141,7 @@ export function validateRequired(value: unknown): boolean {
 export function validateLength(
   value: string,
   min: number,
-  max: number
+  max: number,
 ): boolean {
   const length = value.length;
   return length >= min && length <= max;
@@ -150,7 +153,7 @@ export function validateLength(
 export function validateRange(
   value: number,
   min: number,
-  max: number
+  max: number,
 ): boolean {
   return value >= min && value <= max;
 }
@@ -174,31 +177,28 @@ export function validateFutureDate(date: Date): boolean {
  */
 export function validateFileType(
   filename: string,
-  allowedTypes: string[]
+  allowedTypes: string[],
 ): boolean {
-  const extension = filename.split('.').pop()?.toLowerCase();
+  const extension = filename.split(".").pop()?.toLowerCase();
   return extension ? allowedTypes.includes(extension) : false;
 }
 
 /**
  * Validate file size
  */
-export function validateFileSize(
-  size: number,
-  maxSize: number
-): boolean {
+export function validateFileSize(size: number, maxSize: number): boolean {
   return size <= maxSize;
 }
 
 /**
  * Validate tax ID (generic)
  */
-export function validateTaxId(taxId: string, country: string = 'ZA'): boolean {
+export function validateTaxId(taxId: string, country: string = "ZA"): boolean {
   switch (country) {
-    case 'ZA':
+    case "ZA":
       // South African tax number format
       return /^[0-9]{10}$/.test(taxId);
-    case 'US':
+    case "US":
       // US EIN format
       return /^[0-9]{2}-[0-9]{7}$/.test(taxId);
     default:
@@ -220,15 +220,16 @@ export function validateCompanyRegNumber(regNumber: string): boolean {
 export function sanitizeString(input: string): string {
   return input
     .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/\s+/g, ' '); // Normalize whitespace
+    .replace(/[<>]/g, "") // Remove potential HTML tags
+    .replace(/\s+/g, " "); // Normalize whitespace
 }
 
 /**
  * Validate UUID format
  */
 export function validateUUID(uuid: string): boolean {
-  const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const regex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return regex.test(uuid);
 }
 

@@ -2,8 +2,8 @@
 // Webhook Delivery Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { WebhookStatus } from '../../domain/enums/WebhookStatus';
+import { prisma } from "../../db/prisma";
+import { WebhookStatus } from "../../domain/enums/WebhookStatus";
 
 export interface WebhookPayload {
   event: string;
@@ -29,7 +29,7 @@ export async function listDeliveries(
     endDate?: Date;
     page?: number;
     limit?: number;
-  }
+  },
 ) {
   const where: any = { webhookId };
 
@@ -47,7 +47,7 @@ export async function listDeliveries(
   const [deliveries, total] = await Promise.all([
     prisma.webhookDelivery.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
@@ -89,7 +89,7 @@ export async function getDelivery(id: string) {
 export async function createDelivery(
   webhookId: string,
   event: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ) {
   return prisma.webhookDelivery.create({
     data: {
@@ -113,14 +113,14 @@ export async function recordAttempt(
     responseBody?: string;
     errorMessage?: string;
     duration?: number;
-  }
+  },
 ) {
   const delivery = await prisma.webhookDelivery.findUnique({
     where: { id: deliveryId },
   });
 
   if (!delivery) {
-    throw new Error('Delivery not found');
+    throw new Error("Delivery not found");
   }
 
   const attemptCount = delivery.attemptCount + 1;
@@ -153,11 +153,11 @@ export async function retryDelivery(deliveryId: string) {
   });
 
   if (!delivery) {
-    throw new Error('Delivery not found');
+    throw new Error("Delivery not found");
   }
 
   if (delivery.status === WebhookStatus.SUCCESS) {
-    throw new Error('Cannot retry a successful delivery');
+    throw new Error("Cannot retry a successful delivery");
   }
 
   // Reset status to pending for retry
@@ -175,24 +175,24 @@ export async function retryDelivery(deliveryId: string) {
 export async function deliverWebhook(
   webhookId: string,
   event: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ) {
   const webhook = await prisma.webhook.findUnique({
     where: { id: webhookId },
   });
 
   if (!webhook) {
-    throw new Error('Webhook not found');
+    throw new Error("Webhook not found");
   }
 
   if (!webhook.isActive) {
-    throw new Error('Webhook is not active');
+    throw new Error("Webhook is not active");
   }
 
   // Check if event type is subscribed
   if (
     webhook.eventTypes.length > 0 &&
-    !webhook.eventTypes.includes('*') &&
+    !webhook.eventTypes.includes("*") &&
     !webhook.eventTypes.includes(event)
   ) {
     return null; // Skip delivery for unsubscribed events
@@ -211,7 +211,11 @@ export async function deliverWebhook(
     };
 
     // Simulate HTTP request
-    const response = await simulateWebhookDelivery(webhook.url, payload, webhook.secretKey);
+    const response = await simulateWebhookDelivery(
+      webhook.url,
+      payload,
+      webhook.secretKey,
+    );
 
     await recordAttempt(delivery.id, {
       status: response.success ? WebhookStatus.SUCCESS : WebhookStatus.FAILED,
@@ -224,7 +228,7 @@ export async function deliverWebhook(
   } catch (error) {
     await recordAttempt(delivery.id, {
       status: WebhookStatus.FAILED,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
     });
 
     return delivery;
@@ -259,24 +263,34 @@ export async function processPendingDeliveries(maxAttempts: number = 5) {
       const response = await simulateWebhookDelivery(
         delivery.webhook.url,
         payload,
-        delivery.webhook.secretKey
+        delivery.webhook.secretKey,
       );
 
       const updated = await recordAttempt(delivery.id, {
-        status: response.success ? WebhookStatus.SUCCESS : WebhookStatus.RETRYING,
+        status: response.success
+          ? WebhookStatus.SUCCESS
+          : WebhookStatus.RETRYING,
         httpStatusCode: response.statusCode,
         responseBody: response.body,
         duration: response.duration,
       });
 
-      results.push({ deliveryId: delivery.id, success: response.success, delivery: updated });
+      results.push({
+        deliveryId: delivery.id,
+        success: response.success,
+        delivery: updated,
+      });
     } catch (error) {
       const updated = await recordAttempt(delivery.id, {
         status: WebhookStatus.FAILED,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
       });
 
-      results.push({ deliveryId: delivery.id, success: false, delivery: updated });
+      results.push({
+        deliveryId: delivery.id,
+        success: false,
+        delivery: updated,
+      });
     }
   }
 
@@ -320,7 +334,8 @@ export async function getDeliveryStats(webhookId: string, days: number = 30) {
     totalDeliveries,
     successCount,
     failedCount,
-    successRate: totalDeliveries > 0 ? (successCount / totalDeliveries) * 100 : 0,
+    successRate:
+      totalDeliveries > 0 ? (successCount / totalDeliveries) * 100 : 0,
   };
 }
 
@@ -340,7 +355,7 @@ export async function cleanupOldDeliveries(cutoffDate: Date) {
 async function simulateWebhookDelivery(
   url: string,
   payload: WebhookPayload,
-  secretKey?: string
+  secretKey?: string,
 ): Promise<{
   success: boolean;
   statusCode?: number;
@@ -366,7 +381,7 @@ async function simulateWebhookDelivery(
     return {
       success: false,
       statusCode: 500,
-      body: 'Internal Server Error',
+      body: "Internal Server Error",
       duration,
     };
   }

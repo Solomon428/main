@@ -1,7 +1,7 @@
 // Simplified Payment Tracking Service for SQLite
-import { prisma } from '@/lib/database/client';
-import { InvoiceStatus, PaymentMethod, BatchStatus } from '@/types';
-import { auditLogger } from '@/lib/utils/audit-logger';
+import { prisma } from "@/lib/database/client";
+import { InvoiceStatus, PaymentMethod, BatchStatus } from "@/types";
+import { auditLogger } from "@/lib/utils/audit-logger";
 
 interface PaymentRecord {
   invoiceId: string;
@@ -26,7 +26,7 @@ export class PaymentTrackingService {
    */
   static async recordPayment(
     data: PaymentRecord,
-    userId: string
+    userId: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
       const invoice = await prisma.invoices.findUnique({
@@ -34,7 +34,7 @@ export class PaymentTrackingService {
       });
 
       if (!invoice) {
-        return { success: false, message: 'Invoice not found' };
+        return { success: false, message: "Invoice not found" };
       }
 
       const paymentAmount = data.amount;
@@ -47,9 +47,9 @@ export class PaymentTrackingService {
       // Determine new status
       let newStatus: InvoiceStatus = invoice.status as InvoiceStatus;
       if (isFullyPaid) {
-        newStatus = 'PAID';
+        newStatus = "PAID";
       } else if (isPartiallyPaid) {
-        newStatus = 'PARTIALLY_PAID';
+        newStatus = "PARTIALLY_PAID";
       }
 
       await prisma.invoices.update({
@@ -64,11 +64,11 @@ export class PaymentTrackingService {
 
       // Log payment
       await auditLogger.log({
-        action: 'UPDATE',
-        entityType: 'INVOICE',
+        action: "UPDATE",
+        entityType: "INVOICE",
         entityId: data.invoiceId,
         entityDescription: `Payment recorded: R ${paymentAmount.toFixed(2)}`,
-        severity: 'INFO',
+        severity: "INFO",
         userId,
         metadata: {
           amount: paymentAmount,
@@ -82,12 +82,12 @@ export class PaymentTrackingService {
       return {
         success: true,
         message: isFullyPaid
-          ? 'Invoice fully paid'
+          ? "Invoice fully paid"
           : `Partial payment recorded. Remaining: R ${remainingAmount.toFixed(2)}`,
       };
     } catch (error) {
-      console.error('Error recording payment:', error);
-      return { success: false, message: 'Failed to record payment' };
+      console.error("Error recording payment:", error);
+      return { success: false, message: "Failed to record payment" };
     }
   }
 
@@ -97,53 +97,51 @@ export class PaymentTrackingService {
   static async getPaymentStats(): Promise<PaymentStats> {
     try {
       const today = new Date();
-      const sevenDaysFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const sevenDaysFromNow = new Date(
+        today.getTime() + 7 * 24 * 60 * 60 * 1000,
+      );
 
-      const [
-        paidInvoices,
-        pendingInvoices,
-        overdueInvoices,
-        upcomingInvoices,
-      ] = await Promise.all([
-        prisma.invoices.findMany({
-          where: { status: 'PAID' },
-          select: { totalAmount: true, amountPaid: true },
-        }),
-        prisma.invoices.findMany({
-          where: {
-            status: { in: ['APPROVED', 'READY_FOR_PAYMENT'] },
-          },
-          select: { totalAmount: true },
-        }),
-        prisma.invoices.findMany({
-          where: {
-            status: { notIn: ['PAID', 'CANCELLED', 'REJECTED'] },
-            dueDate: { lt: today },
-          },
-          select: { totalAmount: true },
-        }),
-        prisma.invoices.count({
-          where: {
-            status: { in: ['APPROVED', 'READY_FOR_PAYMENT'] },
-            dueDate: {
-              gte: today,
-              lte: sevenDaysFromNow,
+      const [paidInvoices, pendingInvoices, overdueInvoices, upcomingInvoices] =
+        await Promise.all([
+          prisma.invoices.findMany({
+            where: { status: "PAID" },
+            select: { totalAmount: true, amountPaid: true },
+          }),
+          prisma.invoices.findMany({
+            where: {
+              status: { in: ["APPROVED", "READY_FOR_PAYMENT"] },
             },
-          },
-        }),
-      ]);
+            select: { totalAmount: true },
+          }),
+          prisma.invoices.findMany({
+            where: {
+              status: { notIn: ["PAID", "CANCELLED", "REJECTED"] },
+              dueDate: { lt: today },
+            },
+            select: { totalAmount: true },
+          }),
+          prisma.invoices.count({
+            where: {
+              status: { in: ["APPROVED", "READY_FOR_PAYMENT"] },
+              dueDate: {
+                gte: today,
+                lte: sevenDaysFromNow,
+              },
+            },
+          }),
+        ]);
 
       const totalPaid = paidInvoices.reduce(
         (sum, inv) => sum + (inv.amountPaid || 0),
-        0
+        0,
       );
       const totalPending = pendingInvoices.reduce(
         (sum, inv) => sum + inv.totalAmount,
-        0
+        0,
       );
       const totalOverdue = overdueInvoices.reduce(
         (sum, inv) => sum + inv.totalAmount,
-        0
+        0,
       );
 
       return {
@@ -154,7 +152,7 @@ export class PaymentTrackingService {
         averagePaymentTime: 5, // Placeholder - would calculate from actual data
       };
     } catch (error) {
-      console.error('Error getting payment stats:', error);
+      console.error("Error getting payment stats:", error);
       return {
         totalPaid: 0,
         totalPending: 0,
@@ -174,13 +172,13 @@ export class PaymentTrackingService {
 
     return prisma.invoices.findMany({
       where: {
-        status: { in: ['APPROVED', 'READY_FOR_PAYMENT'] },
+        status: { in: ["APPROVED", "READY_FOR_PAYMENT"] },
         dueDate: {
           gte: today,
           lte: futureDate,
         },
       },
-      orderBy: { dueDate: 'asc' },
+      orderBy: { dueDate: "asc" },
       take: 20,
     });
   }

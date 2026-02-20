@@ -8,8 +8,8 @@
 // - Notification templates and preferences
 // ============================================================================
 
-import { prisma } from '@/lib/database/client';
-import { NotificationType, PriorityLevel, DeliveryMethod } from '@/types';
+import { prisma } from "@/lib/database/client";
+import { NotificationType, PriorityLevel, DeliveryMethod } from "@/types";
 
 export interface SendNotificationInput {
   userId: string;
@@ -29,7 +29,7 @@ export interface SendNotificationInput {
 export interface ApprovalNotificationInput {
   userId: string;
   invoiceId: string;
-  type: 'APPROVAL_REQUIRED' | 'INVOICE_APPROVED' | 'INVOICE_REJECTED';
+  type: "APPROVAL_REQUIRED" | "INVOICE_APPROVED" | "INVOICE_REJECTED";
 }
 
 export class NotificationService {
@@ -42,7 +42,7 @@ export class NotificationService {
       title,
       message,
       type,
-      priority = 'MEDIUM',
+      priority = "MEDIUM",
       entityType,
       entityId,
       actions,
@@ -89,32 +89,32 @@ export class NotificationService {
     });
 
     if (!invoice) {
-      throw new Error('Invoice not found');
+      throw new Error("Invoice not found");
     }
 
     let title: string;
     let message: string;
-    let priority: PriorityLevel = 'MEDIUM';
+    let priority: PriorityLevel = "MEDIUM";
 
     switch (type) {
-      case 'APPROVAL_REQUIRED':
-        title = 'Approval Required';
+      case "APPROVAL_REQUIRED":
+        title = "Approval Required";
         message = `Invoice ${invoice.invoiceNumber} from ${invoice.supplierName} for R${Number(
-          invoice.totalAmount
+          invoice.totalAmount,
         ).toLocaleString()} requires your approval.`;
-        priority = invoice.isUrgent ? 'HIGH' : 'MEDIUM';
+        priority = invoice.isUrgent ? "HIGH" : "MEDIUM";
         break;
-      case 'INVOICE_APPROVED':
-        title = 'Invoice Approved';
+      case "INVOICE_APPROVED":
+        title = "Invoice Approved";
         message = `Invoice ${invoice.invoiceNumber} has been fully approved and is ready for payment.`;
         break;
-      case 'INVOICE_REJECTED':
-        title = 'Invoice Rejected';
+      case "INVOICE_REJECTED":
+        title = "Invoice Rejected";
         message = `Invoice ${invoice.invoiceNumber} has been rejected.`;
-        priority = 'HIGH';
+        priority = "HIGH";
         break;
       default:
-        title = 'Invoice Update';
+        title = "Invoice Update";
         message = `Invoice ${invoice.invoiceNumber} status has been updated.`;
     }
 
@@ -124,11 +124,18 @@ export class NotificationService {
       message,
       type,
       priority,
-      entityType: 'INVOICE',
+      entityType: "INVOICE",
       entityId: invoiceId,
-      actions: type === 'APPROVAL_REQUIRED' 
-        ? [{ label: 'Review Now', action: 'review', url: `/invoices/${invoiceId}` }]
-        : undefined,
+      actions:
+        type === "APPROVAL_REQUIRED"
+          ? [
+              {
+                label: "Review Now",
+                action: "review",
+                url: `/invoices/${invoiceId}`,
+              },
+            ]
+          : undefined,
     });
   }
 
@@ -139,7 +146,7 @@ export class NotificationService {
     email: string,
     title: string,
     message: string,
-    type: string
+    type: string,
   ): Promise<void> {
     // TODO: Implement SMTP email sending
     // For now, just log
@@ -185,7 +192,7 @@ export class NotificationService {
       unreadOnly?: boolean;
       page?: number;
       pageSize?: number;
-    } = {}
+    } = {},
   ) {
     const { unreadOnly = false, page = 1, pageSize = 20 } = options;
     const skip = (page - 1) * pageSize;
@@ -200,7 +207,7 @@ export class NotificationService {
         where,
         skip,
         take: pageSize,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       }),
       prisma.notifications.count({ where }),
       prisma.notifications.count({
@@ -241,7 +248,7 @@ export class NotificationService {
     userIds: string[],
     title: string,
     message: string,
-    type: NotificationType
+    type: NotificationType,
   ) {
     const notifications = [];
     for (const userId of userIds) {

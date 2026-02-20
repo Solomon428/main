@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/db/prisma";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '10');
-    const status = searchParams.get('status');
-    const category = searchParams.get('category');
+    const page = parseInt(searchParams.get("page") || "1");
+    const pageSize = parseInt(searchParams.get("pageSize") || "10");
+    const status = searchParams.get("status");
+    const category = searchParams.get("category");
 
     // Build where clause
     const where: any = {};
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Get paginated suppliers
     const suppliers = await prisma.suppliers.findMany({
       where,
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
       select: {
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         isBlacklisted: true,
         createdAt: true,
         // contactCount removed - use separate query if needed
-      }
+      },
     });
 
     return NextResponse.json({
@@ -49,14 +49,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         total,
         page,
         pageSize,
-        totalPages: Math.ceil(total / pageSize)
-      }
+        totalPages: Math.ceil(total / pageSize),
+      },
     });
   } catch (error) {
-    console.error('Error fetching suppliers:', error);
+    console.error("Error fetching suppliers:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch suppliers' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch suppliers" },
+      { status: 500 },
     );
   }
 }

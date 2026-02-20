@@ -2,16 +2,16 @@
 // Local File Storage Provider
 // ============================================================================
 
-import { Readable } from 'stream';
-import * as fs from 'fs';
-import * as path from 'path';
-import { promisify } from 'util';
+import { Readable } from "stream";
+import * as fs from "fs";
+import * as path from "path";
+import { promisify } from "util";
 import {
   StorageProvider,
   UploadResult,
   DownloadResult,
   FileMetadata,
-} from './storage.types';
+} from "./storage.types";
 
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
@@ -21,8 +21,9 @@ const readdir = promisify(fs.readdir);
 const mkdir = promisify(fs.mkdir);
 const access = promisify(fs.access);
 
-const BASE_PATH = process.env.LOCAL_STORAGE_PATH || './uploads';
-const PUBLIC_URL_BASE = process.env.LOCAL_STORAGE_URL_BASE || 'http://localhost:3000/uploads';
+const BASE_PATH = process.env.LOCAL_STORAGE_PATH || "./uploads";
+const PUBLIC_URL_BASE =
+  process.env.LOCAL_STORAGE_URL_BASE || "http://localhost:3000/uploads";
 
 /**
  * Ensure directory exists
@@ -49,7 +50,7 @@ export async function uploadFile(
   key: string,
   buffer: Buffer,
   contentType: string,
-  metadata?: Record<string, string>
+  metadata?: Record<string, string>,
 ): Promise<UploadResult> {
   const filePath = getFilePath(key);
   const dir = path.dirname(filePath);
@@ -60,7 +61,10 @@ export async function uploadFile(
   // Store metadata in a sidecar file
   if (metadata) {
     const metaPath = `${filePath}.meta.json`;
-    await writeFile(metaPath, JSON.stringify({ contentType, metadata }, null, 2));
+    await writeFile(
+      metaPath,
+      JSON.stringify({ contentType, metadata }, null, 2),
+    );
   }
 
   return {
@@ -81,19 +85,19 @@ export async function downloadFile(key: string): Promise<DownloadResult> {
   try {
     await access(filePath);
   } catch {
-    throw new Error('File not found');
+    throw new Error("File not found");
   }
 
   const stats = await stat(filePath);
   const stream = fs.createReadStream(filePath);
-  
+
   // Try to load metadata
   let metadata: Record<string, string> | undefined;
-  let contentType = 'application/octet-stream';
-  
+  let contentType = "application/octet-stream";
+
   try {
     const metaPath = `${filePath}.meta.json`;
-    const metaContent = await readFile(metaPath, 'utf-8');
+    const metaContent = await readFile(metaPath, "utf-8");
     const meta = JSON.parse(metaContent);
     contentType = meta.contentType;
     metadata = meta.metadata;
@@ -146,17 +150,19 @@ export async function fileExists(key: string): Promise<boolean> {
 /**
  * Get file metadata from local storage
  */
-export async function getFileMetadata(key: string): Promise<FileMetadata | null> {
+export async function getFileMetadata(
+  key: string,
+): Promise<FileMetadata | null> {
   try {
     const filePath = getFilePath(key);
     const stats = await stat(filePath);
-    
-    let contentType = 'application/octet-stream';
+
+    let contentType = "application/octet-stream";
     let metadata: Record<string, string> | undefined;
-    
+
     try {
       const metaPath = `${filePath}.meta.json`;
-      const metaContent = await readFile(metaPath, 'utf-8');
+      const metaContent = await readFile(metaPath, "utf-8");
       const meta = JSON.parse(metaContent);
       contentType = meta.contentType;
       metadata = meta.metadata;
@@ -180,7 +186,7 @@ export async function getFileMetadata(key: string): Promise<FileMetadata | null>
  */
 export async function getPresignedDownloadUrl(
   key: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<string> {
   // For local storage, we just return the public URL
   // In a production setup, you might implement temporary token-based access
@@ -193,7 +199,7 @@ export async function getPresignedDownloadUrl(
 export async function getPresignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<string> {
   // For local storage, uploads are handled directly through the API
   return `${PUBLIC_URL_BASE}/${key}`;
@@ -204,7 +210,7 @@ export async function getPresignedUploadUrl(
  */
 export async function listFiles(prefix: string): Promise<string[]> {
   const dirPath = path.join(BASE_PATH, prefix);
-  
+
   try {
     await access(dirPath);
   } catch {
@@ -215,14 +221,14 @@ export async function listFiles(prefix: string): Promise<string[]> {
 
   async function traverse(currentPath: string, relativePath: string) {
     const entries = await readdir(currentPath, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(currentPath, entry.name);
       const relPath = path.join(relativePath, entry.name);
-      
+
       if (entry.isDirectory()) {
         await traverse(fullPath, relPath);
-      } else if (!entry.name.endsWith('.meta.json')) {
+      } else if (!entry.name.endsWith(".meta.json")) {
         files.push(relPath);
       }
     }
@@ -235,14 +241,17 @@ export async function listFiles(prefix: string): Promise<string[]> {
 /**
  * Copy a file within local storage
  */
-export async function copyFile(sourceKey: string, destinationKey: string): Promise<void> {
+export async function copyFile(
+  sourceKey: string,
+  destinationKey: string,
+): Promise<void> {
   const sourcePath = getFilePath(sourceKey);
   const destPath = getFilePath(destinationKey);
   const sourceMetaPath = `${sourcePath}.meta.json`;
   const destMetaPath = `${destPath}.meta.json`;
 
   await ensureDir(path.dirname(destPath));
-  
+
   const content = await readFile(sourcePath);
   await writeFile(destPath, content);
 
@@ -258,7 +267,10 @@ export async function copyFile(sourceKey: string, destinationKey: string): Promi
 /**
  * Move a file within local storage
  */
-export async function moveFile(sourceKey: string, destinationKey: string): Promise<void> {
+export async function moveFile(
+  sourceKey: string,
+  destinationKey: string,
+): Promise<void> {
   await copyFile(sourceKey, destinationKey);
   await deleteFile(sourceKey);
 }

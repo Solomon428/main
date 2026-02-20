@@ -102,7 +102,7 @@ export class ComplianceCheckService {
       }
 
       const complianceCheck = await tx.complianceCheck.create({
-         {
+        data: {
           id: generateId(),
           invoiceId: input.invoiceId,
           checkType: input.checkType,

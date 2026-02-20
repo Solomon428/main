@@ -2,12 +2,12 @@
  * Comments API Route
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { CommentService } from '@/services/comment-service';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { CommentService } from "@/services/comment-service";
+import { z } from "zod";
 
 const createCommentSchema = z.object({
-  entityType: z.enum(['INVOICE', 'SUPPLIER', 'APPROVAL', 'PAYMENT']),
+  entityType: z.enum(["INVOICE", "SUPPLIER", "APPROVAL", "PAYMENT"]),
   entityId: z.string(),
   userId: z.string(),
   content: z.string().min(1).max(5000),
@@ -23,20 +23,20 @@ const updateCommentSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const entityType = searchParams.get('entityType') as
-      | 'INVOICE'
-      | 'SUPPLIER'
-      | 'APPROVAL'
-      | 'PAYMENT';
-    const entityId = searchParams.get('entityId');
-    const includeReplies = searchParams.get('includeReplies') === 'true';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const entityType = searchParams.get("entityType") as
+      | "INVOICE"
+      | "SUPPLIER"
+      | "APPROVAL"
+      | "PAYMENT";
+    const entityId = searchParams.get("entityId");
+    const includeReplies = searchParams.get("includeReplies") === "true";
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
 
     if (!entityType || !entityId) {
       return NextResponse.json(
-        { success: false, error: 'entityType and entityId are required' },
-        { status: 400 }
+        { success: false, error: "entityType and entityId are required" },
+        { status: 400 },
       );
     }
 
@@ -53,10 +53,10 @@ export async function GET(req: NextRequest) {
       data: result,
     });
   } catch (error) {
-    console.error('Get comments error:', error);
+    console.error("Get comments error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to get comments' },
-      { status: 500 }
+      { success: false, error: "Failed to get comments" },
+      { status: 500 },
     );
   }
 }
@@ -74,20 +74,20 @@ export async function POST(req: NextRequest) {
         success: true,
         data: comment,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request', details: error.errors },
-        { status: 400 }
+        { success: false, error: "Invalid request", details: error.errors },
+        { status: 400 },
       );
     }
 
-    console.error('Create comment error:', error);
+    console.error("Create comment error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create comment' },
-      { status: 500 }
+      { success: false, error: "Failed to create comment" },
+      { status: 500 },
     );
   }
 }
@@ -96,13 +96,13 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const commentId = searchParams.get('id');
-    const userId = searchParams.get('userId');
+    const commentId = searchParams.get("id");
+    const userId = searchParams.get("userId");
 
     if (!commentId || !userId) {
       return NextResponse.json(
-        { success: false, error: 'Comment ID and userId are required' },
-        { status: 400 }
+        { success: false, error: "Comment ID and userId are required" },
+        { status: 400 },
       );
     }
 
@@ -118,15 +118,15 @@ export async function PATCH(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request', details: error.errors },
-        { status: 400 }
+        { success: false, error: "Invalid request", details: error.errors },
+        { status: 400 },
       );
     }
 
-    console.error('Update comment error:', error);
+    console.error("Update comment error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update comment' },
-      { status: 500 }
+      { success: false, error: "Failed to update comment" },
+      { status: 500 },
     );
   }
 }
@@ -135,13 +135,13 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const commentId = searchParams.get('id');
-    const userId = searchParams.get('userId');
+    const commentId = searchParams.get("id");
+    const userId = searchParams.get("userId");
 
     if (!commentId || !userId) {
       return NextResponse.json(
-        { success: false, error: 'Comment ID and userId are required' },
-        { status: 400 }
+        { success: false, error: "Comment ID and userId are required" },
+        { status: 400 },
       );
     }
 
@@ -149,13 +149,13 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Comment deleted',
+      message: "Comment deleted",
     });
   } catch (error) {
-    console.error('Delete comment error:', error);
+    console.error("Delete comment error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete comment' },
-      { status: 500 }
+      { success: false, error: "Failed to delete comment" },
+      { status: 500 },
     );
   }
 }

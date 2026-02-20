@@ -4,12 +4,12 @@
  */
 
 export type BulkOperationType =
-  | 'APPROVE'
-  | 'REJECT'
-  | 'ASSIGN'
-  | 'EXPORT'
-  | 'UPDATE_STATUS'
-  | 'DELETE';
+  | "APPROVE"
+  | "REJECT"
+  | "ASSIGN"
+  | "EXPORT"
+  | "UPDATE_STATUS"
+  | "DELETE";
 
 export interface BulkOperationInput {
   invoiceIds: string[];
@@ -17,27 +17,27 @@ export interface BulkOperationInput {
 }
 
 export interface BulkApproveInput extends BulkOperationInput {
-  operation: 'APPROVE';
+  operation: "APPROVE";
   approverId: string;
   comments?: string;
 }
 
 export interface BulkRejectInput extends BulkOperationInput {
-  operation: 'REJECT';
+  operation: "REJECT";
   approverId: string;
   reason: string;
 }
 
 export interface BulkAssignInput extends BulkOperationInput {
-  operation: 'ASSIGN';
+  operation: "ASSIGN";
   assigneeId: string;
-  priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  priority?: "LOW" | "NORMAL" | "HIGH" | "URGENT";
   dueDate?: Date;
 }
 
 export interface BulkExportInput extends BulkOperationInput {
-  operation: 'EXPORT';
-  format: 'csv' | 'xlsx' | 'pdf';
+  operation: "EXPORT";
+  format: "csv" | "xlsx" | "pdf";
   includeLineItems: boolean;
   includeApprovals: boolean;
   includeAuditLog: boolean;
@@ -62,7 +62,7 @@ export interface BulkOperationResult {
 }
 
 export interface BulkExportResult extends BulkOperationResult {
-  operationType: 'EXPORT';
+  operationType: "EXPORT";
   fileName: string;
   fileSize: number;
   downloadUrl: string;
@@ -89,7 +89,7 @@ export interface BulkOperationPreview {
 
 export interface BulkOperationProgress {
   operationId: string;
-  status: 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  status: "QUEUED" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | "CANCELLED";
   progress: number; // 0-100
   processed: number;
   total: number;

@@ -3,31 +3,31 @@ export class OcrServiceError extends Error {
     message: string,
     public code: string,
     public context?: Record<string, any>,
-    public cause?: Error
+    public cause?: Error,
   ) {
     super(message);
-    this.name = 'OcrServiceError';
+    this.name = "OcrServiceError";
   }
 }
 
 export class OcrValidationError extends OcrServiceError {
   constructor(message: string, context?: Record<string, any>, cause?: Error) {
-    super(message, 'VALIDATION_ERROR', context, cause);
-    this.name = 'OcrValidationError';
+    super(message, "VALIDATION_ERROR", context, cause);
+    this.name = "OcrValidationError";
   }
 }
 
 export class OcrProcessingError extends OcrServiceError {
   constructor(message: string, context?: Record<string, any>, cause?: Error) {
-    super(message, 'PROCESSING_ERROR', context, cause);
-    this.name = 'OcrProcessingError';
+    super(message, "PROCESSING_ERROR", context, cause);
+    this.name = "OcrProcessingError";
   }
 }
 
 export class OcrTimeoutError extends OcrServiceError {
   constructor(message: string, context?: Record<string, any>, cause?: Error) {
-    super(message, 'TIMEOUT_ERROR', context, cause);
-    this.name = 'OcrTimeoutError';
+    super(message, "TIMEOUT_ERROR", context, cause);
+    this.name = "OcrTimeoutError";
   }
 }
 
@@ -36,10 +36,15 @@ export class OcrEngineError extends OcrServiceError {
     engine: string,
     message: string,
     context?: Record<string, any>,
-    cause?: Error
+    cause?: Error,
   ) {
-    super(`${engine}: ${message}`, `${engine.toUpperCase()}_ERROR`, context, cause);
-    this.name = 'OcrEngineError';
+    super(
+      `${engine}: ${message}`,
+      `${engine.toUpperCase()}_ERROR`,
+      context,
+      cause,
+    );
+    this.name = "OcrEngineError";
   }
 }
 
@@ -47,10 +52,10 @@ export class OcrInitializationError extends OcrServiceError {
   constructor(provider: string, cause?: Error) {
     super(
       `Failed to initialize ${provider} OCR engine`,
-      'INIT_FAILED',
+      "INIT_FAILED",
       { provider },
-      cause
+      cause,
     );
-    this.name = 'OcrInitializationError';
+    this.name = "OcrInitializationError";
   }
 }

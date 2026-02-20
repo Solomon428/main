@@ -1,10 +1,6 @@
-export enum BankAccountType {
-  CURRENT = 'CURRENT',
-  SAVINGS = 'SAVINGS',
-  BUSINESS = 'BUSINESS',
-  FOREIGN = 'FOREIGN',
-  CREDIT = 'CREDIT',
-  PAYROLL = 'PAYROLL',
-  TRUST = 'TRUST',
-  ESCROW = 'ESCROW',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { BankAccountType as BankAccountType } from "@prisma/client";

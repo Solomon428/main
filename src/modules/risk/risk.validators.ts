@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { RiskLevel } from '../../domain/enums/RiskLevel';
+import { z } from "zod";
+import { RiskLevel } from "../../domain/enums/RiskLevel";
 
-const decimalSchema = z.union([z.string(), z.number()]).transform((val) =>
-  typeof val === 'string' ? parseFloat(val) : val
-);
+const decimalSchema = z
+  .union([z.string(), z.number()])
+  .transform((val) => (typeof val === "string" ? parseFloat(val) : val));
 
 export const riskFactorSchema = z.object({
   name: z.string(),
@@ -38,7 +38,7 @@ export const acknowledgeRiskSchema = z.object({
 
 export const riskAssessmentSchema = z.object({
   entityId: z.string().uuid(),
-  entityType: z.enum(['INVOICE', 'SUPPLIER']),
+  entityType: z.enum(["INVOICE", "SUPPLIER"]),
   assessmentData: z.record(z.unknown()),
 });
 
@@ -61,7 +61,7 @@ export const riskAlertSchema = z.object({
 
 export const bulkRiskAssessmentSchema = z.object({
   entityIds: z.array(z.string().uuid()).min(1),
-  entityType: z.enum(['INVOICE', 'SUPPLIER']),
+  entityType: z.enum(["INVOICE", "SUPPLIER"]),
 });
 
 export type CalculateRiskScoreInput = z.infer<typeof calculateRiskScoreSchema>;

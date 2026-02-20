@@ -10,7 +10,7 @@
 // - South African invoice format support
 // ============================================================================
 
-import { ExtractedInvoiceData, ExtractedLineItem, ParserResult } from '@/types';
+import { ExtractedInvoiceData, ExtractedLineItem, ParserResult } from "@/types";
 
 /**
  * InvoiceParser - Extracts structured data from invoice PDFs/OCR text
@@ -58,7 +58,7 @@ export class InvoiceParser {
       // Step 4: Extract line items
       extracted.lineItems = this.extractLineItems(
         normalizedText,
-        fieldConfidence
+        fieldConfidence,
       );
 
       // Step 5: Validate and calculate missing amounts
@@ -72,14 +72,14 @@ export class InvoiceParser {
         this.calculateOverallConfidence(fieldConfidence);
 
       // Check for critical missing fields
-      if (!validated.invoiceNumber || validated.invoiceNumber.trim() === '') {
-        errors.push('Invoice number could not be extracted');
+      if (!validated.invoiceNumber || validated.invoiceNumber.trim() === "") {
+        errors.push("Invoice number could not be extracted");
       }
-      if (!validated.supplierName || validated.supplierName.trim() === '') {
-        errors.push('Supplier name could not be extracted');
+      if (!validated.supplierName || validated.supplierName.trim() === "") {
+        errors.push("Supplier name could not be extracted");
       }
       if (validated.totalAmount <= 0) {
-        errors.push('Total amount is missing or invalid');
+        errors.push("Total amount is missing or invalid");
       }
 
       const processingTime = Date.now() - startTime;
@@ -93,7 +93,7 @@ export class InvoiceParser {
         fieldConfidence,
         metadata: {
           processingTime,
-          ocrEngine: 'hybrid-regex-v1',
+          ocrEngine: "hybrid-regex-v1",
           pagesProcessed: pages,
           timestamp: new Date(),
         },
@@ -102,7 +102,7 @@ export class InvoiceParser {
       return {
         success: false,
         errors: [
-          `Parser error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Parser error: ${error instanceof Error ? error.message : "Unknown error"}`,
         ],
         warnings,
         mathValidation: {
@@ -115,7 +115,7 @@ export class InvoiceParser {
         fieldConfidence,
         metadata: {
           processingTime: Date.now() - startTime,
-          ocrEngine: 'hybrid-regex-v1',
+          ocrEngine: "hybrid-regex-v1",
           pagesProcessed: 0,
           timestamp: new Date(),
         },
@@ -127,16 +127,16 @@ export class InvoiceParser {
    * Extract text from PDF file using pdf-parse
    */
   private async extractTextFromPDF(
-    filePath: string
+    filePath: string,
   ): Promise<{ text: string; pages: number }> {
     // Handle mock text input for testing
-    if (filePath === '__text_input__') {
-      return { text: '', pages: 0 };
+    if (filePath === "__text_input__") {
+      return { text: "", pages: 0 };
     }
 
     try {
       // Import PDFExtractor for actual text extraction
-      const { PDFExtractor } = await import('@/lib/pdf-processor');
+      const { PDFExtractor } = await import("@/lib/pdf-processor");
       const text = await PDFExtractor.extractText(filePath);
 
       // Estimate page count (approximately 3000 chars per page)
@@ -144,10 +144,10 @@ export class InvoiceParser {
 
       return { text, pages: estimatedPages };
     } catch (error) {
-      console.error('PDF text extraction failed:', error);
+      console.error("PDF text extraction failed:", error);
 
       // Return empty if extraction fails - will result in failed parse
-      return { text: '', pages: 0 };
+      return { text: "", pages: 0 };
     }
   }
 
@@ -162,23 +162,23 @@ export class InvoiceParser {
         .replace(/[Oo]/g, (match, offset, string) => {
           // Check if this O is likely a zero (surrounded by digits or currency)
           const context = string.substring(Math.max(0, offset - 2), offset + 3);
-          return /\d[Oo]\d|[R$]\s*[Oo]/.test(context) ? '0' : match;
+          return /\d[Oo]\d|[R$]\s*[Oo]/.test(context) ? "0" : match;
         })
-        .replace(/l/g, '1') // lowercase L -> 1
-        .replace(/I(?=\d)/g, '1') // capital I before digit -> 1
-        .replace(/S(?=\d)/g, '5') // S before digit -> 5
-        .replace(/B(?=\d)/g, '8') // B before digit -> 8
-        .replace(/Z/g, '2') // Z -> 2
-        .replace(/G(?=\d)/g, '6') // G before digit -> 6
+        .replace(/l/g, "1") // lowercase L -> 1
+        .replace(/I(?=\d)/g, "1") // capital I before digit -> 1
+        .replace(/S(?=\d)/g, "5") // S before digit -> 5
+        .replace(/B(?=\d)/g, "8") // B before digit -> 8
+        .replace(/Z/g, "2") // Z -> 2
+        .replace(/G(?=\d)/g, "6") // G before digit -> 6
         // Clean up whitespace
-        .replace(/\r\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
+        .replace(/\r\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
         // Normalize currency symbols
-        .replace(/[Rr]\s*/g, 'R ') // Normalize Rand symbol spacing
-        .replace(/\$/g, '$ ')
+        .replace(/[Rr]\s*/g, "R ") // Normalize Rand symbol spacing
+        .replace(/\$/g, "$ ")
         // Normalize number formats (remove thousand separators)
-        .replace(/(\d),(\d{3})/g, '$1$2')
-        .replace(/(\d)\s+(\d{3})/g, '$1$2')
+        .replace(/(\d),(\d{3})/g, "$1$2")
+        .replace(/(\d)\s+(\d{3})/g, "$1$2")
     );
   }
 
@@ -187,7 +187,7 @@ export class InvoiceParser {
    */
   private extractFields(
     text: string,
-    fieldConfidence: Record<string, number>
+    fieldConfidence: Record<string, number>,
   ): ExtractedInvoiceData {
     const data: Partial<ExtractedInvoiceData> = {
       lineItems: [],
@@ -198,7 +198,7 @@ export class InvoiceParser {
     // Invoice Number patterns
     const invNumberMatch =
       text.match(
-        /(?:invoice\s*(?:#|number|no\.?|num)?[:\s]*)?((?:INV|IN|INV-)?[\d\-]+)/i
+        /(?:invoice\s*(?:#|number|no\.?|num)?[:\s]*)?((?:INV|IN|INV-)?[\d\-]+)/i,
       ) || text.match(/(?:inv|invoice)\s*#?\s*[:\s]*([A-Z0-9\-]+)/i);
     if (invNumberMatch) {
       data.invoiceNumber = invNumberMatch[1].trim();
@@ -214,20 +214,20 @@ export class InvoiceParser {
       text.match(/^\s*([^\n]+(?:Pty|Ltd|Limited|Inc|CC|Company)[^\n]*)/im) ||
       text.match(/(?:supplier|vendor|from)[:\s]*\n?\s*([^\n]+(?:\n[^\n]+)?)/i);
     if (supplierMatch) {
-      data.supplierName = supplierMatch[1].trim().split('\n')[0];
+      data.supplierName = supplierMatch[1].trim().split("\n")[0];
       fieldConfidence.supplierName = 0.8;
     } else {
-      data.supplierName = 'Unknown Supplier';
+      data.supplierName = "Unknown Supplier";
       fieldConfidence.supplierName = 0.1;
     }
 
     // VAT Number
     const vatMatch =
       text.match(
-        /(?:VAT\s*(?:Reg|Registration|Number|No)?[:\s]*)?(\d{10,11})/i
+        /(?:VAT\s*(?:Reg|Registration|Number|No)?[:\s]*)?(\d{10,11})/i,
       ) || text.match(/VAT\s*#?\s*[:\s]*([\d\s]+)/i);
     if (vatMatch) {
-      data.supplierVAT = vatMatch[1].replace(/\s/g, '');
+      data.supplierVAT = vatMatch[1].replace(/\s/g, "");
       fieldConfidence.vatNumber = 0.9;
     }
 
@@ -247,7 +247,7 @@ export class InvoiceParser {
 
     // Address (multi-line after supplier name)
     const addressMatch = text.match(
-      /(?:address|physical)[:\s]*\n?([^\n]+(?:\n[^\n]+){0,3})/i
+      /(?:address|physical)[:\s]*\n?([^\n]+(?:\n[^\n]+){0,3})/i,
     );
     if (addressMatch) {
       data.supplierAddress = addressMatch[1].trim();
@@ -270,20 +270,20 @@ export class InvoiceParser {
     } else {
       // Default to 30 days
       data.dueDate = new Date(
-        data.invoiceDate.getTime() + 30 * 24 * 60 * 60 * 1000
+        data.invoiceDate.getTime() + 30 * 24 * 60 * 60 * 1000,
       );
       fieldConfidence.dueDate = 0.4;
     }
 
     // Currency
     if (/R\s*\d|\brand\b/i.test(text)) {
-      data.currency = 'ZAR';
+      data.currency = "ZAR";
       fieldConfidence.currency = 0.95;
     } else if (/\$|USD/i.test(text)) {
-      data.currency = 'USD';
+      data.currency = "USD";
       fieldConfidence.currency = 0.9;
     } else {
-      data.currency = 'ZAR'; // Default
+      data.currency = "ZAR"; // Default
       fieldConfidence.currency = 0.5;
     }
 
@@ -300,7 +300,7 @@ export class InvoiceParser {
 
     // Reference numbers
     const poMatch = text.match(
-      /(?:PO|P\.O\.|Purchase Order|Ref|Reference)[:\s#]*([A-Z0-9\-]+)/i
+      /(?:PO|P\.O\.|Purchase Order|Ref|Reference)[:\s#]*([A-Z0-9\-]+)/i,
     );
     if (poMatch) {
       data.referenceNumber = poMatch[1];
@@ -309,7 +309,7 @@ export class InvoiceParser {
 
     // Payment terms
     const termsMatch = text.match(
-      /(?:payment terms|terms)[:\s]*(\d+)\s*(?:days|d)?/i
+      /(?:payment terms|terms)[:\s]*(\d+)\s*(?:days|d)?/i,
     );
     if (termsMatch) {
       data.paymentTerms = parseInt(termsMatch[1], 10);
@@ -327,7 +327,7 @@ export class InvoiceParser {
     }
 
     const accountMatch = text.match(
-      /(?:account\s*(?:#|number|no)?|acc\.?\s*#?)[:\s]*(\d+)/i
+      /(?:account\s*(?:#|number|no)?|acc\.?\s*#?)[:\s]*(\d+)/i,
     );
     if (accountMatch) {
       data.accountNumber = accountMatch[1];
@@ -393,9 +393,9 @@ export class InvoiceParser {
     try {
       // Handle different date formats based on match structure
       if (
-        match[0].includes('-') ||
-        match[0].includes('/') ||
-        match[0].includes('.')
+        match[0].includes("-") ||
+        match[0].includes("/") ||
+        match[0].includes(".")
       ) {
         // Numeric format
         const parts = match[0].split(/[\/\-.]/);
@@ -461,7 +461,7 @@ export class InvoiceParser {
     for (const [key, pattern] of Object.entries(patterns)) {
       const match = text.match(pattern);
       if (match) {
-        const value = parseFloat(match[1].replace(/,/g, ''));
+        const value = parseFloat(match[1].replace(/,/g, ""));
         if (!isNaN(value) && value >= 0) {
           (result as any)[key] = value;
         }
@@ -503,7 +503,7 @@ export class InvoiceParser {
     let match;
 
     while ((match = pattern.exec(text)) !== null) {
-      const value = parseFloat(match[1].replace(/,/g, ''));
+      const value = parseFloat(match[1].replace(/,/g, ""));
       if (!isNaN(value) && value > 0) {
         amounts.push(value);
       }
@@ -517,12 +517,12 @@ export class InvoiceParser {
    */
   private extractLineItems(
     text: string,
-    fieldConfidence: Record<string, number>
+    fieldConfidence: Record<string, number>,
   ): ExtractedLineItem[] {
     const lineItems: ExtractedLineItem[] = [];
 
     // Try to find table-like structures
-    const lines = text.split('\n');
+    const lines = text.split("\n");
     let inTable = false;
     let lineNumber = 1;
 
@@ -577,7 +577,7 @@ export class InvoiceParser {
    */
   private parseLineItem(
     line: string,
-    lineNumber: number
+    lineNumber: number,
   ): ExtractedLineItem | null {
     // Pattern: Description Qty Price Total
     // Examples:
@@ -585,7 +585,7 @@ export class InvoiceParser {
     // "Consulting 5 hours @ R 500.00 = R 2,500.00"
 
     // Remove extra whitespace
-    const cleanLine = line.replace(/\s+/g, ' ').trim();
+    const cleanLine = line.replace(/\s+/g, " ").trim();
 
     // Try to extract amounts (looking for numbers with 2 decimal places)
     const amountPattern = /R?\s*([\d,]+\.\d{2})/g;
@@ -593,7 +593,7 @@ export class InvoiceParser {
     let match;
 
     while ((match = amountPattern.exec(cleanLine)) !== null) {
-      amounts.push(parseFloat(match[1].replace(/,/g, '')));
+      amounts.push(parseFloat(match[1].replace(/,/g, "")));
     }
 
     if (amounts.length < 2) {
@@ -621,7 +621,7 @@ export class InvoiceParser {
 
     // Extract description (text before the numbers)
     const descMatch = cleanLine.match(/^([^\d]+)/);
-    const description = descMatch ? descMatch[1].trim() : 'Unknown Item';
+    const description = descMatch ? descMatch[1].trim() : "Unknown Item";
 
     // Calculate VAT
     const vatRate = this.DEFAULT_VAT_RATE;
@@ -644,26 +644,26 @@ export class InvoiceParser {
    */
   private validateAndCalculate(
     data: Partial<ExtractedInvoiceData>,
-    warnings: string[]
+    warnings: string[],
   ): ExtractedInvoiceData {
     const validated = { ...data } as ExtractedInvoiceData;
 
     // Ensure all required amounts exist
     if (!validated.subtotalExclVAT) {
       validated.subtotalExclVAT = 0;
-      warnings.push('Subtotal not found, defaulting to 0');
+      warnings.push("Subtotal not found, defaulting to 0");
     }
 
     if (!validated.vatAmount) {
       // Calculate VAT from subtotal
       validated.vatAmount =
         validated.subtotalExclVAT * (validated.vatRate / 100);
-      warnings.push('VAT amount not found, calculated from subtotal');
+      warnings.push("VAT amount not found, calculated from subtotal");
     }
 
     if (!validated.totalAmount) {
       validated.totalAmount = validated.subtotalExclVAT + validated.vatAmount;
-      warnings.push('Total amount not found, calculated from subtotal + VAT');
+      warnings.push("Total amount not found, calculated from subtotal + VAT");
     }
 
     // Ensure VAT rate is set
@@ -680,7 +680,7 @@ export class InvoiceParser {
     if (validated.lineItems && validated.lineItems.length > 0) {
       const lineSubtotal = validated.lineItems.reduce(
         (sum, item) => sum + item.lineTotalExclVAT,
-        0
+        0,
       );
 
       // Compare with invoice subtotal
@@ -688,7 +688,7 @@ export class InvoiceParser {
       if (diff > this.MATH_TOLERANCE) {
         warnings.push(
           `Line item subtotal (${lineSubtotal.toFixed(2)}) doesn't match ` +
-            `invoice subtotal (${validated.subtotalExclVAT.toFixed(2)})`
+            `invoice subtotal (${validated.subtotalExclVAT.toFixed(2)})`,
         );
       }
     }
@@ -724,7 +724,7 @@ export class InvoiceParser {
    * Calculate overall extraction confidence
    */
   private calculateOverallConfidence(
-    fieldConfidence: Record<string, number>
+    fieldConfidence: Record<string, number>,
   ): number {
     const values = Object.values(fieldConfidence);
     if (values.length === 0) return 0;
@@ -737,7 +737,7 @@ export class InvoiceParser {
    * Parse text directly (without file) - useful for testing or API input
    */
   parseText(text: string): Promise<ParserResult> {
-    return this.parse('__text_input__');
+    return this.parse("__text_input__");
   }
 }
 

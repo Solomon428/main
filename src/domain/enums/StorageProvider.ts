@@ -1,10 +1,6 @@
-export enum StorageProvider {
-  S3 = 'S3',
-  AZURE = 'AZURE',
-  GCS = 'GCS',
-  MINIO = 'MINIO',
-  LOCAL = 'LOCAL',
-  AZURE_BLOB = 'AZURE_BLOB',
-  GOOGLE_CLOUD = 'GOOGLE_CLOUD',
-  WASABI = 'WASABI',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { StorageProvider as StorageProvider } from "@prisma/client";

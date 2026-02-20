@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from "@prisma/client";
 
 // Re-export Prisma namespace for consumers
 export { Prisma };
@@ -8,7 +8,7 @@ export type { PrismaClient };
 
 // Health check result type
 export interface DatabaseHealth {
-  status: 'healthy' | 'unhealthy';
+  status: "healthy" | "unhealthy";
   responseTime: number;
   timestamp: string;
   error?: string;
@@ -18,13 +18,16 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' 
-    ? ['query', 'error', 'warn'] 
-    : ['error'],
-});
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log:
+      process.env.NODE_ENV === "development"
+        ? ["query", "error", "warn"]
+        : ["error"],
+  });
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
@@ -34,7 +37,10 @@ export async function checkDatabaseConnection(): Promise<boolean> {
     await prisma.$queryRaw`SELECT 1`;
     return true;
   } catch (error) {
-    console.error('Database connection failed:', error instanceof Error ? error.message : error);
+    console.error(
+      "Database connection failed:",
+      error instanceof Error ? error.message : error,
+    );
     return false;
   }
 }
@@ -44,7 +50,10 @@ export async function disconnectDatabase(): Promise<void> {
   try {
     await prisma.$disconnect();
   } catch (error) {
-    console.error('Error disconnecting from database:', error instanceof Error ? error.message : error);
+    console.error(
+      "Error disconnecting from database:",
+      error instanceof Error ? error.message : error,
+    );
     throw error;
   }
 }
@@ -55,15 +64,15 @@ export async function getDatabaseHealth(): Promise<DatabaseHealth> {
   try {
     await prisma.$queryRaw`SELECT 1`;
     return {
-      status: 'healthy',
+      status: "healthy",
       responseTime: Date.now() - startTime,
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
     return {
-      status: 'unhealthy',
+      status: "unhealthy",
       responseTime: Date.now() - startTime,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
       timestamp: new Date().toISOString(),
     };
   }

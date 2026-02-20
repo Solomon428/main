@@ -2,8 +2,8 @@
 // Password and API Key Hashing Service
 // ============================================================================
 
-import * as bcrypt from 'bcryptjs';
-import * as crypto from 'crypto';
+import * as bcrypt from "bcryptjs";
+import * as crypto from "crypto";
 
 const SALT_ROUNDS = 12;
 
@@ -17,7 +17,10 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Verify a password against a hash
  */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
@@ -26,7 +29,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
  * Note: API keys are only shown once to the user
  */
 export function hashApiKey(apiKey: string): string {
-  return crypto.createHash('sha256').update(apiKey).digest('hex');
+  return crypto.createHash("sha256").update(apiKey).digest("hex");
 }
 
 /**
@@ -41,10 +44,10 @@ export function verifyApiKey(apiKey: string, hash: string): boolean {
  * Generate a new API key
  */
 export function generateApiKey(): { key: string; prefix: string } {
-  const prefix = 'cf_' + crypto.randomBytes(4).toString('hex');
-  const secret = crypto.randomBytes(32).toString('hex');
+  const prefix = "cf_" + crypto.randomBytes(4).toString("hex");
+  const secret = crypto.randomBytes(32).toString("hex");
   const key = `${prefix}_${secret}`;
-  
+
   return { key, prefix };
 }
 
@@ -60,7 +63,7 @@ export function checkPasswordStrength(password: string): {
   let score = 0;
 
   if (password.length < 8) {
-    errors.push('Password must be at least 8 characters long');
+    errors.push("Password must be at least 8 characters long");
   } else {
     score += 1;
   }

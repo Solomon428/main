@@ -2,10 +2,10 @@
 // Supplier Contracts Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { generateId } from '../../utils/ids';
-import { info, error } from '../../observability/logger';
-import { Decimal } from '@prisma/client/runtime/library';
+import { prisma } from "../../db/prisma";
+import { generateId } from "../../utils/ids";
+import { info, error } from "../../observability/logger";
+import { Decimal } from "@prisma/client/runtime/library";
 
 interface AddContractInput {
   supplierId: string;
@@ -39,7 +39,9 @@ interface UpdateContractInput {
 /**
  * Add a new contract to a supplier
  */
-export async function addContract(input: AddContractInput): Promise<{ id: string }> {
+export async function addContract(
+  input: AddContractInput,
+): Promise<{ id: string }> {
   try {
     // Check if contract number already exists (if provided)
     if (input.contractNumber) {
@@ -48,7 +50,9 @@ export async function addContract(input: AddContractInput): Promise<{ id: string
       });
 
       if (existingContract) {
-        throw new Error(`Contract with number ${input.contractNumber} already exists`);
+        throw new Error(
+          `Contract with number ${input.contractNumber} already exists`,
+        );
       }
     }
 
@@ -65,23 +69,23 @@ export async function addContract(input: AddContractInput): Promise<{ id: string
         paymentTerms: input.paymentTerms,
         autoRenew: input.autoRenew ?? false,
         renewalNoticeDays: input.renewalNoticeDays ?? 30,
-        status: input.status ?? 'ACTIVE',
+        status: input.status ?? "ACTIVE",
         documentUrl: input.documentUrl,
       },
     });
 
-    info('Supplier contract added', { 
-      contractId: contract.id, 
+    info("Supplier contract added", {
+      contractId: contract.id,
       supplierId: input.supplierId,
-      contractNumber: input.contractNumber 
+      contractNumber: input.contractNumber,
     });
 
     return { id: contract.id };
   } catch (err) {
-    error('Failed to add supplier contract', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
+    error("Failed to add supplier contract", {
+      error: err instanceof Error ? err.message : "Unknown error",
       supplierId: input.supplierId,
-      contractNumber: input.contractNumber 
+      contractNumber: input.contractNumber,
     });
     throw err;
   }
@@ -91,8 +95,8 @@ export async function addContract(input: AddContractInput): Promise<{ id: string
  * Update an existing contract
  */
 export async function updateContract(
-  contractId: string, 
-  input: UpdateContractInput
+  contractId: string,
+  input: UpdateContractInput,
 ): Promise<boolean> {
   try {
     const existingContract = await prisma.supplierContract.findUnique({
@@ -100,7 +104,7 @@ export async function updateContract(
     });
 
     if (!existingContract) {
-      throw new Error('Contract not found');
+      throw new Error("Contract not found");
     }
 
     await prisma.supplierContract.update({
@@ -120,13 +124,13 @@ export async function updateContract(
       },
     });
 
-    info('Supplier contract updated', { contractId });
+    info("Supplier contract updated", { contractId });
 
     return true;
   } catch (err) {
-    error('Failed to update supplier contract', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      contractId 
+    error("Failed to update supplier contract", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      contractId,
     });
     throw err;
   }
@@ -135,10 +139,7 @@ export async function updateContract(
 /**
  * List all contracts for a supplier
  */
-export async function listContracts(
-  supplierId: string, 
-  status?: string
-) {
+export async function listContracts(supplierId: string, status?: string) {
   try {
     const contracts = await prisma.supplierContract.findMany({
       where: {
@@ -146,15 +147,15 @@ export async function listContracts(
         ...(status ? { status } : {}),
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
     return contracts;
   } catch (err) {
-    error('Failed to list supplier contracts', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierId 
+    error("Failed to list supplier contracts", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierId,
     });
     throw err;
   }
@@ -166,24 +167,24 @@ export async function listContracts(
 export async function getActiveContract(supplierId: string) {
   try {
     const now = new Date();
-    
+
     const contract = await prisma.supplierContract.findFirst({
       where: {
         supplierId,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         startDate: { lte: now },
         endDate: { gte: now },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
     return contract;
   } catch (err) {
-    error('Failed to get active contract', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierId 
+    error("Failed to get active contract", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierId,
     });
     throw err;
   }
@@ -203,9 +204,9 @@ export async function getContractById(contractId: string) {
 
     return contract;
   } catch (err) {
-    error('Failed to get contract by ID', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      contractId 
+    error("Failed to get contract by ID", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      contractId,
     });
     throw err;
   }
@@ -219,17 +220,17 @@ export async function deactivateContract(contractId: string): Promise<boolean> {
     await prisma.supplierContract.update({
       where: { id: contractId },
       data: {
-        status: 'INACTIVE',
+        status: "INACTIVE",
       },
     });
 
-    info('Supplier contract deactivated', { contractId });
+    info("Supplier contract deactivated", { contractId });
 
     return true;
   } catch (err) {
-    error('Failed to deactivate supplier contract', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      contractId 
+    error("Failed to deactivate supplier contract", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      contractId,
     });
     throw err;
   }
@@ -241,23 +242,23 @@ export async function deactivateContract(contractId: string): Promise<boolean> {
 export async function checkExpiredContracts(): Promise<number> {
   try {
     const now = new Date();
-    
+
     const result = await prisma.supplierContract.updateMany({
       where: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
         endDate: { lt: now },
       },
       data: {
-        status: 'INACTIVE',
+        status: "INACTIVE",
       },
     });
 
-    info('Checked expired contracts', { deactivatedCount: result.count });
+    info("Checked expired contracts", { deactivatedCount: result.count });
 
     return result.count;
   } catch (err) {
-    error('Failed to check expired contracts', { 
-      error: err instanceof Error ? err.message : 'Unknown error'
+    error("Failed to check expired contracts", {
+      error: err instanceof Error ? err.message : "Unknown error",
     });
     throw err;
   }

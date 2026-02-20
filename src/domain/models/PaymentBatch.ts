@@ -1,5 +1,5 @@
-import { PaymentStatus } from '../enums/PaymentStatus';
-import { Currency } from '../enums/Currency';
+import { PaymentStatus } from "../enums/PaymentStatus";
+import { Currency } from "../enums/Currency";
 
 export interface PaymentBatch {
   id: string;

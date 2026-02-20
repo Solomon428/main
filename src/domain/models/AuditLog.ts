@@ -1,6 +1,6 @@
-import { AuditAction } from '../enums/AuditAction';
-import { EntityType } from '../enums/EntityType';
-import { LogSeverity } from '../enums/LogSeverity';
+import { AuditAction } from "../enums/AuditAction";
+import { EntityType } from "../enums/EntityType";
+import { LogSeverity } from "../enums/LogSeverity";
 
 export interface AuditLog {
   id: string;

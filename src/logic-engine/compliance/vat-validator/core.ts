@@ -1,7 +1,7 @@
 /**
  * CREDITORFLOW EMS - CORE VAT VALIDATOR
  * Version: 3.8.4
- * 
+ *
  * Main VATValidator class with comprehensive validation logic
  */
 
@@ -18,21 +18,21 @@ import {
   VAT_RULING_REFERENCES,
   VAT_GUIDANCE_REFERENCES,
   VAT_INDUSTRY_PRACTICE_REFERENCES,
-  VAT_INTERNATIONAL_STANDARD_REFERENCES
-} from './constants';
+  VAT_INTERNATIONAL_STANDARD_REFERENCES,
+} from "./constants";
 
 import {
   validateSAVATNumber,
   validateSAVATTreatment,
   validateSAReverseCharge,
-  validateSATaxInvoice
-} from './validators/sa';
+  validateSATaxInvoice,
+} from "./validators/sa";
 
 import {
   validateGenericVATNumber,
   validateGenericVATAmount,
-  validateGenericTotalAmount
-} from './validators/generic';
+  validateGenericTotalAmount,
+} from "./validators/generic";
 
 import type {
   VATValidationInput,
@@ -50,8 +50,8 @@ import type {
   VATValidationWarning,
   VATValidationSuggestion,
   VATAuditTrail,
-  VATTreatmentType
-} from './types';
+  VATTreatmentType,
+} from "./types";
 
 export class VATValidator {
   private static readonly VAT_RATE = VAT_RATE;
@@ -68,80 +68,146 @@ export class VATValidator {
    */
   validateVAT(
     input: VATValidationInput,
-    context?: VATValidationContext
+    context?: VATValidationContext,
   ): VATValidationResult {
     const validationId = `vat_${Date.now()}_${this.generateRandomString(12)}`;
     const validationStartTime = Date.now();
     const auditTrail: VATAuditTrail[] = [];
-    
+
     try {
       // Step 1: Validate input data quality
-      auditTrail.push(this.createAuditEntry('VALIDATION_INITIALIZED', validationId, { input, context }));
+      auditTrail.push(
+        this.createAuditEntry("VALIDATION_INITIALIZED", validationId, {
+          input,
+          context,
+        }),
+      );
       this.validateInput(input, validationId);
-      
+
       // Step 2: Validate VAT number format (SA specific)
-      auditTrail.push(this.createAuditEntry('VAT_NUMBER_VALIDATION_STARTED', validationId));
-      const vatNumberValidation = validateSAVATNumber(input.supplierVATNumber, validationId);
-      auditTrail.push(this.createAuditEntry('VAT_NUMBER_VALIDATION_COMPLETED', validationId, { vatNumberValidation }));
-      
+      auditTrail.push(
+        this.createAuditEntry("VAT_NUMBER_VALIDATION_STARTED", validationId),
+      );
+      const vatNumberValidation = validateSAVATNumber(
+        input.supplierVATNumber,
+        validationId,
+      );
+      auditTrail.push(
+        this.createAuditEntry("VAT_NUMBER_VALIDATION_COMPLETED", validationId, {
+          vatNumberValidation,
+        }),
+      );
+
       // Step 3: Calculate expected VAT amount
-      auditTrail.push(this.createAuditEntry('VAT_CALCULATION_STARTED', validationId));
+      auditTrail.push(
+        this.createAuditEntry("VAT_CALCULATION_STARTED", validationId),
+      );
       const vatCalculation = this.calculateVAT(
         input.subtotalExclVAT,
         input.vatRate ?? VATValidator.VAT_RATE,
-        input.vatTreatment ?? 'TAXABLE_STANDARD',
-        validationId
+        input.vatTreatment ?? "TAXABLE_STANDARD",
+        validationId,
       );
-      auditTrail.push(this.createAuditEntry('VAT_CALCULATION_COMPLETED', validationId, { vatCalculation }));
-      
+      auditTrail.push(
+        this.createAuditEntry("VAT_CALCULATION_COMPLETED", validationId, {
+          vatCalculation,
+        }),
+      );
+
       // Step 4: Validate VAT amount against calculated amount
-      auditTrail.push(this.createAuditEntry('VAT_AMOUNT_VALIDATION_STARTED', validationId));
+      auditTrail.push(
+        this.createAuditEntry("VAT_AMOUNT_VALIDATION_STARTED", validationId),
+      );
       const vatAmountValidation = validateGenericVATAmount(
         input.vatAmount,
         vatCalculation.vatAmount,
         VATValidator.VAT_ROUNDING_TOLERANCE,
-        validationId
+        validationId,
       );
-      auditTrail.push(this.createAuditEntry('VAT_AMOUNT_VALIDATION_COMPLETED', validationId, { vatAmountValidation }));
-      
+      auditTrail.push(
+        this.createAuditEntry("VAT_AMOUNT_VALIDATION_COMPLETED", validationId, {
+          vatAmountValidation,
+        }),
+      );
+
       // Step 5: Validate total amount calculation
-      auditTrail.push(this.createAuditEntry('TOTAL_AMOUNT_VALIDATION_STARTED', validationId));
+      auditTrail.push(
+        this.createAuditEntry("TOTAL_AMOUNT_VALIDATION_STARTED", validationId),
+      );
       const totalAmountValidation = validateGenericTotalAmount(
         input.totalAmount,
         input.subtotalExclVAT,
         input.vatAmount,
         VATValidator.VAT_ROUNDING_TOLERANCE,
-        validationId
+        validationId,
       );
-      auditTrail.push(this.createAuditEntry('TOTAL_AMOUNT_VALIDATION_COMPLETED', validationId, { totalAmountValidation }));
-      
+      auditTrail.push(
+        this.createAuditEntry(
+          "TOTAL_AMOUNT_VALIDATION_COMPLETED",
+          validationId,
+          { totalAmountValidation },
+        ),
+      );
+
       // Step 6: Validate VAT treatment applicability
-      auditTrail.push(this.createAuditEntry('VAT_TREATMENT_VALIDATION_STARTED', validationId));
+      auditTrail.push(
+        this.createAuditEntry("VAT_TREATMENT_VALIDATION_STARTED", validationId),
+      );
       const vatTreatmentValidation = validateSAVATTreatment(
-        input.vatTreatment ?? 'TAXABLE_STANDARD',
+        input.vatTreatment ?? "TAXABLE_STANDARD",
         input.supplierCountry,
         input.supplierVATNumber,
-        validationId
+        validationId,
       );
-      auditTrail.push(this.createAuditEntry('VAT_TREATMENT_VALIDATION_COMPLETED', validationId, { vatTreatmentValidation }));
-      
+      auditTrail.push(
+        this.createAuditEntry(
+          "VAT_TREATMENT_VALIDATION_COMPLETED",
+          validationId,
+          { vatTreatmentValidation },
+        ),
+      );
+
       // Step 7: Validate reverse charge applicability
-      auditTrail.push(this.createAuditEntry('REVERSE_CHARGE_VALIDATION_STARTED', validationId));
+      auditTrail.push(
+        this.createAuditEntry(
+          "REVERSE_CHARGE_VALIDATION_STARTED",
+          validationId,
+        ),
+      );
       const reverseChargeValidation = validateSAReverseCharge(
         input.reverseChargeType,
         input.supplierCountry,
         input.supplierVATNumber,
-        validationId
+        validationId,
       );
-      auditTrail.push(this.createAuditEntry('REVERSE_CHARGE_VALIDATION_COMPLETED', validationId, { reverseChargeValidation }));
-      
+      auditTrail.push(
+        this.createAuditEntry(
+          "REVERSE_CHARGE_VALIDATION_COMPLETED",
+          validationId,
+          { reverseChargeValidation },
+        ),
+      );
+
       // Step 8: Validate tax invoice requirements per SARS Section 20
-      auditTrail.push(this.createAuditEntry('TAX_INVOICE_VALIDATION_STARTED', validationId));
+      auditTrail.push(
+        this.createAuditEntry("TAX_INVOICE_VALIDATION_STARTED", validationId),
+      );
       const taxInvoiceValidation = validateSATaxInvoice(input, validationId);
-      auditTrail.push(this.createAuditEntry('TAX_INVOICE_VALIDATION_COMPLETED', validationId, { taxInvoiceValidation }));
-      
+      auditTrail.push(
+        this.createAuditEntry(
+          "TAX_INVOICE_VALIDATION_COMPLETED",
+          validationId,
+          { taxInvoiceValidation },
+        ),
+      );
+
       // Step 9: Determine overall compliance status
-      auditTrail.push(this.createAuditEntry('COMPLIANCE_STATUS_DETERMINATION_STARTED', validationId));
+      auditTrail.push(
+        this.createAuditEntry(
+          "COMPLIANCE_STATUS_DETERMINATION_STARTED",
+          validationId,
+        ),
+      );
       const complianceStatus = this.determineComplianceStatus(
         vatNumberValidation,
         vatAmountValidation,
@@ -149,12 +215,23 @@ export class VATValidator {
         vatTreatmentValidation,
         reverseChargeValidation,
         taxInvoiceValidation,
-        validationId
+        validationId,
       );
-      auditTrail.push(this.createAuditEntry('COMPLIANCE_STATUS_DETERMINATION_COMPLETED', validationId, { complianceStatus }));
-      
+      auditTrail.push(
+        this.createAuditEntry(
+          "COMPLIANCE_STATUS_DETERMINATION_COMPLETED",
+          validationId,
+          { complianceStatus },
+        ),
+      );
+
       // Step 10: Generate validation errors, warnings, and suggestions
-      auditTrail.push(this.createAuditEntry('VALIDATION_ISSUE_GENERATION_STARTED', validationId));
+      auditTrail.push(
+        this.createAuditEntry(
+          "VALIDATION_ISSUE_GENERATION_STARTED",
+          validationId,
+        ),
+      );
       const { errors, warnings, suggestions } = this.generateValidationIssues(
         vatNumberValidation,
         vatAmountValidation,
@@ -163,10 +240,16 @@ export class VATValidator {
         reverseChargeValidation,
         taxInvoiceValidation,
         complianceStatus,
-        validationId
+        validationId,
       );
-      auditTrail.push(this.createAuditEntry('VALIDATION_ISSUE_GENERATION_COMPLETED', validationId, { errors, warnings, suggestions }));
-      
+      auditTrail.push(
+        this.createAuditEntry(
+          "VALIDATION_ISSUE_GENERATION_COMPLETED",
+          validationId,
+          { errors, warnings, suggestions },
+        ),
+      );
+
       // Step 11: Create comprehensive validation result
       const validationResult: VATValidationResult = {
         validationId,
@@ -196,15 +279,19 @@ export class VATValidator {
           rulingReferences: VAT_RULING_REFERENCES,
           guidanceReferences: VAT_GUIDANCE_REFERENCES,
           industryPracticeReferences: VAT_INDUSTRY_PRACTICE_REFERENCES,
-          internationalStandardReferences: VAT_INTERNATIONAL_STANDARD_REFERENCES
-        }
+          internationalStandardReferences:
+            VAT_INTERNATIONAL_STANDARD_REFERENCES,
+        },
       };
-      
+
       // Step 12: Log successful validation
-      this.logValidationSuccess(validationResult, validationStartTime, Date.now());
-      
+      this.logValidationSuccess(
+        validationResult,
+        validationStartTime,
+        Date.now(),
+      );
+
       return validationResult;
-      
     } catch (error) {
       // Log validation failure
       this.logValidationFailure(
@@ -213,16 +300,16 @@ export class VATValidator {
         error instanceof Error ? error.message : String(error),
         error instanceof Error ? error.stack : undefined,
         validationStartTime,
-        Date.now()
+        Date.now(),
       );
-      
+
       // Return failure result
       return this.createFailureResult(
         validationId,
         input,
-        error instanceof Error ? error.message : 'Unknown validation error',
+        error instanceof Error ? error.message : "Unknown validation error",
         Date.now() - validationStartTime,
-        auditTrail
+        auditTrail,
       );
     }
   }
@@ -232,19 +319,38 @@ export class VATValidator {
    */
   private validateInput(input: VATValidationInput, validationId: string): void {
     if (!input.subtotalExclVAT || input.subtotalExclVAT <= 0) {
-      throw new VATValidationException('INVALID_SUBTOTAL', 'Subtotal must be greater than zero', validationId);
+      throw new VATValidationException(
+        "INVALID_SUBTOTAL",
+        "Subtotal must be greater than zero",
+        validationId,
+      );
     }
-    
+
     if (!input.totalAmount || input.totalAmount <= 0) {
-      throw new VATValidationException('INVALID_TOTAL', 'Total amount must be greater than zero', validationId);
+      throw new VATValidationException(
+        "INVALID_TOTAL",
+        "Total amount must be greater than zero",
+        validationId,
+      );
     }
-    
+
     if (input.vatRate && (input.vatRate < 0 || input.vatRate > 1)) {
-      throw new VATValidationException('INVALID_VAT_RATE', 'VAT rate must be between 0 and 1', validationId);
+      throw new VATValidationException(
+        "INVALID_VAT_RATE",
+        "VAT rate must be between 0 and 1",
+        validationId,
+      );
     }
-    
-    if (input.supplierVATNumber && !VATValidator.VAT_NUMBER_PATTERN.test(input.supplierVATNumber)) {
-      throw new VATValidationException('INVALID_VAT_NUMBER', 'VAT number must be 10 digits starting with 4', validationId);
+
+    if (
+      input.supplierVATNumber &&
+      !VATValidator.VAT_NUMBER_PATTERN.test(input.supplierVATNumber)
+    ) {
+      throw new VATValidationException(
+        "INVALID_VAT_NUMBER",
+        "VAT number must be 10 digits starting with 4",
+        validationId,
+      );
     }
   }
 
@@ -255,17 +361,20 @@ export class VATValidator {
     subtotalExclVAT: number,
     vatRate: number,
     vatTreatment: VATTreatmentType,
-    validationId: string
+    validationId: string,
   ): VATCalculationResult {
     // Determine applicable VAT rate based on treatment
-    const applicableRate = VATValidator.VAT_RATES[VATValidator.VAT_TREATMENTS[vatTreatment] ?? 'STANDARD'];
-    
+    const applicableRate =
+      VATValidator.VAT_RATES[
+        VATValidator.VAT_TREATMENTS[vatTreatment] ?? "STANDARD"
+      ];
+
     // Calculate VAT amount
     const vatAmount = subtotalExclVAT * applicableRate;
-    
+
     // Apply SARS rounding rules (R0.50 tolerance)
     const roundedVatAmount = Math.round(vatAmount * 20) / 20; // Round to nearest 5 cents
-    
+
     return {
       calculationId: `calc_${Date.now()}_${this.generateRandomString(8)}`,
       calculationTimestamp: new Date(),
@@ -276,9 +385,9 @@ export class VATValidator {
       vatTreatment,
       applicableRate,
       roundingAdjustment: roundedVatAmount - vatAmount,
-      roundingMethod: 'SARS_STANDARD',
+      roundingMethod: "SARS_STANDARD",
       toleranceApplied: VATValidator.VAT_ROUNDING_TOLERANCE,
-      metadata: { validationId }
+      metadata: { validationId },
     };
   }
 
@@ -292,26 +401,35 @@ export class VATValidator {
     vatTreatmentValidation: VATTreatmentValidationResult,
     reverseChargeValidation: VATReverseChargeValidationResult,
     taxInvoiceValidation: TaxInvoiceValidationResult,
-    _validationId: string
+    _validationId: string,
   ): VATComplianceStatus {
     // Critical failures (blocking compliance)
-    if (!vatNumberValidation.isValid && vatNumberValidation.errors.length > 0) return 'NON_COMPLIANT';
-    if (!vatAmountValidation.isValid && vatAmountValidation.errors.length > 0) return 'NON_COMPLIANT';
-    if (!totalAmountValidation.isValid && totalAmountValidation.errors.length > 0) return 'NON_COMPLIANT';
-    if (!taxInvoiceValidation.isValid && taxInvoiceValidation.errors.length > 0) return 'NON_COMPLIANT';
-    
+    if (!vatNumberValidation.isValid && vatNumberValidation.errors.length > 0)
+      return "NON_COMPLIANT";
+    if (!vatAmountValidation.isValid && vatAmountValidation.errors.length > 0)
+      return "NON_COMPLIANT";
+    if (
+      !totalAmountValidation.isValid &&
+      totalAmountValidation.errors.length > 0
+    )
+      return "NON_COMPLIANT";
+    if (!taxInvoiceValidation.isValid && taxInvoiceValidation.errors.length > 0)
+      return "NON_COMPLIANT";
+
     // Warnings only (compliant with notes)
-    if (vatNumberValidation.warnings.length > 0 || 
-        vatAmountValidation.warnings.length > 0 || 
-        totalAmountValidation.warnings.length > 0 || 
-        vatTreatmentValidation.warnings.length > 0 || 
-        reverseChargeValidation.warnings.length > 0 || 
-        taxInvoiceValidation.warnings.length > 0) {
-      return 'COMPLIANT_WITH_NOTES';
+    if (
+      vatNumberValidation.warnings.length > 0 ||
+      vatAmountValidation.warnings.length > 0 ||
+      totalAmountValidation.warnings.length > 0 ||
+      vatTreatmentValidation.warnings.length > 0 ||
+      reverseChargeValidation.warnings.length > 0 ||
+      taxInvoiceValidation.warnings.length > 0
+    ) {
+      return "COMPLIANT_WITH_NOTES";
     }
-    
+
     // Fully compliant
-    return 'COMPLIANT';
+    return "COMPLIANT";
   }
 
   /**
@@ -325,49 +443,53 @@ export class VATValidator {
     reverseChargeValidation: VATReverseChargeValidationResult,
     taxInvoiceValidation: TaxInvoiceValidationResult,
     complianceStatus: VATComplianceStatus,
-    _validationId: string
-  ): { errors: VATValidationError[]; warnings: VATValidationWarning[]; suggestions: VATValidationSuggestion[] } {
+    _validationId: string,
+  ): {
+    errors: VATValidationError[];
+    warnings: VATValidationWarning[];
+    suggestions: VATValidationSuggestion[];
+  } {
     const errors: VATValidationError[] = [
       ...vatNumberValidation.errors,
       ...vatAmountValidation.errors,
       ...totalAmountValidation.errors,
       ...vatTreatmentValidation.errors,
       ...reverseChargeValidation.errors,
-      ...taxInvoiceValidation.errors
+      ...taxInvoiceValidation.errors,
     ];
-    
+
     const warnings: VATValidationWarning[] = [
       ...vatNumberValidation.warnings,
       ...vatAmountValidation.warnings,
       ...totalAmountValidation.warnings,
       ...vatTreatmentValidation.warnings,
       ...reverseChargeValidation.warnings,
-      ...taxInvoiceValidation.warnings
+      ...taxInvoiceValidation.warnings,
     ];
-    
+
     const suggestions: VATValidationSuggestion[] = [];
-    
+
     // Generate suggestions based on compliance status
-    if (complianceStatus === 'NON_COMPLIANT') {
+    if (complianceStatus === "NON_COMPLIANT") {
       suggestions.push({
-        suggestionCode: 'CORRECT_VAT_CALCULATION',
-        suggestionMessage: 'Correct VAT calculation to match SARS requirements',
-        suggestionType: 'CORRECTION',
-        impact: 'HIGH',
-        implementationEffort: 'LOW',
-        timestamp: new Date()
+        suggestionCode: "CORRECT_VAT_CALCULATION",
+        suggestionMessage: "Correct VAT calculation to match SARS requirements",
+        suggestionType: "CORRECTION",
+        impact: "HIGH",
+        implementationEffort: "LOW",
+        timestamp: new Date(),
       });
-    } else if (complianceStatus === 'COMPLIANT_WITH_NOTES') {
+    } else if (complianceStatus === "COMPLIANT_WITH_NOTES") {
       suggestions.push({
-        suggestionCode: 'ENHANCE_TAX_INVOICE',
-        suggestionMessage: 'Enhance tax invoice with missing optional fields',
-        suggestionType: 'IMPROVEMENT',
-        impact: 'MEDIUM',
-        implementationEffort: 'LOW',
-        timestamp: new Date()
+        suggestionCode: "ENHANCE_TAX_INVOICE",
+        suggestionMessage: "Enhance tax invoice with missing optional fields",
+        suggestionType: "IMPROVEMENT",
+        impact: "MEDIUM",
+        implementationEffort: "LOW",
+        timestamp: new Date(),
       });
     }
-    
+
     return { errors, warnings, suggestions };
   }
 
@@ -377,18 +499,18 @@ export class VATValidator {
   private createAuditEntry(
     eventType: string,
     validationId: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): VATAuditTrail {
     return {
       auditId: `vat_audit_${Date.now()}_${this.generateRandomString(8)}`,
       validationId,
       timestamp: new Date(),
       eventType,
-      eventDescription: eventType.replace(/_/g, ' ').toLowerCase(),
-      userId: 'system',
-      ipAddress: '127.0.0.1',
-      userAgent: 'CreditorFlow VAT Validator/3.8.4',
-      metadata: metadata ?? {}
+      eventDescription: eventType.replace(/_/g, " ").toLowerCase(),
+      userId: "system",
+      ipAddress: "127.0.0.1",
+      userAgent: "CreditorFlow VAT Validator/3.8.4",
+      metadata: metadata ?? {},
     };
   }
 
@@ -396,27 +518,31 @@ export class VATValidator {
    * Generate random string for IDs
    */
   private generateRandomString(length: number): string {
-    return Array.from({ length }, () => Math.floor(Math.random() * 36).toString(36)).join('');
+    return Array.from({ length }, () =>
+      Math.floor(Math.random() * 36).toString(36),
+    ).join("");
   }
 
   /**
    * Generate hash for input normalization
    */
   private generateInputHash(input: VATValidationInput): string {
-    const crypto = require('crypto');
-    const hash = crypto.createHash('sha256');
-    hash.update(JSON.stringify({
-      subtotalExclVAT: input.subtotalExclVAT,
-      vatAmount: input.vatAmount,
-      totalAmount: input.totalAmount,
-      vatRate: input.vatRate,
-      vatTreatment: input.vatTreatment,
-      supplierVATNumber: input.supplierVATNumber,
-      supplierCountry: input.supplierCountry,
-      invoiceNumber: input.invoiceNumber,
-      invoiceDate: input.invoiceDate
-    }));
-    return hash.digest('hex').substring(0, 32);
+    const crypto = require("crypto");
+    const hash = crypto.createHash("sha256");
+    hash.update(
+      JSON.stringify({
+        subtotalExclVAT: input.subtotalExclVAT,
+        vatAmount: input.vatAmount,
+        totalAmount: input.totalAmount,
+        vatRate: input.vatRate,
+        vatTreatment: input.vatTreatment,
+        supplierVATNumber: input.supplierVATNumber,
+        supplierCountry: input.supplierCountry,
+        invoiceNumber: input.invoiceNumber,
+        invoiceDate: input.invoiceDate,
+      }),
+    );
+    return hash.digest("hex").substring(0, 32);
   }
 
   /**
@@ -425,17 +551,17 @@ export class VATValidator {
   private logValidationSuccess(
     validationResult: VATValidationResult,
     startTime: number,
-    endTime: number
+    endTime: number,
   ): void {
     // Placeholder for audit logging
-    console.log('VAT_VALIDATION_COMPLETED', {
+    console.log("VAT_VALIDATION_COMPLETED", {
       validationId: validationResult.validationId,
       complianceStatus: validationResult.complianceStatus,
       vatAmount: validationResult.vatCalculation.vatAmount,
       totalAmount: validationResult.vatCalculation.totalAmountInclVAT,
       validationDurationMs: endTime - startTime,
       errorCount: validationResult.errors.length,
-      warningCount: validationResult.warnings.length
+      warningCount: validationResult.warnings.length,
     });
   }
 
@@ -448,15 +574,15 @@ export class VATValidator {
     errorMessage: string,
     errorStack: string | undefined,
     startTime: number,
-    endTime: number
+    endTime: number,
   ): void {
     // Placeholder for audit logging
-    console.log('VAT_VALIDATION_FAILED', {
+    console.log("VAT_VALIDATION_FAILED", {
       validationId,
       totalAmount: input.totalAmount,
       errorMessage,
       errorStack,
-      validationDurationMs: endTime - startTime
+      validationDurationMs: endTime - startTime,
     });
   }
 
@@ -468,25 +594,25 @@ export class VATValidator {
     input: VATValidationInput,
     errorMessage: string,
     durationMs: number,
-    auditTrail: VATAuditTrail[]
+    auditTrail: VATAuditTrail[],
   ): VATValidationResult {
     const now = new Date();
     const defaultValidationResult = {
       isValid: false,
-      validationType: 'UNKNOWN',
+      validationType: "UNKNOWN",
       validationTimestamp: now,
       score: 0,
       confidence: 0.0,
       errors: [] as VATValidationError[],
       warnings: [] as VATValidationWarning[],
-      metadata: { validationId }
+      metadata: { validationId },
     };
 
     return {
       validationId,
       validationTimestamp: now,
       inputHash: this.generateInputHash(input),
-      complianceStatus: 'NON_COMPLIANT',
+      complianceStatus: "NON_COMPLIANT",
       vatCalculation: {
         calculationId: `calc_${Date.now()}_${this.generateRandomString(8)}`,
         calculationTimestamp: now,
@@ -494,60 +620,67 @@ export class VATValidator {
         vatRate: VATValidator.VAT_RATE,
         vatAmount: input.subtotalExclVAT * VATValidator.VAT_RATE,
         totalAmountInclVAT: input.subtotalExclVAT * (1 + VATValidator.VAT_RATE),
-        vatTreatment: input.vatTreatment ?? 'TAXABLE_STANDARD',
+        vatTreatment: input.vatTreatment ?? "TAXABLE_STANDARD",
         applicableRate: VATValidator.VAT_RATE,
         roundingAdjustment: 0,
-        roundingMethod: 'NONE',
+        roundingMethod: "NONE",
         toleranceApplied: 0,
-        metadata: { validationId }
+        metadata: { validationId },
       },
       vatNumberValidation: {
         ...defaultValidationResult,
-        validationType: 'VAT_NUMBER',
-        errors: [{
-          field: 'system',
-          errorCode: 'VALIDATION_FAILURE',
-          errorMessage: `VAT validation failed: ${errorMessage}`,
-          severity: 'CRITICAL',
-          timestamp: now
-        }]
+        validationType: "VAT_NUMBER",
+        errors: [
+          {
+            field: "system",
+            errorCode: "VALIDATION_FAILURE",
+            errorMessage: `VAT validation failed: ${errorMessage}`,
+            severity: "CRITICAL",
+            timestamp: now,
+          },
+        ],
       },
       vatAmountValidation: {
         ...defaultValidationResult,
-        validationType: 'VAT_AMOUNT'
+        validationType: "VAT_AMOUNT",
       },
       totalAmountValidation: {
         ...defaultValidationResult,
-        validationType: 'TOTAL_AMOUNT'
+        validationType: "TOTAL_AMOUNT",
       },
       vatTreatmentValidation: {
         ...defaultValidationResult,
-        validationType: 'VAT_TREATMENT'
+        validationType: "VAT_TREATMENT",
       },
       reverseChargeValidation: {
         ...defaultValidationResult,
-        validationType: 'REVERSE_CHARGE'
+        validationType: "REVERSE_CHARGE",
       },
       taxInvoiceValidation: {
         ...defaultValidationResult,
-        validationType: 'TAX_INVOICE'
+        validationType: "TAX_INVOICE",
       },
-      errors: [{
-        field: 'system',
-        errorCode: 'VALIDATION_FAILURE',
-        errorMessage: `VAT validation failed: ${errorMessage}`,
-        severity: 'CRITICAL',
-        timestamp: now
-      }],
+      errors: [
+        {
+          field: "system",
+          errorCode: "VALIDATION_FAILURE",
+          errorMessage: `VAT validation failed: ${errorMessage}`,
+          severity: "CRITICAL",
+          timestamp: now,
+        },
+      ],
       warnings: [],
-      suggestions: [{
-        suggestionCode: 'SYSTEM_ERROR',
-        suggestionMessage: 'VAT validation system error - manual review required',
-        suggestionType: 'CORRECTION',
-        impact: 'HIGH',
-        implementationEffort: 'HIGH',
-        timestamp: now
-      }],
+      suggestions: [
+        {
+          suggestionCode: "SYSTEM_ERROR",
+          suggestionMessage:
+            "VAT validation system error - manual review required",
+          suggestionType: "CORRECTION",
+          impact: "HIGH",
+          implementationEffort: "HIGH",
+          timestamp: now,
+        },
+      ],
       auditTrail,
       metadata: {
         validationId,
@@ -561,8 +694,8 @@ export class VATValidator {
         rulingReferences: VAT_RULING_REFERENCES,
         guidanceReferences: VAT_GUIDANCE_REFERENCES,
         industryPracticeReferences: VAT_INDUSTRY_PRACTICE_REFERENCES,
-        internationalStandardReferences: VAT_INTERNATIONAL_STANDARD_REFERENCES
-      }
+        internationalStandardReferences: VAT_INTERNATIONAL_STANDARD_REFERENCES,
+      },
     };
   }
 }
@@ -572,10 +705,10 @@ export class VATValidationException extends Error {
     public code: string,
     public override message: string,
     public validationId: string,
-    public metadata?: Record<string, unknown>
+    public metadata?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = 'VATValidationException';
+    this.name = "VATValidationException";
   }
 }
 

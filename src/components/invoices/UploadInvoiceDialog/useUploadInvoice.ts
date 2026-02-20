@@ -14,18 +14,22 @@ export function useUploadInvoice(
   open: boolean,
   onOpenChange: (open: boolean) => void,
   onSuccess: () => void,
-  uploadFile: (file: File, options: { autoProcess: boolean; extractionMethod: string }) => Promise<void>,
+  uploadFile: (
+    file: File,
+    options: { autoProcess: boolean; extractionMethod: string },
+  ) => Promise<void>,
   isUploading: boolean,
   result: UploadResult | null,
   error: Error | null,
-  reset: () => void
+  reset: () => void,
 ) {
   const [activeTab, setActiveTab] = useState("file");
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [uploadStage, setUploadStage] = useState<UploadStage>("idle");
-  const [extractedData, setExtractedData] = useState<ExtractedDataPreview | null>(null);
+  const [extractedData, setExtractedData] =
+    useState<ExtractedDataPreview | null>(null);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -132,7 +136,11 @@ export function useUploadInvoice(
     if (!file) return;
 
     setUploadStage("uploading");
-    setProgress({ stage: "uploading", progress: 0, message: "Starting upload..." });
+    setProgress({
+      stage: "uploading",
+      progress: 0,
+      message: "Starting upload...",
+    });
 
     try {
       await uploadFile(file, {
@@ -156,7 +164,9 @@ export function useUploadInvoice(
           invoiceDate: manualForm.invoiceDate,
           dueDate: manualForm.dueDate,
           totalAmount: parseFloat(manualForm.totalAmount),
-          vatAmount: manualForm.vatAmount ? parseFloat(manualForm.vatAmount) : undefined,
+          vatAmount: manualForm.vatAmount
+            ? parseFloat(manualForm.vatAmount)
+            : undefined,
           notes: manualForm.notes,
           currency: manualForm.currency,
           source: "MANUAL",

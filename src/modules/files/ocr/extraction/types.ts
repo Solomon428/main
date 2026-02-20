@@ -1,6 +1,6 @@
-import { Decimal } from 'decimal.js';
-import { Currency } from '../../../domain/enums/Currency';
-import { TaxType } from '../../../domain/enums/TaxType';
+import { Decimal } from "decimal.js";
+import { Currency } from "../../../domain/enums/Currency";
+import { TaxType } from "../../../domain/enums/TaxType";
 
 export interface ExtractedInvoiceData {
   invoiceNumber?: string;
@@ -25,7 +25,7 @@ export interface ExtractedInvoiceData {
   notes?: string;
   lineItems: ExtractedLineItem[];
   confidence: number;
-  extractionMethod: 'regex' | 'ml' | 'hybrid' | 'manual';
+  extractionMethod: "regex" | "ml" | "hybrid" | "manual";
   metadata: Record<string, any>;
   warnings: string[];
   errors: string[];
@@ -80,12 +80,22 @@ export interface ExtractionResult {
   validation: {
     isValid: boolean;
     score: number;
-    issues: Array<{ type: 'error' | 'warning'; message: string; field?: string }>;
+    issues: Array<{
+      type: "error" | "warning";
+      message: string;
+      field?: string;
+    }>;
   };
 }
 
 export interface ExtractionProgress {
-  stage: 'parsing' | 'validating' | 'matching' | 'enriching' | 'completed' | 'failed';
+  stage:
+    | "parsing"
+    | "validating"
+    | "matching"
+    | "enriching"
+    | "completed"
+    | "failed";
   progress: number;
   message: string;
   details?: Record<string, any>;
@@ -97,30 +107,30 @@ export class ExtractionServiceError extends Error {
     message: string,
     public code: string,
     public context?: Record<string, any>,
-    public cause?: Error
+    public cause?: Error,
   ) {
     super(message);
-    this.name = 'ExtractionServiceError';
+    this.name = "ExtractionServiceError";
   }
 }
 
 export class ExtractionValidationError extends ExtractionServiceError {
   constructor(message: string, context?: Record<string, any>, cause?: Error) {
-    super(message, 'VALIDATION_ERROR', context, cause);
-    this.name = 'ExtractionValidationError';
+    super(message, "VALIDATION_ERROR", context, cause);
+    this.name = "ExtractionValidationError";
   }
 }
 
 export class ExtractionParsingError extends ExtractionServiceError {
   constructor(message: string, context?: Record<string, any>, cause?: Error) {
-    super(message, 'PARSING_ERROR', context, cause);
-    this.name = 'ExtractionParsingError';
+    super(message, "PARSING_ERROR", context, cause);
+    this.name = "ExtractionParsingError";
   }
 }
 
 export class ExtractionEnrichmentError extends ExtractionServiceError {
   constructor(message: string, context?: Record<string, any>, cause?: Error) {
-    super(message, 'ENRICHMENT_ERROR', context, cause);
-    this.name = 'ExtractionEnrichmentError';
+    super(message, "ENRICHMENT_ERROR", context, cause);
+    this.name = "ExtractionEnrichmentError";
   }
 }

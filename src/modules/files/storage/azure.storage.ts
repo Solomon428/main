@@ -2,13 +2,13 @@
 // Azure Blob Storage Provider
 // ============================================================================
 
-import { Readable } from 'stream';
+import { Readable } from "stream";
 import {
   StorageProvider,
   UploadResult,
   DownloadResult,
   FileMetadata,
-} from './storage.types';
+} from "./storage.types";
 
 // Azure SDK types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,7 +18,8 @@ type BlobClient = any;
 
 let blobServiceClient: BlobServiceClient | null = null;
 
-const CONTAINER_NAME = process.env.AZURE_CONTAINER_NAME || 'creditorflow-uploads';
+const CONTAINER_NAME =
+  process.env.AZURE_CONTAINER_NAME || "creditorflow-uploads";
 
 /**
  * Get Azure Blob Service client
@@ -27,25 +28,27 @@ function getBlobServiceClient(): BlobServiceClient {
   if (!blobServiceClient) {
     // Dynamically import Azure SDK
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { BlobServiceClient } = require('@azure/storage-blob');
+    const { BlobServiceClient } = require("@azure/storage-blob");
 
     const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
     const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
     const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 
     if (connectionString) {
-      blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+      blobServiceClient =
+        BlobServiceClient.fromConnectionString(connectionString);
     } else if (accountName && accountKey) {
-      const credential = new (require('@azure/storage-blob').StorageSharedKeyCredential)(
-        accountName,
-        accountKey
-      );
+      const credential =
+        new (require("@azure/storage-blob").StorageSharedKeyCredential)(
+          accountName,
+          accountKey,
+        );
       blobServiceClient = new BlobServiceClient(
         `https://${accountName}.blob.core.windows.net`,
-        credential
+        credential,
       );
     } else {
-      throw new Error('Azure storage credentials not configured');
+      throw new Error("Azure storage credentials not configured");
     }
   }
   return blobServiceClient;
@@ -58,7 +61,7 @@ export async function uploadFile(
   key: string,
   buffer: Buffer,
   contentType: string,
-  metadata?: Record<string, string>
+  metadata?: Record<string, string>,
 ): Promise<UploadResult> {
   const client = getBlobServiceClient();
   const containerClient = client.getContainerClient(CONTAINER_NAME);
@@ -91,12 +94,12 @@ export async function downloadFile(key: string): Promise<DownloadResult> {
   const properties = await blockBlobClient.getProperties();
 
   if (!downloadResponse.readableStreamBody) {
-    throw new Error('File not found');
+    throw new Error("File not found");
   }
 
   return {
     stream: downloadResponse.readableStreamBody as Readable,
-    contentType: properties.contentType || 'application/octet-stream',
+    contentType: properties.contentType || "application/octet-stream",
     contentLength: properties.contentLength || 0,
     lastModified: properties.lastModified,
     metadata: properties.metadata,
@@ -132,7 +135,9 @@ export async function fileExists(key: string): Promise<boolean> {
 /**
  * Get file metadata from Azure Blob Storage
  */
-export async function getFileMetadata(key: string): Promise<FileMetadata | null> {
+export async function getFileMetadata(
+  key: string,
+): Promise<FileMetadata | null> {
   try {
     const client = getBlobServiceClient();
     const containerClient = client.getContainerClient(CONTAINER_NAME);
@@ -141,7 +146,7 @@ export async function getFileMetadata(key: string): Promise<FileMetadata | null>
     const properties = await blockBlobClient.getProperties();
 
     return {
-      contentType: properties.contentType || 'application/octet-stream',
+      contentType: properties.contentType || "application/octet-stream",
       size: properties.contentLength || 0,
       lastModified: properties.lastModified,
       etag: properties.etag,
@@ -157,10 +162,13 @@ export async function getFileMetadata(key: string): Promise<FileMetadata | null>
  */
 export async function getPresignedDownloadUrl(
   key: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { generateBlobSASQueryParameters, BlobSASPermissions } = require('@azure/storage-blob');
+  const {
+    generateBlobSASQueryParameters,
+    BlobSASPermissions,
+  } = require("@azure/storage-blob");
 
   const client = getBlobServiceClient();
   const containerClient = client.getContainerClient(CONTAINER_NAME);
@@ -172,13 +180,13 @@ export async function getPresignedDownloadUrl(
   const sasOptions = {
     containerName: CONTAINER_NAME,
     blobName: key,
-    permissions: BlobSASPermissions.parse('r'),
+    permissions: BlobSASPermissions.parse("r"),
     expiresOn: expiryTime,
   };
 
   const sasToken = generateBlobSASQueryParameters(
     sasOptions,
-    client.credential
+    client.credential,
   ).toString();
 
   return `${blockBlobClient.url}?${sasToken}`;
@@ -190,10 +198,13 @@ export async function getPresignedDownloadUrl(
 export async function getPresignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { generateBlobSASQueryParameters, BlobSASPermissions } = require('@azure/storage-blob');
+  const {
+    generateBlobSASQueryParameters,
+    BlobSASPermissions,
+  } = require("@azure/storage-blob");
 
   const client = getBlobServiceClient();
   const containerClient = client.getContainerClient(CONTAINER_NAME);
@@ -205,14 +216,14 @@ export async function getPresignedUploadUrl(
   const sasOptions = {
     containerName: CONTAINER_NAME,
     blobName: key,
-    permissions: BlobSASPermissions.parse('w'),
+    permissions: BlobSASPermissions.parse("w"),
     expiresOn: expiryTime,
     contentType,
   };
 
   const sasToken = generateBlobSASQueryParameters(
     sasOptions,
-    client.credential
+    client.credential,
   ).toString();
 
   return `${blockBlobClient.url}?${sasToken}`;
@@ -236,10 +247,13 @@ export async function listFiles(prefix: string): Promise<string[]> {
 /**
  * Copy a file within Azure Blob Storage
  */
-export async function copyFile(sourceKey: string, destinationKey: string): Promise<void> {
+export async function copyFile(
+  sourceKey: string,
+  destinationKey: string,
+): Promise<void> {
   const client = getBlobServiceClient();
   const containerClient = client.getContainerClient(CONTAINER_NAME);
-  
+
   const sourceBlob = containerClient.getBlobClient(sourceKey);
   const destinationBlob = containerClient.getBlobClient(destinationKey);
 
@@ -250,7 +264,10 @@ export async function copyFile(sourceKey: string, destinationKey: string): Promi
 /**
  * Move a file within Azure Blob Storage
  */
-export async function moveFile(sourceKey: string, destinationKey: string): Promise<void> {
+export async function moveFile(
+  sourceKey: string,
+  destinationKey: string,
+): Promise<void> {
   await copyFile(sourceKey, destinationKey);
   await deleteFile(sourceKey);
 }

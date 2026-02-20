@@ -1,6 +1,6 @@
-import { IntegrationType } from '../enums/IntegrationType';
-import { IntegrationStatus } from '../enums/IntegrationStatus';
-import { SyncStatus } from '../enums/SyncStatus';
+import { IntegrationType } from "../enums/IntegrationType";
+import { IntegrationStatus } from "../enums/IntegrationStatus";
+import { SyncStatus } from "../enums/SyncStatus";
 
 export interface Integration {
   id: string;

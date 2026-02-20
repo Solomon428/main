@@ -3,20 +3,20 @@
  * Processes background jobs from the job queue
  */
 
-import { Job } from 'bull';
-import { JobType, JobData, JobResult, jobQueue } from '@/lib/job-queue';
-import { PDFProcessor } from '@/lib/pdf-processor';
-import { OCRProcessor } from '@/lib/pdf-processor';
-import { prisma } from '@/lib/database/client';
-import { auditLogger } from '@/lib/utils/audit-logger';
-import { EntityType, LogSeverity } from '@/types';
+import { Job } from "bull";
+import { JobType, JobData, JobResult, jobQueue } from "@/lib/job-queue";
+import { PDFProcessor } from "@/lib/pdf-processor";
+import { OCRProcessor } from "@/lib/pdf-processor";
+import { prisma } from "@/lib/database/client";
+import { auditLogger } from "@/lib/utils/audit-logger";
+import { EntityType, LogSeverity } from "@/types";
 
 // Import services
-import { ComplianceService } from '@/services/compliance-service';
-import { ApprovalService } from '@/services/approval-service';
-import { NotificationService } from '@/services/notification-service';
-import { ReportingService } from '@/services/reporting-service';
-import { SupplierService } from '@/services/supplier-service';
+import { ComplianceService } from "@/services/compliance-service";
+import { ApprovalService } from "@/services/approval-service";
+import { NotificationService } from "@/services/notification-service";
+import { ReportingService } from "@/services/reporting-service";
+import { SupplierService } from "@/services/supplier-service";
 
 export class MainWorker {
   private pdfProcessor: PDFProcessor;
@@ -40,11 +40,11 @@ export class MainWorker {
 
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.log('Worker is already running');
+      console.log("Worker is already running");
       return;
     }
 
-    console.log('🚀 Starting main worker...');
+    console.log("🚀 Starting main worker...");
     this.isRunning = true;
 
     // Initialize OCR processor
@@ -55,7 +55,7 @@ export class MainWorker {
   }
 
   private async processJobs(): Promise<void> {
-    const concurrency = parseInt(process.env.WORKER_CONCURRENCY || '3');
+    const concurrency = parseInt(process.env.WORKER_CONCURRENCY || "3");
 
     // Process PDF jobs
     await this.processPdfJobs(concurrency);
@@ -84,11 +84,11 @@ export class MainWorker {
     // Process archival jobs
     await this.processArchivalJobs(concurrency);
 
-    console.log('✅ All job processors started');
+    console.log("✅ All job processors started");
   }
 
   private async processPdfJobs(concurrency: number): Promise<void> {
-    const queue = jobQueue['queues'].get(JobType.PROCESS_PDF);
+    const queue = jobQueue["queues"].get(JobType.PROCESS_PDF);
     if (!queue) return;
 
     queue.process(
@@ -104,7 +104,7 @@ export class MainWorker {
             Buffer.from(fileBuffer.data || fileBuffer),
             fileName,
             userId,
-            options
+            options,
           );
 
           // Store processing result
@@ -129,12 +129,12 @@ export class MainWorker {
         } catch (error: any) {
           throw new Error(`PDF processing failed: ${error.message}`);
         }
-      }
+      },
     );
   }
 
   private async processOcrJobs(concurrency: number): Promise<void> {
-    const queue = jobQueue['queues'].get(JobType.OCR_EXTRACTION);
+    const queue = jobQueue["queues"].get(JobType.OCR_EXTRACTION);
     if (!queue) return;
 
     queue.process(
@@ -147,7 +147,7 @@ export class MainWorker {
           console.log(`🔍 Performing OCR extraction [${job.id}]`);
 
           const result = await this.ocrProcessor.processPDF(
-            Buffer.from(imageBuffer.data || imageBuffer)
+            Buffer.from(imageBuffer.data || imageBuffer),
           );
 
           return {
@@ -159,12 +159,12 @@ export class MainWorker {
         } catch (error: any) {
           throw new Error(`OCR extraction failed: ${error.message}`);
         }
-      }
+      },
     );
   }
 
   private async processComplianceJobs(concurrency: number): Promise<void> {
-    const queue = jobQueue['queues'].get(JobType.COMPLIANCE_CHECK);
+    const queue = jobQueue["queues"].get(JobType.COMPLIANCE_CHECK);
     if (!queue) return;
 
     queue.process(
@@ -175,7 +175,7 @@ export class MainWorker {
           const { invoiceId, supplierId, userId } = job.data.payload;
 
           console.log(
-            `✅ Running compliance checks for ${invoiceId} [${job.id}]`
+            `✅ Running compliance checks for ${invoiceId} [${job.id}]`,
           );
 
           // Get invoice and supplier data
@@ -188,7 +188,7 @@ export class MainWorker {
           });
 
           if (!invoice || !supplier) {
-            throw new Error('Invoice or supplier not found');
+            throw new Error("Invoice or supplier not found");
           }
 
           // Run compliance checks
@@ -197,7 +197,7 @@ export class MainWorker {
               invoice,
               supplier,
               userId,
-            }
+            },
           );
 
           // Update invoice with compliance status
@@ -219,12 +219,12 @@ export class MainWorker {
         } catch (error: any) {
           throw new Error(`Compliance check failed: ${error.message}`);
         }
-      }
+      },
     );
   }
 
   private async processApprovalJobs(concurrency: number): Promise<void> {
-    const queue = jobQueue['queues'].get(JobType.APPROVAL_WORKFLOW);
+    const queue = jobQueue["queues"].get(JobType.APPROVAL_WORKFLOW);
     if (!queue) return;
 
     queue.process(
@@ -235,7 +235,7 @@ export class MainWorker {
           const { invoiceId, userId, action, comments } = job.data.payload;
 
           console.log(
-            `👤 Processing approval workflow for ${invoiceId} [${job.id}]`
+            `👤 Processing approval workflow for ${invoiceId} [${job.id}]`,
           );
 
           const result = await this.approvalService.processApproval({
@@ -254,12 +254,12 @@ export class MainWorker {
         } catch (error: any) {
           throw new Error(`Approval workflow failed: ${error.message}`);
         }
-      }
+      },
     );
   }
 
   private async processNotificationJobs(concurrency: number): Promise<void> {
-    const queue = jobQueue['queues'].get(JobType.NOTIFICATION);
+    const queue = jobQueue["queues"].get(JobType.NOTIFICATION);
     if (!queue) return;
 
     queue.process(
@@ -273,13 +273,13 @@ export class MainWorker {
 
           let result;
           switch (type) {
-            case 'EMAIL':
+            case "EMAIL":
               result = await this.notificationService.sendEmail(userId, data);
               break;
-            case 'IN_APP':
+            case "IN_APP":
               result = await this.notificationService.createNotification(
                 userId,
-                data
+                data,
               );
               break;
             default:
@@ -296,12 +296,12 @@ export class MainWorker {
         } catch (error: any) {
           throw new Error(`Notification failed: ${error.message}`);
         }
-      }
+      },
     );
   }
 
   private async processReportJobs(concurrency: number): Promise<void> {
-    const queue = jobQueue['queues'].get(JobType.REPORT_GENERATION);
+    const queue = jobQueue["queues"].get(JobType.REPORT_GENERATION);
     if (!queue) return;
 
     queue.process(
@@ -328,12 +328,12 @@ export class MainWorker {
         } catch (error: any) {
           throw new Error(`Report generation failed: ${error.message}`);
         }
-      }
+      },
     );
   }
 
   private async processSupplierRiskJobs(concurrency: number): Promise<void> {
-    const queue = jobQueue['queues'].get(JobType.SUPPLIER_RISK_SCORING);
+    const queue = jobQueue["queues"].get(JobType.SUPPLIER_RISK_SCORING);
     if (!queue) return;
 
     queue.process(
@@ -344,7 +344,7 @@ export class MainWorker {
           const { supplierIds } = job.data.payload;
 
           console.log(
-            `⚠️ Calculating risk scores for ${supplierIds.length} suppliers [${job.id}]`
+            `⚠️ Calculating risk scores for ${supplierIds.length} suppliers [${job.id}]`,
           );
 
           const results = [];
@@ -373,12 +373,12 @@ export class MainWorker {
         } catch (error: any) {
           throw new Error(`Supplier risk scoring failed: ${error.message}`);
         }
-      }
+      },
     );
   }
 
   private async processCleanupJobs(concurrency: number): Promise<void> {
-    const queue = jobQueue['queues'].get(JobType.DATA_CLEANUP);
+    const queue = jobQueue["queues"].get(JobType.DATA_CLEANUP);
     if (!queue) return;
 
     queue.process(
@@ -395,16 +395,16 @@ export class MainWorker {
           cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
           switch (cleanupType) {
-            case 'OLD_INVOICES':
+            case "OLD_INVOICES":
               const result = await prisma.invoices.deleteMany({
                 where: {
-                  status: 'ARCHIVED',
+                  status: "ARCHIVED",
                   archivedAt: { lt: cutoffDate },
                 },
               });
               cleanedCount = result.count;
               break;
-            case 'OLD_NOTIFICATIONS':
+            case "OLD_NOTIFICATIONS":
               const notifResult = await prisma.notifications.deleteMany({
                 where: {
                   isRead: true,
@@ -426,12 +426,12 @@ export class MainWorker {
         } catch (error: any) {
           throw new Error(`Data cleanup failed: ${error.message}`);
         }
-      }
+      },
     );
   }
 
   private async processArchivalJobs(concurrency: number): Promise<void> {
-    const queue = jobQueue['queues'].get(JobType.INVOICE_ARCHIVAL);
+    const queue = jobQueue["queues"].get(JobType.INVOICE_ARCHIVAL);
     if (!queue) return;
 
     queue.process(
@@ -446,7 +446,7 @@ export class MainWorker {
           await prisma.invoices.updateMany({
             where: { id: { in: invoiceIds } },
             data: {
-              status: 'ARCHIVED',
+              status: "ARCHIVED",
               archivedAt: new Date(),
             },
           });
@@ -460,21 +460,21 @@ export class MainWorker {
         } catch (error: any) {
           throw new Error(`Invoice archival failed: ${error.message}`);
         }
-      }
+      },
     );
   }
 
   async shutdown(): Promise<void> {
     if (!this.isRunning) return;
 
-    console.log('🛑 Shutting down worker...');
+    console.log("🛑 Shutting down worker...");
     this.isRunning = false;
 
     await this.ocrProcessor.destroy();
     await this.pdfProcessor.cleanup();
     await jobQueue.shutdown();
 
-    console.log('✅ Worker shut down');
+    console.log("✅ Worker shut down");
   }
 }
 
@@ -489,16 +489,16 @@ export function getMainWorker(): MainWorker {
 }
 
 // Graceful shutdown handling
-process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM, shutting down worker...');
+process.on("SIGTERM", async () => {
+  console.log("Received SIGTERM, shutting down worker...");
   if (mainWorkerInstance) {
     await mainWorkerInstance.shutdown();
   }
   process.exit(0);
 });
 
-process.on('SIGINT', async () => {
-  console.log('Received SIGINT, shutting down worker...');
+process.on("SIGINT", async () => {
+  console.log("Received SIGINT, shutting down worker...");
   if (mainWorkerInstance) {
     await mainWorkerInstance.shutdown();
   }
@@ -506,4 +506,3 @@ process.on('SIGINT', async () => {
 });
 
 export default MainWorker;
-

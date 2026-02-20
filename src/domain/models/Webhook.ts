@@ -1,4 +1,4 @@
-import { WebhookStatus } from '../enums/WebhookStatus';
+import { WebhookStatus } from "../enums/WebhookStatus";
 
 export interface Webhook {
   id: string;

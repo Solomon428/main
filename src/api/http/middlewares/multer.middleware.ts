@@ -5,11 +5,11 @@
 // virus scanning hooks, and progress tracking support.
 // ============================================================================
 
-import multer from 'multer';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { systemLogger } from '../../../observability/logger';
-import { StorageProvider } from '../../../domain/enums/StorageProvider';
+import multer from "multer";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
+import { systemLogger } from "../../../observability/logger";
+import { StorageProvider } from "../../../domain/enums/StorageProvider";
 
 // ============================================================================
 // Configuration Types
@@ -45,18 +45,29 @@ export interface UploadMetadata {
 const DEFAULT_CONFIG: MulterConfig = {
   maxFileSize: 50 * 1024 * 1024, // 50MB
   allowedMimeTypes: [
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'image/tiff',
-    'image/bmp',
-    'image/webp',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/msword',
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/tiff",
+    "image/bmp",
+    "image/webp",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
   ],
-  allowedExtensions: ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp', '.webp', '.doc', '.docx'],
+  allowedExtensions: [
+    ".pdf",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".tiff",
+    ".tif",
+    ".bmp",
+    ".webp",
+    ".doc",
+    ".docx",
+  ],
   storageProvider: StorageProvider.LOCAL,
-  uploadDir: process.env.UPLOAD_DIR || './uploads/temp',
+  uploadDir: process.env.UPLOAD_DIR || "./uploads/temp",
   preserveFilename: false,
   scanForViruses: false,
   encryptFiles: false,
@@ -66,16 +77,25 @@ const DEFAULT_CONFIG: MulterConfig = {
 const INVOICE_CONFIG: MulterConfig = {
   maxFileSize: 50 * 1024 * 1024, // 50MB
   allowedMimeTypes: [
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'image/tiff',
-    'image/bmp',
-    'image/webp',
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/tiff",
+    "image/bmp",
+    "image/webp",
   ],
-  allowedExtensions: ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.tif', '.bmp', '.webp'],
+  allowedExtensions: [
+    ".pdf",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".tiff",
+    ".tif",
+    ".bmp",
+    ".webp",
+  ],
   storageProvider: StorageProvider.LOCAL,
-  uploadDir: process.env.UPLOAD_DIR || './uploads/invoices',
+  uploadDir: process.env.UPLOAD_DIR || "./uploads/invoices",
   preserveFilename: false,
   scanForViruses: true,
   encryptFiles: false,
@@ -93,7 +113,7 @@ function createDiskStorage(config: MulterConfig) {
     filename: (req, file, cb) => {
       if (config.preserveFilename) {
         // Sanitize filename but preserve original name
-        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const sanitized = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
         cb(null, `${uuidv4()}-${sanitized}`);
       } else {
         // Generate unique filename
@@ -113,7 +133,11 @@ function createMemoryStorage() {
 // ============================================================================
 
 function createFileFilter(config: MulterConfig) {
-  return (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  return (
+    req: any,
+    file: Express.Multer.File,
+    cb: multer.FileFilterCallback,
+  ) => {
     const errors: string[] = [];
 
     // Check MIME type
@@ -129,26 +153,35 @@ function createFileFilter(config: MulterConfig) {
 
     // Check filename length
     if (file.originalname.length > 255) {
-      errors.push('Filename exceeds maximum length of 255 characters');
+      errors.push("Filename exceeds maximum length of 255 characters");
     }
 
     // Check for potentially dangerous extensions
-    const dangerousExtensions = ['.exe', '.bat', '.cmd', '.sh', '.js', '.php', '.jsp', '.asp'];
+    const dangerousExtensions = [
+      ".exe",
+      ".bat",
+      ".cmd",
+      ".sh",
+      ".js",
+      ".php",
+      ".jsp",
+      ".asp",
+    ];
     if (dangerousExtensions.includes(extension)) {
-      errors.push('Potentially dangerous file type not allowed');
+      errors.push("Potentially dangerous file type not allowed");
     }
 
     if (errors.length > 0) {
-      systemLogger.warn('File upload rejected', {
+      systemLogger.warn("File upload rejected", {
         filename: file.originalname,
         mimetype: file.mimetype,
         errors,
       });
-      cb(new Error(errors.join('; ')));
+      cb(new Error(errors.join("; ")));
       return;
     }
 
-    systemLogger.debug('File upload accepted', {
+    systemLogger.debug("File upload accepted", {
       filename: file.originalname,
       mimetype: file.mimetype,
       size: file.size,
@@ -166,14 +199,15 @@ export function createMulterMiddleware(config: Partial<MulterConfig> = {}) {
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
 
   // Ensure upload directory exists
-  const fs = require('fs');
+  const fs = require("fs");
   if (!fs.existsSync(mergedConfig.uploadDir)) {
     fs.mkdirSync(mergedConfig.uploadDir, { recursive: true });
   }
 
-  const storage = mergedConfig.storageProvider === StorageProvider.LOCAL
-    ? createDiskStorage(mergedConfig)
-    : createMemoryStorage();
+  const storage =
+    mergedConfig.storageProvider === StorageProvider.LOCAL
+      ? createDiskStorage(mergedConfig)
+      : createMemoryStorage();
 
   return multer({
     storage,
@@ -186,7 +220,9 @@ export function createMulterMiddleware(config: Partial<MulterConfig> = {}) {
   });
 }
 
-export function createInvoiceUploadMiddleware(config: Partial<MulterConfig> = {}) {
+export function createInvoiceUploadMiddleware(
+  config: Partial<MulterConfig> = {},
+) {
   return createMulterMiddleware({ ...INVOICE_CONFIG, ...config });
 }
 
@@ -195,28 +231,41 @@ export function createInvoiceUploadMiddleware(config: Partial<MulterConfig> = {}
 // ============================================================================
 
 // Single file upload middleware
-export const singleFileUpload = (fieldName: string, config?: Partial<MulterConfig>) => {
+export const singleFileUpload = (
+  fieldName: string,
+  config?: Partial<MulterConfig>,
+) => {
   const multerInstance = createMulterMiddleware(config);
   return multerInstance.single(fieldName);
 };
 
 // Multiple files upload middleware
-export const multipleFilesUpload = (fieldName: string, maxCount: number = 10, config?: Partial<MulterConfig>) => {
+export const multipleFilesUpload = (
+  fieldName: string,
+  maxCount: number = 10,
+  config?: Partial<MulterConfig>,
+) => {
   const multerInstance = createMulterMiddleware(config);
   return multerInstance.array(fieldName, maxCount);
 };
 
 // Mixed fields upload middleware
-export const mixedFilesUpload = (fields: Array<{ name: string; maxCount?: number }>, config?: Partial<MulterConfig>) => {
+export const mixedFilesUpload = (
+  fields: Array<{ name: string; maxCount?: number }>,
+  config?: Partial<MulterConfig>,
+) => {
   const multerInstance = createMulterMiddleware(config);
   return multerInstance.fields(fields);
 };
 
 // Invoice upload middleware
-export const invoiceUpload = createInvoiceUploadMiddleware().single('invoice');
+export const invoiceUpload = createInvoiceUploadMiddleware().single("invoice");
 
 // Multiple invoices upload middleware
-export const multipleInvoicesUpload = createInvoiceUploadMiddleware().array('invoices', 20);
+export const multipleInvoicesUpload = createInvoiceUploadMiddleware().array(
+  "invoices",
+  20,
+);
 
 // ============================================================================
 // Error Handler
@@ -224,33 +273,33 @@ export const multipleInvoicesUpload = createInvoiceUploadMiddleware().array('inv
 
 export function handleMulterError(error: any, req: any, res: any, next: any) {
   if (error instanceof multer.MulterError) {
-    let message = 'File upload error';
+    let message = "File upload error";
     let statusCode = 400;
 
     switch (error.code) {
-      case 'LIMIT_FILE_SIZE':
+      case "LIMIT_FILE_SIZE":
         message = `File size exceeds the maximum limit of ${DEFAULT_CONFIG.maxFileSize / 1024 / 1024}MB`;
         break;
-      case 'LIMIT_FILE_COUNT':
-        message = 'Too many files uploaded';
+      case "LIMIT_FILE_COUNT":
+        message = "Too many files uploaded";
         break;
-      case 'LIMIT_FIELD_KEY':
-        message = 'Field name too long';
+      case "LIMIT_FIELD_KEY":
+        message = "Field name too long";
         break;
-      case 'LIMIT_FIELD_VALUE':
-        message = 'Field value too long';
+      case "LIMIT_FIELD_VALUE":
+        message = "Field value too long";
         break;
-      case 'LIMIT_FIELD_COUNT':
-        message = 'Too many fields';
+      case "LIMIT_FIELD_COUNT":
+        message = "Too many fields";
         break;
-      case 'LIMIT_UNEXPECTED_FILE':
+      case "LIMIT_UNEXPECTED_FILE":
         message = `Unexpected field: ${error.field}`;
         break;
       default:
         message = error.message;
     }
 
-    systemLogger.warn('Multer error', {
+    systemLogger.warn("Multer error", {
       code: error.code,
       message: error.message,
       field: error.field,
@@ -266,14 +315,14 @@ export function handleMulterError(error: any, req: any, res: any, next: any) {
   }
 
   if (error) {
-    systemLogger.warn('Upload validation error', {
+    systemLogger.warn("Upload validation error", {
       message: error.message,
     });
 
     return res.status(400).json({
       success: false,
       error: {
-        code: 'VALIDATION_ERROR',
+        code: "VALIDATION_ERROR",
         message: error.message,
       },
     });
@@ -292,13 +341,13 @@ export async function validateUploadedFile(
     maxSize?: number;
     allowedTypes?: string[];
     scanVirus?: boolean;
-  }
+  },
 ): Promise<{ valid: boolean; errors: string[] }> {
   const errors: string[] = [];
 
   // Check file exists
   if (!file) {
-    errors.push('No file provided');
+    errors.push("No file provided");
     return { valid: false, errors };
   }
 
@@ -314,13 +363,13 @@ export async function validateUploadedFile(
 
   // Check file is not empty
   if (file.size === 0) {
-    errors.push('File is empty');
+    errors.push("File is empty");
   }
 
   // Virus scan placeholder (implement with ClamAV or similar in production)
   if (options?.scanVirus) {
     // TODO: Implement virus scanning
-    systemLogger.debug('Virus scan skipped (not implemented)', {
+    systemLogger.debug("Virus scan skipped (not implemented)", {
       filename: file.originalname,
     });
   }
@@ -339,7 +388,7 @@ export function getFileMetadata(file: Express.Multer.File): UploadMetadata {
     encoding: file.encoding,
     mimeType: file.mimetype,
     size: file.size,
-    destination: (file as any).destination || '',
+    destination: (file as any).destination || "",
     filename: file.filename,
     path: file.path,
     buffer: file.buffer,
@@ -349,12 +398,12 @@ export function getFileMetadata(file: Express.Multer.File): UploadMetadata {
 export function sanitizeFilename(filename: string): string {
   // Remove path components
   const basename = path.basename(filename);
-  
+
   // Replace dangerous characters
   const sanitized = basename
-    .replace(/[<>:"/\\|?*]/g, '_')
-    .replace(/\s+/g, '_')
-    .replace(/_{2,}/g, '_')
+    .replace(/[<>:"/\\|?*]/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/_{2,}/g, "_")
     .substring(0, 255);
 
   return sanitized;
@@ -372,7 +421,7 @@ export interface UploadProgress {
 
 export function createProgressTracker(
   totalSize: number,
-  onProgress: (progress: UploadProgress) => void
+  onProgress: (progress: UploadProgress) => void,
 ) {
   let loaded = 0;
 

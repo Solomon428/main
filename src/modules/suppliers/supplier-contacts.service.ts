@@ -2,9 +2,9 @@
 // Supplier Contacts Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { generateId } from '../../utils/ids';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../db/prisma";
+import { generateId } from "../../utils/ids";
+import { info, error } from "../../observability/logger";
 
 interface AddContactInput {
   supplierId: string;
@@ -31,7 +31,9 @@ interface UpdateContactInput {
 /**
  * Add a new contact to a supplier
  */
-export async function addContact(input: AddContactInput): Promise<{ id: string }> {
+export async function addContact(
+  input: AddContactInput,
+): Promise<{ id: string }> {
   try {
     // If this is the primary contact, unset any existing primary
     if (input.isPrimary) {
@@ -61,18 +63,18 @@ export async function addContact(input: AddContactInput): Promise<{ id: string }
       },
     });
 
-    info('Supplier contact added', { 
-      contactId: contact.id, 
+    info("Supplier contact added", {
+      contactId: contact.id,
       supplierId: input.supplierId,
-      name: input.name 
+      name: input.name,
     });
 
     return { id: contact.id };
   } catch (err) {
-    error('Failed to add supplier contact', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
+    error("Failed to add supplier contact", {
+      error: err instanceof Error ? err.message : "Unknown error",
       supplierId: input.supplierId,
-      name: input.name 
+      name: input.name,
     });
     throw err;
   }
@@ -82,8 +84,8 @@ export async function addContact(input: AddContactInput): Promise<{ id: string }
  * Update an existing contact
  */
 export async function updateContact(
-  contactId: string, 
-  input: UpdateContactInput
+  contactId: string,
+  input: UpdateContactInput,
 ): Promise<boolean> {
   try {
     const existingContact = await prisma.supplierContact.findUnique({
@@ -91,7 +93,7 @@ export async function updateContact(
     });
 
     if (!existingContact) {
-      throw new Error('Contact not found');
+      throw new Error("Contact not found");
     }
 
     // If setting as primary, unset existing primary
@@ -122,13 +124,13 @@ export async function updateContact(
       },
     });
 
-    info('Supplier contact updated', { contactId });
+    info("Supplier contact updated", { contactId });
 
     return true;
   } catch (err) {
-    error('Failed to update supplier contact', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      contactId 
+    error("Failed to update supplier contact", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      contactId,
     });
     throw err;
   }
@@ -146,13 +148,13 @@ export async function removeContact(contactId: string): Promise<boolean> {
       },
     });
 
-    info('Supplier contact removed', { contactId });
+    info("Supplier contact removed", { contactId });
 
     return true;
   } catch (err) {
-    error('Failed to remove supplier contact', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      contactId 
+    error("Failed to remove supplier contact", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      contactId,
     });
     throw err;
   }
@@ -161,24 +163,24 @@ export async function removeContact(contactId: string): Promise<boolean> {
 /**
  * List all contacts for a supplier
  */
-export async function listContacts(supplierId: string, includeInactive: boolean = false) {
+export async function listContacts(
+  supplierId: string,
+  includeInactive: boolean = false,
+) {
   try {
     const contacts = await prisma.supplierContact.findMany({
       where: {
         supplierId,
         ...(includeInactive ? {} : { isActive: true }),
       },
-      orderBy: [
-        { isPrimary: 'desc' },
-        { name: 'asc' },
-      ],
+      orderBy: [{ isPrimary: "desc" }, { name: "asc" }],
     });
 
     return contacts;
   } catch (err) {
-    error('Failed to list supplier contacts', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierId 
+    error("Failed to list supplier contacts", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierId,
     });
     throw err;
   }
@@ -199,9 +201,9 @@ export async function getPrimaryContact(supplierId: string) {
 
     return contact;
   } catch (err) {
-    error('Failed to get primary contact', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierId 
+    error("Failed to get primary contact", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierId,
     });
     throw err;
   }
@@ -217,7 +219,7 @@ export async function setPrimaryContact(contactId: string): Promise<boolean> {
     });
 
     if (!contact) {
-      throw new Error('Contact not found');
+      throw new Error("Contact not found");
     }
 
     // Unset existing primary
@@ -239,13 +241,13 @@ export async function setPrimaryContact(contactId: string): Promise<boolean> {
       },
     });
 
-    info('Primary contact set', { contactId, supplierId: contact.supplierId });
+    info("Primary contact set", { contactId, supplierId: contact.supplierId });
 
     return true;
   } catch (err) {
-    error('Failed to set primary contact', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      contactId 
+    error("Failed to set primary contact", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      contactId,
     });
     throw err;
   }

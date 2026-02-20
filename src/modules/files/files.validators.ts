@@ -1,29 +1,35 @@
-import { z } from 'zod';
-import { StorageProvider } from '../../domain/enums/StorageProvider';
-import { DocumentType } from '../../domain/enums/DocumentType';
+import { z } from "zod";
+import { StorageProvider } from "../../domain/enums/StorageProvider";
+import { DocumentType } from "../../domain/enums/DocumentType";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
 const ACCEPTED_DOCUMENT_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/csv',
-  'text/plain',
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv",
+  "text/plain",
 ];
 
 export const uploadFileSchema = z.object({
-  entityType: z.string().min(1, 'Entity type is required'),
-  entityId: z.string().uuid('Valid entity ID is required'),
+  entityType: z.string().min(1, "Entity type is required"),
+  entityId: z.string().uuid("Valid entity ID is required"),
   documentType: z.nativeEnum(DocumentType).default(DocumentType.OTHER),
   description: z.string().optional(),
   isPublic: z.boolean().default(false),
   retentionDays: z.number().int().min(1).optional(),
   autoProcess: z.boolean().default(true),
-  extractionMode: z.enum(['standard', 'aggressive']).default('standard'),
-  language: z.string().default('en'),
+  extractionMode: z.enum(["standard", "aggressive"]).default("standard"),
+  language: z.string().default("en"),
 });
 
 export const updateFileSchema = z.object({
@@ -35,17 +41,17 @@ export const updateFileSchema = z.object({
 });
 
 export const bulkUploadSchema = z.object({
-  files: z.array(z.instanceof(Buffer)).min(1, 'At least one file is required'),
-  entityType: z.string().min(1, 'Entity type is required'),
-  entityId: z.string().uuid('Valid entity ID is required'),
+  files: z.array(z.instanceof(Buffer)).min(1, "At least one file is required"),
+  entityType: z.string().min(1, "Entity type is required"),
+  entityId: z.string().uuid("Valid entity ID is required"),
   documentType: z.nativeEnum(DocumentType).default(DocumentType.OTHER),
   autoProcess: z.boolean().default(true),
 });
 
 export const ocrProcessingSchema = z.object({
-  fileId: z.string().uuid('Valid file ID is required'),
-  language: z.string().default('en'),
-  extractionMode: z.enum(['standard', 'aggressive']).default('standard'),
+  fileId: z.string().uuid("Valid file ID is required"),
+  language: z.string().default("en"),
+  extractionMode: z.enum(["standard", "aggressive"]).default("standard"),
   enhanceImages: z.boolean().default(true),
   detectTables: z.boolean().default(true),
 });
@@ -73,34 +79,40 @@ export const storageConfigSchema = z.object({
 });
 
 export const fileAttachmentSchema = z.object({
-  fileName: z.string().min(1, 'File name is required'),
-  originalName: z.string().min(1, 'Original name is required'),
-  fileType: z.string().min(1, 'File type is required'),
-  fileExtension: z.string().min(1, 'File extension is required'),
-  fileSize: z.number().int().max(MAX_FILE_SIZE, 'File size exceeds 50MB limit'),
+  fileName: z.string().min(1, "File name is required"),
+  originalName: z.string().min(1, "Original name is required"),
+  fileType: z.string().min(1, "File type is required"),
+  fileExtension: z.string().min(1, "File extension is required"),
+  fileSize: z.number().int().max(MAX_FILE_SIZE, "File size exceeds 50MB limit"),
   checksum: z.string().optional(),
 });
 
 export const deleteFilesSchema = z.object({
-  fileIds: z.array(z.string().uuid()).min(1, 'At least one file ID is required'),
+  fileIds: z
+    .array(z.string().uuid())
+    .min(1, "At least one file ID is required"),
   permanent: z.boolean().default(false),
 });
 
 export const moveFilesSchema = z.object({
-  fileIds: z.array(z.string().uuid()).min(1, 'At least one file ID is required'),
-  targetEntityType: z.string().min(1, 'Target entity type is required'),
-  targetEntityId: z.string().uuid('Valid target entity ID is required'),
+  fileIds: z
+    .array(z.string().uuid())
+    .min(1, "At least one file ID is required"),
+  targetEntityType: z.string().min(1, "Target entity type is required"),
+  targetEntityId: z.string().uuid("Valid target entity ID is required"),
 });
 
 export const extractDataSchema = z.object({
-  fileId: z.string().uuid('Valid file ID is required'),
+  fileId: z.string().uuid("Valid file ID is required"),
   extractionFields: z.array(z.string()).optional(),
   validateData: z.boolean().default(true),
 });
 
 export const mergePdfSchema = z.object({
-  fileIds: z.array(z.string().uuid()).min(2, 'At least two files are required for merging'),
-  outputName: z.string().min(1, 'Output name is required'),
+  fileIds: z
+    .array(z.string().uuid())
+    .min(2, "At least two files are required for merging"),
+  outputName: z.string().min(1, "Output name is required"),
 });
 
 export type UploadFileInput = z.infer<typeof uploadFileSchema>;

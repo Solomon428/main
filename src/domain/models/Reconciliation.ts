@@ -1,4 +1,4 @@
-import { ReconciliationStatus } from '../enums/ReconciliationStatus';
+import { ReconciliationStatus } from "../enums/ReconciliationStatus";
 
 export interface Reconciliation {
   id: string;

@@ -19,7 +19,7 @@ export class BaseService {
     action: string,
     entity: string,
     entityId: string,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
   ) {
     // TODO: Implement audit logging
     console.log(`[AUDIT] ${action} on ${entity}:${entityId}`, details);

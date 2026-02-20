@@ -1,5 +1,5 @@
-import { ApprovalChainType } from '../enums/ApprovalChainType';
-import { Currency } from '../enums/Currency';
+import { ApprovalChainType } from "../enums/ApprovalChainType";
+import { Currency } from "../enums/Currency";
 
 export interface ApprovalChain {
   id: string;

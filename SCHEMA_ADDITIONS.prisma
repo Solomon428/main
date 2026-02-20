@@ -1,0 +1,177 @@
+# ============================================================
+# SCHEMA ADDITIONS — append these to prisma/schema.prisma
+# Then run: npx prisma generate && npx prisma db push
+# ============================================================
+
+# --- ENUM ADDITIONS ---
+# Add these values to the existing enum blocks in schema.prisma
+
+# AuditAction — add these values:
+# COMPLIANCE_VIOLATION
+# FRAUD_DETECTED
+# SYSTEM_ALERT
+# COMMENT_ADDED
+# COMMENT_UPDATED
+# COMMENT_DELETED
+# FILE_UPLOADED
+# FILE_UPDATED
+# FILE_DELETED
+# DOCUMENT_PROCESSED
+
+# EntityType — add these values:
+# SYSTEM
+# RISK_SCORE
+
+# InvoiceStatus — add these values:
+# UNDER_VALIDATION
+# ESCALATED
+# READY_FOR_PAYMENT
+# PAYMENT_SCHEDULED
+
+# NotificationType — add these values (if missing):
+# FRAUD_ALERT
+# PAYMENT_DUE_SOON
+# PAYMENT_OVERDUE
+# MONTHLY_REPORT
+# SLA_BREACH
+
+# ApprovalStatus — add these values (if missing):
+# IN_REVIEW
+
+# RiskLevel — replace entire enum with:
+enum RiskLevel {
+  NO_RISK
+  VERY_LOW
+  LOW
+  LOW_MEDIUM
+  MEDIUM
+  MEDIUM_HIGH
+  HIGH
+  VERY_HIGH
+  CRITICAL
+  SEVERE
+  BLACKLISTED
+  UNKNOWN
+}
+
+# --- MODEL FIELD ADDITIONS ---
+# Add these fields to existing models
+
+# Invoice model — add:
+#   priority          String?
+#   archivedAt        DateTime?
+#   processingMetadata Json?
+#   complianceNotes   String?
+
+# Approval model — add:
+#   sequenceNumber    Int?
+#   approverLimit     Decimal?
+#   slaHours          Int?
+#   slaBreachDate     DateTime?
+#   isWithinSLA       Boolean?
+
+# User model — add:
+#   currentWorkload   Int     @default(0)
+#   maxWorkload       Int     @default(10)
+
+# Notification model — add (or change readAt/archivedAt to booleans):
+#   isRead            Boolean  @default(false)
+#   isArchived        Boolean  @default(false)
+
+# --- NEW MODELS ---
+# Append these complete model definitions to schema.prisma
+
+model WebhookDelivery {
+  id          String   @id @default(cuid())
+  webhookId   String
+  event       String
+  payload     Json
+  status      String   @default("PENDING")
+  attempts    Int      @default(0)
+  responseCode Int?
+  responseBody String?
+  errorMessage String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  webhook     Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@map("webhook_deliveries")
+}
+
+model PdfProcessingLog {
+  id           String   @id @default(cuid())
+  processingId String
+  fileId       String?
+  type         String
+  message      String
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([processingId])
+  @@index([fileId])
+  @@map("pdf_processing_logs")
+}
+
+model OcrExtractionLog {
+  id            String   @id @default(cuid())
+  fileId        String
+  provider      String?
+  success       Boolean
+  confidence    Decimal? @db.Decimal(5, 4)
+  processingMs  Int?
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+
+  @@index([fileId])
+  @@map("ocr_extraction_logs")
+}
+
+model InvoiceExtraction {
+  id            String   @id @default(cuid())
+  fileId        String
+  invoiceId     String?
+  extractedData Json
+  confidence    Decimal? @db.Decimal(5, 4)
+  provider      String?
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([fileId])
+  @@index([invoiceId])
+  @@map("invoice_extractions")
+}
+
+model ExtractionAuditLog {
+  id            String   @id @default(cuid())
+  extractionId  String
+  action        String
+  userId        String?
+  before        Json?
+  after         Json?
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@index([extractionId])
+  @@map("extraction_audit_logs")
+}
+
+model CustomFieldValue {
+  id             String     @id @default(cuid())
+  customFieldId  String
+  entityId       String
+  entityType     EntityType
+  value          String?
+  jsonValue      Json?
+  organizationId String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  customField    CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@unique([customFieldId, entityId])
+  @@index([entityId, entityType])
+  @@index([organizationId])
+  @@map("custom_field_values")
+}

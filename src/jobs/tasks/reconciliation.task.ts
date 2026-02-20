@@ -1,16 +1,16 @@
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { ReconciliationStatus } from '../../domain/enums/ReconciliationStatus';
-import { info } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { ReconciliationStatus } from "../../domain/enums/ReconciliationStatus";
+import { info } from "../../observability/logger";
 
 /**
  * Auto-create reconciliation records for bank accounts
  */
 export async function runTask(
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
-  info('Starting reconciliation auto-creation task', { taskId: task.id });
+  info("Starting reconciliation auto-creation task", { taskId: task.id });
 
   const bankAccounts = await prisma.bankAccount.findMany({
     where: { isActive: true },
@@ -47,9 +47,11 @@ export async function runTask(
         },
       });
 
-      info(`Created reconciliation for account ${account.id}`, { taskId: task.id });
+      info(`Created reconciliation for account ${account.id}`, {
+        taskId: task.id,
+      });
     }
   }
 
-  info('Reconciliation auto-creation task completed', { taskId: task.id });
+  info("Reconciliation auto-creation task completed", { taskId: task.id });
 }

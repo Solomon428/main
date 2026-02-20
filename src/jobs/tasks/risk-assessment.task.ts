@@ -1,17 +1,17 @@
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { RiskLevel } from '../../domain/enums/RiskLevel';
-import { InvoiceStatus } from '../../domain/enums/InvoiceStatus';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { RiskLevel } from "../../domain/enums/RiskLevel";
+import { InvoiceStatus } from "../../domain/enums/InvoiceStatus";
+import { info, error } from "../../observability/logger";
 
 /**
  * Assess risk for invoices and suppliers
  */
 export async function runTask(
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
-  info('Starting risk assessment task', { taskId: task.id });
+  info("Starting risk assessment task", { taskId: task.id });
 
   // Get invoices pending risk assessment
   const invoices = await prisma.invoices.findMany({
@@ -37,16 +37,16 @@ export async function runTask(
       const amount = parseFloat(invoice.totalAmount.toString());
       if (amount > 100000) {
         score += 30;
-        factors.push('High value invoice');
+        factors.push("High value invoice");
       } else if (amount > 50000) {
         score += 20;
-        factors.push('Medium-high value invoice');
+        factors.push("Medium-high value invoice");
       }
 
       // Supplier risk
       if (invoice.supplier?.riskLevel === RiskLevel.HIGH) {
         score += 25;
-        factors.push('High risk supplier');
+        factors.push("High risk supplier");
       }
 
       // Duplicate check risk
@@ -60,7 +60,7 @@ export async function runTask(
 
       if (duplicates > 0) {
         score += 40;
-        factors.push('Potential duplicate invoice');
+        factors.push("Potential duplicate invoice");
       }
 
       // Determine risk level
@@ -87,14 +87,13 @@ export async function runTask(
         where: { id: invoice.id },
         data: { riskLevel },
       });
-
     } catch (err) {
       error(`Failed to assess risk for invoice ${invoice.id}`, {
         taskId: task.id,
-        error: err instanceof Error ? err.message : 'Unknown error',
+        error: err instanceof Error ? err.message : "Unknown error",
       });
     }
   }
 
-  info('Risk assessment task completed', { taskId: task.id });
+  info("Risk assessment task completed", { taskId: task.id });
 }

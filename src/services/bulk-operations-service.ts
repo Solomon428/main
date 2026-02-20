@@ -1,6 +1,12 @@
-import { prisma } from '@/lib/database/client';
-import { InvoiceStatus, ApprovalStatus, ApprovalDecision, EntityType, LogSeverity } from '@/types';
-import { auditLogger } from '@/lib/utils/audit-logger';
+import { prisma } from "@/lib/database/client";
+import {
+  InvoiceStatus,
+  ApprovalStatus,
+  ApprovalDecision,
+  EntityType,
+  LogSeverity,
+} from "@/types";
+import { auditLogger } from "@/lib/utils/audit-logger";
 
 export interface BulkApproveInput {
   invoiceIds: string[];
@@ -23,7 +29,7 @@ export interface BulkUpdateStatusInput {
 
 export interface BulkExportInput {
   invoiceIds: string[];
-  format: 'csv' | 'excel' | 'pdf';
+  format: "csv" | "excel" | "pdf";
   includeLineItems: boolean;
   includeApprovals: boolean;
 }
@@ -53,25 +59,27 @@ export class BulkOperationsService {
   /**
    * Bulk approve invoices
    */
-  static async bulkApprove(input: BulkApproveInput): Promise<BulkOperationResult> {
-    const results: BulkOperationResult['results'] = [];
-    const errors: BulkOperationResult['errors'] = [];
+  static async bulkApprove(
+    input: BulkApproveInput,
+  ): Promise<BulkOperationResult> {
+    const results: BulkOperationResult["results"] = [];
+    const errors: BulkOperationResult["errors"] = [];
 
     for (const invoiceId of input.invoiceIds) {
       try {
         // Check if user has approval authority
         const invoice = await prisma.invoices.findUnique({
           where: { id: invoiceId },
-          include: { approvals: { where: { status: 'PENDING' } } },
+          include: { approvals: { where: { status: "PENDING" } } },
         });
 
         if (!invoice) {
-          errors.push({ invoiceId, error: 'Invoice not found' });
+          errors.push({ invoiceId, error: "Invoice not found" });
           continue;
         }
 
         if (invoice.approvals.length === 0) {
-          errors.push({ invoiceId, error: 'No pending approval found' });
+          errors.push({ invoiceId, error: "No pending approval found" });
           continue;
         }
 
@@ -88,7 +96,7 @@ export class BulkOperationsService {
 
         // Update invoice status if final approval
         const remainingApprovals = await prisma.approval.count({
-          where: { invoiceId, status: 'PENDING' },
+          where: { invoiceId, status: "PENDING" },
         });
 
         if (remainingApprovals === 0) {
@@ -103,7 +111,7 @@ export class BulkOperationsService {
 
         // Log audit
         await auditLogger.log({
-          action: 'APPROVE',
+          action: "APPROVE",
           entityType: EntityType.INVOICE,
           entityId: invoiceId,
           severity: LogSeverity.INFO,
@@ -111,18 +119,22 @@ export class BulkOperationsService {
           metadata: { bulkOperation: true, comments: input.comments },
         });
 
-        results.push({ invoiceId, success: true, message: 'Approved successfully' });
+        results.push({
+          invoiceId,
+          success: true,
+          message: "Approved successfully",
+        });
       } catch (error) {
         errors.push({
           invoiceId,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
 
     return {
       total: input.invoiceIds.length,
-      successful: results.filter(r => r.success).length,
+      successful: results.filter((r) => r.success).length,
       failed: errors.length,
       errors,
       results,
@@ -132,26 +144,28 @@ export class BulkOperationsService {
   /**
    * Bulk reject invoices
    */
-  static async bulkReject(input: BulkRejectInput): Promise<BulkOperationResult> {
-    const results: BulkOperationResult['results'] = [];
-    const errors: BulkOperationResult['errors'] = [];
+  static async bulkReject(
+    input: BulkRejectInput,
+  ): Promise<BulkOperationResult> {
+    const results: BulkOperationResult["results"] = [];
+    const errors: BulkOperationResult["errors"] = [];
 
     for (const invoiceId of input.invoiceIds) {
       try {
         const invoice = await prisma.invoices.findUnique({
           where: { id: invoiceId },
-          include: { approvals: { where: { status: 'PENDING' } } },
+          include: { approvals: { where: { status: "PENDING" } } },
         });
 
         if (!invoice) {
-          errors.push({ invoiceId, error: 'Invoice not found' });
+          errors.push({ invoiceId, error: "Invoice not found" });
           continue;
         }
 
         // Update all pending approvals to rejected
         if (invoice.approvals.length > 0) {
           await prisma.approval.updateMany({
-            where: { invoiceId, status: 'PENDING' },
+            where: { invoiceId, status: "PENDING" },
             data: {
               decision: Decision.REJECT,
               actionDate: new Date(),
@@ -172,7 +186,7 @@ export class BulkOperationsService {
 
         // Log audit
         await auditLogger.log({
-          action: 'REJECT',
+          action: "REJECT",
           entityType: EntityType.INVOICE,
           entityId: invoiceId,
           severity: LogSeverity.WARNING,
@@ -180,18 +194,22 @@ export class BulkOperationsService {
           metadata: { bulkOperation: true, reason: input.reason },
         });
 
-        results.push({ invoiceId, success: true, message: 'Rejected successfully' });
+        results.push({
+          invoiceId,
+          success: true,
+          message: "Rejected successfully",
+        });
       } catch (error) {
         errors.push({
           invoiceId,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
 
     return {
       total: input.invoiceIds.length,
-      successful: results.filter(r => r.success).length,
+      successful: results.filter((r) => r.success).length,
       failed: errors.length,
       errors,
       results,
@@ -201,9 +219,11 @@ export class BulkOperationsService {
   /**
    * Bulk update invoice status
    */
-  static async bulkUpdateStatus(input: BulkUpdateStatusInput): Promise<BulkOperationResult> {
-    const results: BulkOperationResult['results'] = [];
-    const errors: BulkOperationResult['errors'] = [];
+  static async bulkUpdateStatus(
+    input: BulkUpdateStatusInput,
+  ): Promise<BulkOperationResult> {
+    const results: BulkOperationResult["results"] = [];
+    const errors: BulkOperationResult["errors"] = [];
 
     for (const invoiceId of input.invoiceIds) {
       try {
@@ -219,7 +239,7 @@ export class BulkOperationsService {
 
         // Log audit
         await auditLogger.log({
-          action: 'UPDATE',
+          action: "UPDATE",
           entityType: EntityType.INVOICE,
           entityId: invoiceId,
           severity: LogSeverity.INFO,
@@ -239,14 +259,14 @@ export class BulkOperationsService {
       } catch (error) {
         errors.push({
           invoiceId,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
 
     return {
       total: input.invoiceIds.length,
-      successful: results.filter(r => r.success).length,
+      successful: results.filter((r) => r.success).length,
       failed: errors.length,
       errors,
       results,
@@ -256,9 +276,11 @@ export class BulkOperationsService {
   /**
    * Bulk assign invoices to approver
    */
-  static async bulkAssign(input: BulkAssignInput): Promise<BulkOperationResult> {
-    const results: BulkOperationResult['results'] = [];
-    const errors: BulkOperationResult['errors'] = [];
+  static async bulkAssign(
+    input: BulkAssignInput,
+  ): Promise<BulkOperationResult> {
+    const results: BulkOperationResult["results"] = [];
+    const errors: BulkOperationResult["errors"] = [];
 
     // Verify approver exists and is active
     const approver = await prisma.User.findUnique({
@@ -271,9 +293,9 @@ export class BulkOperationsService {
         total: input.invoiceIds.length,
         successful: 0,
         failed: input.invoiceIds.length,
-        errors: input.invoiceIds.map(id => ({
+        errors: input.invoiceIds.map((id) => ({
           invoiceId: id,
-          error: 'Approver not found or inactive',
+          error: "Approver not found or inactive",
         })),
         results: [],
       };
@@ -294,7 +316,7 @@ export class BulkOperationsService {
             invoiceId,
             approverId: input.approverId,
             stage: 1,
-            approverRole: 'CREDIT_CLERK',
+            approverRole: "CREDIT_CLERK",
             approverLimit: 100000,
             slaDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
           },
@@ -302,7 +324,7 @@ export class BulkOperationsService {
 
         // Log audit
         await auditLogger.log({
-          action: 'UPDATE',
+          action: "UPDATE",
           entityType: EntityType.INVOICE,
           entityId: invoiceId,
           severity: LogSeverity.INFO,
@@ -322,14 +344,14 @@ export class BulkOperationsService {
       } catch (error) {
         errors.push({
           invoiceId,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
 
     return {
       total: input.invoiceIds.length,
-      successful: results.filter(r => r.success).length,
+      successful: results.filter((r) => r.success).length,
       failed: errors.length,
       errors,
       results,
@@ -354,11 +376,11 @@ export class BulkOperationsService {
     });
 
     switch (input.format) {
-      case 'csv':
+      case "csv":
         return this.exportToCSV(invoices, input);
-      case 'excel':
+      case "excel":
         return this.exportToExcel(invoices, input);
-      case 'pdf':
+      case "pdf":
         return this.exportToPDF(invoices, input);
       default:
         throw new Error(`Unsupported format: ${input.format}`);
@@ -368,9 +390,7 @@ export class BulkOperationsService {
   /**
    * Get bulk operation preview
    */
-  static async getBulkOperationPreview(
-    invoiceIds: string[]
-  ): Promise<{
+  static async getBulkOperationPreview(invoiceIds: string[]): Promise<{
     invoices: Array<{
       id: string;
       invoiceNumber: string;
@@ -408,10 +428,10 @@ export class BulkOperationsService {
     }
 
     return {
-      invoices: invoices.map(inv => ({
+      invoices: invoices.map((inv) => ({
         id: inv.id,
         invoiceNumber: inv.invoiceNumber,
-        supplierName: inv.supplier?.name || 'Unknown',
+        supplierName: inv.supplier?.name || "Unknown",
         totalAmount: Number(inv.totalAmount),
         currency: inv.currency,
         status: inv.status,
@@ -427,39 +447,39 @@ export class BulkOperationsService {
 
   private static exportToCSV(
     invoices: any[],
-    input: BulkExportInput
+    input: BulkExportInput,
   ): { data: string; filename: string; contentType: string } {
     const headers = [
-      'Invoice Number',
-      'Supplier',
-      'Invoice Date',
-      'Due Date',
-      'Total Amount',
-      'Currency',
-      'Status',
-      'Priority',
-      'Current Approver',
+      "Invoice Number",
+      "Supplier",
+      "Invoice Date",
+      "Due Date",
+      "Total Amount",
+      "Currency",
+      "Status",
+      "Priority",
+      "Current Approver",
     ];
 
     if (input.includeLineItems) {
-      headers.push('Line Items Count');
+      headers.push("Line Items Count");
     }
 
     if (input.includeApprovals) {
-      headers.push('Approval Count');
+      headers.push("Approval Count");
     }
 
-    const rows = invoices.map(inv => {
+    const rows = invoices.map((inv) => {
       const row = [
         inv.invoiceNumber,
-        inv.supplier?.name || 'Unknown',
-        inv.invoiceDate.toISOString().split('T')[0],
-        inv.dueDate.toISOString().split('T')[0],
+        inv.supplier?.name || "Unknown",
+        inv.invoiceDate.toISOString().split("T")[0],
+        inv.dueDate.toISOString().split("T")[0],
         inv.totalAmount.toString(),
         inv.currency,
         inv.status,
         inv.priority,
-        inv.currentApprover?.name || 'Unassigned',
+        inv.currentApprover?.name || "Unassigned",
       ];
 
       if (input.includeLineItems) {
@@ -473,18 +493,18 @@ export class BulkOperationsService {
       return row;
     });
 
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
 
     return {
       data: csv,
-      filename: `invoices_export_${new Date().toISOString().split('T')[0]}.csv`,
-      contentType: 'text/csv',
+      filename: `invoices_export_${new Date().toISOString().split("T")[0]}.csv`,
+      contentType: "text/csv",
     };
   }
 
   private static exportToExcel(
     invoices: any[],
-    input: BulkExportInput
+    input: BulkExportInput,
   ): { data: string; filename: string; contentType: string } {
     // For now, return CSV format
     // In production, use a library like xlsx
@@ -493,7 +513,7 @@ export class BulkOperationsService {
 
   private static exportToPDF(
     invoices: any[],
-    input: BulkExportInput
+    input: BulkExportInput,
   ): { data: string; filename: string; contentType: string } {
     // For now, return CSV format
     // In production, use a library like pdfkit

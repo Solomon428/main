@@ -12,8 +12,8 @@ import {
   FraudRiskCategory,
   FraudDetectionMethod,
   FraudEscalationPath,
-  FraudEscalationLevel
-} from './enums';
+  FraudEscalationLevel,
+} from "./enums";
 
 export interface FraudScoringInput {
   totalAmount: number;
@@ -111,7 +111,7 @@ export interface FraudScoringMetadata {
     paymentTerms?: number;
     supplierCategory?: string;
     historicalAmounts?: number[];
-    businessUnitRiskAppetite?: 'LOW' | 'MEDIUM' | 'HIGH';
+    businessUnitRiskAppetite?: "LOW" | "MEDIUM" | "HIGH";
   };
   riskCharacteristics: {
     overallScore: number;
@@ -154,7 +154,7 @@ export interface FraudScoringContext {
   paymentTerms?: number;
   supplierCategory?: string;
   historicalAmounts?: number[];
-  businessUnitRiskAppetite?: 'LOW' | 'MEDIUM' | 'HIGH';
+  businessUnitRiskAppetite?: "LOW" | "MEDIUM" | "HIGH";
   transactionContext?: string;
   userRiskProfile?: string;
   deviceFingerprint?: string;
@@ -184,9 +184,9 @@ export class FraudScoringException extends Error {
     public code: string,
     public message: string,
     public scoringId: string,
-    public metadata?: Record<string, any>
+    public metadata?: Record<string, any>,
   ) {
     super(message);
-    this.name = 'FraudScoringException';
+    this.name = "FraudScoringException";
   }
 }

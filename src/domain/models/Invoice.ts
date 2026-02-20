@@ -1,10 +1,10 @@
-import { InvoiceStatus } from '../enums/InvoiceStatus';
-import { PaymentStatus } from '../enums/PaymentStatus';
-import { ApprovalStatus } from '../enums/ApprovalStatus';
-import { RiskLevel } from '../enums/RiskLevel';
-import { SLAStatus } from '../enums/SLAStatus';
-import { PaymentMethod } from '../enums/PaymentMethod';
-import { Currency } from '../enums/Currency';
+import { InvoiceStatus } from "../enums/InvoiceStatus";
+import { PaymentStatus } from "../enums/PaymentStatus";
+import { ApprovalStatus } from "../enums/ApprovalStatus";
+import { RiskLevel } from "../enums/RiskLevel";
+import { SLAStatus } from "../enums/SLAStatus";
+import { PaymentMethod } from "../enums/PaymentMethod";
+import { Currency } from "../enums/Currency";
 
 export interface Invoice {
   id: string;

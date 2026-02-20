@@ -1,21 +1,24 @@
-import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
-import { logger } from '@/lib/logger';
-import { AppError } from '@/lib/errors';
-import { FileAttachmentWithRelations } from '../types/file-types';
-import { auditService } from '@/lib/audit/audit.service';
-import { AuditAction, EntityType } from '@/domain/enums';
-import { OcrService } from '../ocr/ocr.service';
-import { ExtractionService, ExtractedInvoiceData } from '../ocr/extraction.service';
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import { logger } from "@/lib/logger";
+import { AppError } from "@/lib/errors";
+import { FileAttachmentWithRelations } from "../types/file-types";
+import { auditService } from "@/lib/audit/audit.service";
+import { AuditAction, EntityType } from "@/domain/enums";
+import { OcrService } from "../ocr/ocr.service";
+import {
+  ExtractionService,
+  ExtractedInvoiceData,
+} from "../ocr/extraction.service";
 
 export interface ParseDocumentInput {
   fileId: string;
   userId: string;
   organizationId: string;
-  documentType?: 'invoice' | 'receipt' | 'purchase_order' | 'unknown';
+  documentType?: "invoice" | "receipt" | "purchase_order" | "unknown";
   options?: {
     autoProcess?: boolean;
-    extractionMode?: 'standard' | 'aggressive';
+    extractionMode?: "standard" | "aggressive";
     preferredLanguage?: string;
   };
 }
@@ -37,7 +40,7 @@ export interface ReprocessDocumentInput {
   organizationId: string;
   options?: {
     useAdvancedOCR?: boolean;
-    extractionMode?: 'standard' | 'aggressive';
+    extractionMode?: "standard" | "aggressive";
   };
 }
 
@@ -64,17 +67,17 @@ export class DocumentParserService {
       });
 
       if (!file) {
-        throw new AppError('File not found', 'FILE_NOT_FOUND', 404);
+        throw new AppError("File not found", "FILE_NOT_FOUND", 404);
       }
 
       if (file.organizationId !== input.organizationId) {
-        throw new AppError('Access denied to file', 'ACCESS_DENIED', 403);
+        throw new AppError("Access denied to file", "ACCESS_DENIED", 403);
       }
 
       // Update file status to processing
       await prisma.fileAttachment.update({
         where: { id: input.fileId },
-        data: { processingStatus: 'PROCESSING' },
+        data: { processingStatus: "PROCESSING" },
       });
 
       // Get file buffer (from storage)
@@ -85,31 +88,32 @@ export class DocumentParserService {
         fileBuffer,
         file.fileName,
         file.mimeType,
-        input.fileId
+        input.fileId,
       );
 
       if (!ocrResult.success) {
         await this.updateFileStatus(input.fileId, FileStatus.ERROR, {
-          error: 'OCR extraction failed',
+          error: "OCR extraction failed",
         });
-        throw new AppError('OCR extraction failed', 'OCR_FAILED', 422);
+        throw new AppError("OCR extraction failed", "OCR_FAILED", 422);
       }
 
       // Extract structured data
       const extractionResult = await this.extractionService.parseInvoice(
         ocrResult.text,
         input.fileId,
-        input.organizationId
+        input.organizationId,
       );
 
       // Determine document type
-      const documentType = input.documentType || this.detectDocumentType(ocrResult.text);
+      const documentType =
+        input.documentType || this.detectDocumentType(ocrResult.text);
 
       // Update file with extraction results
       await prisma.fileAttachment.update({
         where: { id: input.fileId },
         data: {
-          processingStatus: extractionResult.success ? 'COMPLETED' : 'ERROR',
+          processingStatus: extractionResult.success ? "COMPLETED" : "ERROR",
           metadata: {
             ...((file.metadata as Record<string, unknown>) || {}),
             ocrResult: {
@@ -155,30 +159,32 @@ export class DocumentParserService {
         warnings,
       };
     } catch (error) {
-      logger.error({ error, fileId: input.fileId }, 'Document parsing failed');
+      logger.error({ error, fileId: input.fileId }, "Document parsing failed");
 
       await this.updateFileStatus(input.fileId, FileStatus.ERROR, {
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
 
       throw error;
     }
   }
 
-  async reprocessDocument(input: ReprocessDocumentInput): Promise<ParseDocumentResult> {
+  async reprocessDocument(
+    input: ReprocessDocumentInput,
+  ): Promise<ParseDocumentResult> {
     // Get existing file
     const file = await prisma.fileAttachment.findUnique({
       where: { id: input.fileId },
     });
 
     if (!file) {
-      throw new AppError('File not found', 'FILE_NOT_FOUND', 404);
+      throw new AppError("File not found", "FILE_NOT_FOUND", 404);
     }
 
     // Reset status and reprocess
     await prisma.fileAttachment.update({
       where: { id: input.fileId },
-      data: { processingStatus: 'PENDING' },
+      data: { processingStatus: "PENDING" },
     });
 
     return this.parseDocument({
@@ -186,12 +192,15 @@ export class DocumentParserService {
       userId: input.userId,
       organizationId: input.organizationId,
       options: {
-        extractionMode: input.options?.extractionMode || 'aggressive',
+        extractionMode: input.options?.extractionMode || "aggressive",
       },
     });
   }
 
-  async getExtractionResult(fileId: string, organizationId: string): Promise<{
+  async getExtractionResult(
+    fileId: string,
+    organizationId: string,
+  ): Promise<{
     file: FileAttachmentWithRelations;
     extraction: ParseDocumentResult | null;
   }> {
@@ -208,21 +217,27 @@ export class DocumentParserService {
     });
 
     if (!file) {
-      throw new AppError('File not found', 'FILE_NOT_FOUND', 404);
+      throw new AppError("File not found", "FILE_NOT_FOUND", 404);
     }
 
     if (file.organizationId !== organizationId) {
-      throw new AppError('Access denied', 'ACCESS_DENIED', 403);
+      throw new AppError("Access denied", "ACCESS_DENIED", 403);
     }
 
-    const metadata = (file.metadata as {
-      ocrResult?: { text: string; confidence: number; pages: number; processingTime: number };
-      extractionResult?: { data: ExtractedInvoiceData; validation: unknown };
-    }) || {};
+    const metadata =
+      (file.metadata as {
+        ocrResult?: {
+          text: string;
+          confidence: number;
+          pages: number;
+          processingTime: number;
+        };
+        extractionResult?: { data: ExtractedInvoiceData; validation: unknown };
+      }) || {};
 
     const extraction = metadata.ocrResult
       ? {
-          success: file.processingStatus === 'COMPLETED',
+          success: file.processingStatus === "COMPLETED",
           fileId: file.id,
           documentType: this.detectDocumentType(metadata.ocrResult.text),
           extractedData: metadata.extractionResult?.data || null,
@@ -239,14 +254,15 @@ export class DocumentParserService {
   async bulkReprocess(
     fileIds: string[],
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<{
     total: number;
     successful: number;
     failed: number;
     results: Array<{ fileId: string; success: boolean; error?: string }>;
   }> {
-    const results: Array<{ fileId: string; success: boolean; error?: string }> = [];
+    const results: Array<{ fileId: string; success: boolean; error?: string }> =
+      [];
 
     for (const fileId of fileIds) {
       try {
@@ -260,7 +276,7 @@ export class DocumentParserService {
         results.push({
           fileId,
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -273,20 +289,22 @@ export class DocumentParserService {
     };
   }
 
-  private async getFileBuffer(file: FileAttachmentWithRelations): Promise<Buffer> {
+  private async getFileBuffer(
+    file: FileAttachmentWithRelations,
+  ): Promise<Buffer> {
     // This would typically fetch from S3, local storage, etc.
     // For now, throw an error as this needs implementation based on storage solution
     throw new AppError(
-      'File storage retrieval not implemented',
-      'STORAGE_NOT_IMPLEMENTED',
-      501
+      "File storage retrieval not implemented",
+      "STORAGE_NOT_IMPLEMENTED",
+      501,
     );
   }
 
   private async updateFileStatus(
     fileId: string,
     status: FileStatus,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     await prisma.fileAttachment.update({
       where: { id: fileId },
@@ -305,26 +323,30 @@ export class DocumentParserService {
     const lowerText = text.toLowerCase();
 
     if (
-      lowerText.includes('invoice') ||
-      lowerText.includes('factuur') ||
-      lowerText.includes('rechnung')
+      lowerText.includes("invoice") ||
+      lowerText.includes("factuur") ||
+      lowerText.includes("rechnung")
     ) {
-      return 'invoice';
+      return "invoice";
     }
 
     if (
-      lowerText.includes('purchase order') ||
-      lowerText.includes('po #') ||
-      lowerText.includes('bestelling')
+      lowerText.includes("purchase order") ||
+      lowerText.includes("po #") ||
+      lowerText.includes("bestelling")
     ) {
-      return 'purchase_order';
+      return "purchase_order";
     }
 
-    if (lowerText.includes('receipt') || lowerText.includes('bon') || lowerText.includes('quittung')) {
-      return 'receipt';
+    if (
+      lowerText.includes("receipt") ||
+      lowerText.includes("bon") ||
+      lowerText.includes("quittung")
+    ) {
+      return "receipt";
     }
 
-    return 'unknown';
+    return "unknown";
   }
 }
 

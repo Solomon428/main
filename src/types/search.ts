@@ -3,7 +3,7 @@
  * CreditorFlow Enterprise Invoice Management System
  */
 
-import { InvoiceStatus, PriorityLevel } from './sqlite';
+import { InvoiceStatus, PriorityLevel } from "./sqlite";
 
 export interface SearchFilters {
   query?: string;
@@ -26,7 +26,7 @@ export interface SearchFilters {
   currency?: string[];
   category?: string[];
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   page?: number;
   limit?: number;
 }
@@ -55,7 +55,7 @@ export interface SearchResult<T> {
 }
 
 export interface SearchSuggestion {
-  type: 'invoice' | 'supplier' | 'keyword';
+  type: "invoice" | "supplier" | "keyword";
   value: string;
   label: string;
   metadata?: Record<string, unknown>;
@@ -68,7 +68,7 @@ export interface QuickSearchResult {
 }
 
 export interface ExportOptions {
-  format: 'csv' | 'xlsx' | 'pdf';
+  format: "csv" | "xlsx" | "pdf";
   columns: string[];
   includeLineItems: boolean;
   includeApprovals: boolean;

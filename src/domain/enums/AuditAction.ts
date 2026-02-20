@@ -1,22 +1,6 @@
-export enum AuditAction {
-  CREATE = 'CREATE',
-  READ = 'READ',
-  UPDATE = 'UPDATE',
-  DELETE = 'DELETE',
-  VIEW = 'VIEW',
-  EXPORT = 'EXPORT',
-  IMPORT = 'IMPORT',
-  APPROVE = 'APPROVE',
-  REJECT = 'REJECT',
-  LOGIN = 'LOGIN',
-  LOGOUT = 'LOGOUT',
-  DELEGATE = 'DELEGATE',
-  ESCALATE = 'ESCALATE',
-  PAY = 'PAY',
-  CANCEL = 'CANCEL',
-  RESTORE = 'RESTORE',
-  ARCHIVE = 'ARCHIVE',
-  DOWNLOAD = 'DOWNLOAD',
-  SHARE = 'SHARE',
-  CONFIG_CHANGE = 'CONFIG_CHANGE',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { AuditAction as AuditAction } from "@prisma/client";

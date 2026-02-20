@@ -2,20 +2,20 @@
 // Money and Currency Utilities
 // ============================================================================
 
-import { Currency } from '../domain/enums/Currency';
+import { Currency } from "../domain/enums/Currency";
 
 // Simple decimal utility to replace Prisma Decimal
 class SimpleDecimal {
   private value: number;
-  
+
   constructor(value: number | string) {
-    this.value = typeof value === 'string' ? parseFloat(value) : value;
+    this.value = typeof value === "string" ? parseFloat(value) : value;
   }
-  
+
   toNumber(): number {
     return this.value;
   }
-  
+
   plus(other: number): SimpleDecimal {
     return new SimpleDecimal(this.value + other);
   }
@@ -25,7 +25,9 @@ class SimpleDecimal {
 
 // Exchange rates (would typically come from an API)
 // Using Partial to handle currencies that may not have all exchange rates defined
-const EXCHANGE_RATES: Partial<Record<Currency, Partial<Record<Currency, number>>>> = {
+const EXCHANGE_RATES: Partial<
+  Record<Currency, Partial<Record<Currency, number>>>
+> = {
   [Currency.ZAR]: {
     [Currency.ZAR]: 1,
     [Currency.USD]: 0.053,
@@ -73,7 +75,7 @@ const EXCHANGE_RATES: Partial<Record<Currency, Partial<Record<Currency, number>>
   [Currency.AUD]: {
     [Currency.ZAR]: 12.29,
     [Currency.USD]: 0.65,
-    [Currency.EUR]: 0.60,
+    [Currency.EUR]: 0.6,
     [Currency.GBP]: 0.52,
     [Currency.AUD]: 1,
     [Currency.CAD]: 0.89,
@@ -89,7 +91,7 @@ const EXCHANGE_RATES: Partial<Record<Currency, Partial<Record<Currency, number>>
     [Currency.AUD]: 1.13,
     [Currency.CAD]: 1,
     [Currency.JPY]: 109.5,
-    [Currency.CNY]: 5.30,
+    [Currency.CNY]: 5.3,
     [Currency.INR]: 61.4,
   },
   [Currency.JPY]: {
@@ -97,7 +99,7 @@ const EXCHANGE_RATES: Partial<Record<Currency, Partial<Record<Currency, number>>
     [Currency.USD]: 0.0067,
     [Currency.EUR]: 0.0062,
     [Currency.GBP]: 0.0053,
-    [Currency.AUD]: 0.010,
+    [Currency.AUD]: 0.01,
     [Currency.CAD]: 0.0091,
     [Currency.JPY]: 1,
     [Currency.CNY]: 0.048,
@@ -131,14 +133,14 @@ const EXCHANGE_RATES: Partial<Record<Currency, Partial<Record<Currency, number>>
  * Format currency for display
  */
 export function formatCurrency(
-  amount: number, 
+  amount: number,
   currency: Currency = Currency.ZAR,
-  locale: string = 'en-ZA'
+  locale: string = "en-ZA",
 ): string {
   const numAmount = Number(amount);
-  
+
   return new Intl.NumberFormat(locale, {
-    style: 'currency',
+    style: "currency",
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -151,15 +153,15 @@ export function formatCurrency(
 export function convertCurrency(
   amount: number,
   from: Currency,
-  to: Currency
+  to: Currency,
 ): number {
   if (from === to) {
     return amount;
   }
-  
+
   const rate = EXCHANGE_RATES[from]?.[to] || 1;
   const numAmount = Number(amount);
-  
+
   return numAmount * rate;
 }
 
@@ -180,10 +182,7 @@ EXCHANGE_RATES[Currency.AED] = {
 /**
  * Calculate VAT
  */
-export function calculateVAT(
-  amount: number,
-  rate: number = 15
-): number {
+export function calculateVAT(amount: number, rate: number = 15): number {
   const numAmount = Number(amount);
   return numAmount * (rate / 100);
 }
@@ -191,10 +190,7 @@ export function calculateVAT(
 /**
  * Calculate amount including VAT
  */
-export function addVAT(
-  amount: number,
-  rate: number = 15
-): number {
+export function addVAT(amount: number, rate: number = 15): number {
   const numAmount = Number(amount);
   return numAmount * (1 + rate / 100);
 }
@@ -202,10 +198,7 @@ export function addVAT(
 /**
  * Calculate amount excluding VAT
  */
-export function removeVAT(
-  amount: number,
-  rate: number = 15
-): number {
+export function removeVAT(amount: number, rate: number = 15): number {
   const numAmount = Number(amount);
   return numAmount / (1 + rate / 100);
 }
@@ -220,10 +213,7 @@ export function roundMoney(amount: number): number {
 /**
  * Format number as percentage
  */
-export function formatPercentage(
-  value: number,
-  decimals: number = 2
-): string {
+export function formatPercentage(value: number, decimals: number = 2): string {
   const numValue = Number(value);
   return `${numValue.toFixed(decimals)}%`;
 }
@@ -233,7 +223,7 @@ export function formatPercentage(
  */
 export function calculateDiscount(
   amount: number,
-  discountPercent: number
+  discountPercent: number,
 ): number {
   const numAmount = Number(amount);
   return numAmount * (discountPercent / 100);
@@ -245,9 +235,9 @@ export function calculateDiscount(
 export function parseCurrency(value: string): number {
   // Remove currency symbols and commas
   const cleanValue = value
-    .replace(/[R$€£¥,\s]/g, '')
-    .replace(/\((.*)\)/, '-$1'); // Handle negative numbers in parentheses
-  
+    .replace(/[R$€£¥,\s]/g, "")
+    .replace(/\((.*)\)/, "-$1"); // Handle negative numbers in parentheses
+
   return parseFloat(cleanValue) || 0;
 }
 
@@ -263,16 +253,16 @@ export function sumAmounts(amounts: number[]): number {
  */
 export function getCurrencySymbol(currency: Currency): string {
   const symbols: Record<Currency, string> = {
-    [Currency.ZAR]: 'R',
-    [Currency.USD]: '$',
-    [Currency.EUR]: '€',
-    [Currency.GBP]: '£',
-    [Currency.AUD]: 'A$',
-    [Currency.CAD]: 'C$',
-    [Currency.JPY]: '¥',
-    [Currency.CNY]: '¥',
-    [Currency.INR]: '₹',
+    [Currency.ZAR]: "R",
+    [Currency.USD]: "$",
+    [Currency.EUR]: "€",
+    [Currency.GBP]: "£",
+    [Currency.AUD]: "A$",
+    [Currency.CAD]: "C$",
+    [Currency.JPY]: "¥",
+    [Currency.CNY]: "¥",
+    [Currency.INR]: "₹",
   };
-  
+
   return symbols[currency] || currency;
 }

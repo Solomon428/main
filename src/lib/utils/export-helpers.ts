@@ -3,7 +3,7 @@
  * CreditorFlow Enterprise Invoice Management System
  */
 
-import { formatCurrency, formatDate } from './formatting';
+import { formatCurrency, formatDate } from "./formatting";
 
 // Local type definitions to avoid importing from @prisma/client
 interface InvoiceWithRelations {
@@ -50,8 +50,8 @@ interface CSVExportOptions {
 
 const DEFAULT_CSV_OPTIONS: CSVExportOptions = {
   includeHeaders: true,
-  delimiter: ',',
-  dateFormat: 'YYYY-MM-DD',
+  delimiter: ",",
+  dateFormat: "YYYY-MM-DD",
 };
 
 /**
@@ -59,15 +59,15 @@ const DEFAULT_CSV_OPTIONS: CSVExportOptions = {
  */
 function escapeCSVField(value: unknown): string {
   if (value === null || value === undefined) {
-    return '';
+    return "";
   }
 
   const stringValue = String(value);
 
   if (
-    stringValue.includes(',') ||
+    stringValue.includes(",") ||
     stringValue.includes('"') ||
-    stringValue.includes('\n')
+    stringValue.includes("\n")
   ) {
     return `"${stringValue.replace(/"/g, '""')}"`;
   }
@@ -80,24 +80,24 @@ function escapeCSVField(value: unknown): string {
  */
 export function generateInvoiceCSV(
   invoices: InvoiceWithRelations[],
-  options: Partial<CSVExportOptions> = {}
+  options: Partial<CSVExportOptions> = {},
 ): string {
   const opts = { ...DEFAULT_CSV_OPTIONS, ...options };
   const rows: string[] = [];
 
   const headers = [
-    'Invoice Number',
-    'Supplier Name',
-    'Supplier VAT Number',
-    'Invoice Date',
-    'Due Date',
-    'Subtotal',
-    'VAT Amount',
-    'Total Amount',
-    'Currency',
-    'Status',
-    'Priority',
-    'Created At',
+    "Invoice Number",
+    "Supplier Name",
+    "Supplier VAT Number",
+    "Invoice Date",
+    "Due Date",
+    "Subtotal",
+    "VAT Amount",
+    "Total Amount",
+    "Currency",
+    "Status",
+    "Priority",
+    "Created At",
   ];
 
   if (opts.includeHeaders) {
@@ -123,7 +123,7 @@ export function generateInvoiceCSV(
     rows.push(row.join(opts.delimiter));
   }
 
-  return rows.join('\n');
+  return rows.join("\n");
 }
 
 /**
@@ -131,20 +131,20 @@ export function generateInvoiceCSV(
  */
 export function generateLineItemsCSV(
   invoices: InvoiceWithRelations[],
-  options: Partial<CSVExportOptions> = {}
+  options: Partial<CSVExportOptions> = {},
 ): string {
   const opts = { ...DEFAULT_CSV_OPTIONS, ...options };
   const rows: string[] = [];
 
   const headers = [
-    'Invoice Number',
-    'Description',
-    'Quantity',
-    'Unit Price',
-    'Total',
-    'GL Account',
-    'Cost Center',
-    'Category',
+    "Invoice Number",
+    "Description",
+    "Quantity",
+    "Unit Price",
+    "Total",
+    "GL Account",
+    "Cost Center",
+    "Category",
   ];
 
   if (opts.includeHeaders) {
@@ -159,16 +159,16 @@ export function generateLineItemsCSV(
         escapeCSVField(Number(item.quantity).toFixed(2)),
         escapeCSVField(Number(item.unitPrice).toFixed(2)),
         escapeCSVField(Number(item.total).toFixed(2)),
-        escapeCSVField(item.glAccount || ''),
-        escapeCSVField(item.costCenter || ''),
-        escapeCSVField(item.category || ''),
+        escapeCSVField(item.glAccount || ""),
+        escapeCSVField(item.costCenter || ""),
+        escapeCSVField(item.category || ""),
       ];
 
       rows.push(row.join(opts.delimiter));
     }
   }
 
-  return rows.join('\n');
+  return rows.join("\n");
 }
 
 /**
@@ -176,19 +176,19 @@ export function generateLineItemsCSV(
  */
 export function generateApprovalsCSV(
   invoices: InvoiceWithRelations[],
-  options: Partial<CSVExportOptions> = {}
+  options: Partial<CSVExportOptions> = {},
 ): string {
   const opts = { ...DEFAULT_CSV_OPTIONS, ...options };
   const rows: string[] = [];
 
   const headers = [
-    'Invoice Number',
-    'Approver',
-    'Status',
-    'Level',
-    'Comments',
-    'Created At',
-    'Completed At',
+    "Invoice Number",
+    "Approver",
+    "Status",
+    "Level",
+    "Comments",
+    "Created At",
+    "Completed At",
   ];
 
   if (opts.includeHeaders) {
@@ -202,10 +202,10 @@ export function generateApprovalsCSV(
         escapeCSVField(approval.approverId),
         escapeCSVField(approval.status),
         escapeCSVField(approval.level),
-        escapeCSVField(approval.comments || ''),
+        escapeCSVField(approval.comments || ""),
         escapeCSVField(formatDate(approval.createdAt)),
         escapeCSVField(
-          approval.completedAt ? formatDate(approval.completedAt) : ''
+          approval.completedAt ? formatDate(approval.completedAt) : "",
         ),
       ];
 
@@ -213,14 +213,14 @@ export function generateApprovalsCSV(
     }
   }
 
-  return rows.join('\n');
+  return rows.join("\n");
 }
 
 /**
  * Create downloadable blob from CSV content
  */
 export function createCSVBlob(content: string): Blob {
-  return new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  return new Blob([content], { type: "text/csv;charset=utf-8;" });
 }
 
 /**
@@ -228,9 +228,9 @@ export function createCSVBlob(content: string): Blob {
  */
 export function generateExportFilename(
   prefix: string,
-  extension: string = 'csv'
+  extension: string = "csv",
 ): string {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   return `${prefix}_${timestamp}.${extension}`;
 }
 
@@ -240,7 +240,7 @@ export function generateExportFilename(
 export function generateJSONExport(
   invoices: InvoiceWithRelations[],
   includeLineItems: boolean = true,
-  includeApprovals: boolean = true
+  includeApprovals: boolean = true,
 ): string {
   const data = invoices.map((invoice) => ({
     invoiceNumber: invoice.invoiceNumber,

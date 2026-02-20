@@ -1,42 +1,52 @@
 // src/modules/invoices/comments.service.ts
-import { Prisma, type InvoiceComment, type Invoice, type User, type Organization, PrismaClient } from '@prisma/client';
-import { type Decimal } from '@prisma/client/runtime/library';
-import { z } from 'zod';
+import {
+  Prisma,
+  type InvoiceComment,
+  type Invoice,
+  type User,
+  type Organization,
+  PrismaClient,
+} from "@prisma/client";
+import { type Decimal } from "@prisma/client/runtime/library";
+import { z } from "zod";
 
 // Validation schemas
 const createCommentSchema = z.object({
-  invoiceId: z.string().min(1, 'Invoice ID is required'),
-  content: z.string().min(1, 'Comment content is required').max(5000, 'Comment too long'),
+  invoiceId: z.string().min(1, "Invoice ID is required"),
+  content: z
+    .string()
+    .min(1, "Comment content is required")
+    .max(5000, "Comment too long"),
   isInternal: z.boolean().default(false),
-  createdById: z.string().min(1, 'User ID is required'),
+  createdById: z.string().min(1, "User ID is required"),
   parentId: z.string().optional(),
 });
 
 const updateCommentSchema = z.object({
   content: z.string().min(1).max(5000).optional(),
   isInternal: z.boolean().optional(),
-  updatedById: z.string().min(1, 'User ID is required'),
+  updatedById: z.string().min(1, "User ID is required"),
 });
 
 // Custom error classes
 class InvoiceNotFoundError extends Error {
   constructor(invoiceId: string) {
     super(`Invoice not found: ${invoiceId}`);
-    this.name = 'InvoiceNotFoundError';
+    this.name = "InvoiceNotFoundError";
   }
 }
 
 class ValidationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
   }
 }
 
 class PermissionError extends Error {
-  constructor(message: string = 'Permission denied') {
+  constructor(message: string = "Permission denied") {
     super(message);
-    this.name = 'PermissionError';
+    this.name = "PermissionError";
   }
 }
 
@@ -84,7 +94,9 @@ export class InvoiceCommentService {
   /**
    * Create a new comment on an invoice
    */
-  async createComment(input: CreateInvoiceCommentInput): Promise<InvoiceComment> {
+  async createComment(
+    input: CreateInvoiceCommentInput,
+  ): Promise<InvoiceComment> {
     // Validate input
     const validated = createCommentSchema.parse(input);
 
@@ -104,11 +116,11 @@ export class InvoiceCommentService {
       });
 
       if (!parentComment) {
-        throw new Error('Parent comment not found');
+        throw new Error("Parent comment not found");
       }
 
       if (parentComment.invoiceId !== validated.invoiceId) {
-        throw new Error('Parent comment belongs to a different invoice');
+        throw new Error("Parent comment belongs to a different invoice");
       }
     }
 
@@ -135,7 +147,7 @@ export class InvoiceCommentService {
    */
   async updateComment(
     commentId: string,
-    input: UpdateInvoiceCommentInput
+    input: UpdateInvoiceCommentInput,
   ): Promise<InvoiceComment> {
     const validated = updateCommentSchema.parse(input);
 
@@ -145,12 +157,12 @@ export class InvoiceCommentService {
     });
 
     if (!existingComment) {
-      throw new Error('Comment not found');
+      throw new Error("Comment not found");
     }
 
     // Verify user has permission to update
     if (existingComment.createdById !== validated.updatedById) {
-      throw new PermissionError('You can only update your own comments');
+      throw new PermissionError("You can only update your own comments");
     }
 
     // Update the comment
@@ -158,7 +170,9 @@ export class InvoiceCommentService {
       where: { id: commentId },
       data: {
         ...(validated.content && { content: validated.content }),
-        ...(validated.isInternal !== undefined && { isInternal: validated.isInternal }),
+        ...(validated.isInternal !== undefined && {
+          isInternal: validated.isInternal,
+        }),
         updatedAt: new Date(),
       },
       include: {
@@ -179,18 +193,18 @@ export class InvoiceCommentService {
     });
 
     if (!comment) {
-      throw new Error('Comment not found');
+      throw new Error("Comment not found");
     }
 
     if (comment.createdById !== userId) {
-      throw new PermissionError('You can only delete your own comments');
+      throw new PermissionError("You can only delete your own comments");
     }
 
     // Soft delete by updating content
     await this.prisma.invoiceComment.update({
       where: { id: commentId },
       data: {
-        content: '[deleted]',
+        content: "[deleted]",
         isDeleted: true,
         updatedAt: new Date(),
       },
@@ -202,7 +216,7 @@ export class InvoiceCommentService {
    */
   async getComment(
     commentId: string,
-    include?: GetInvoiceCommentIncludeOptions
+    include?: GetInvoiceCommentIncludeOptions,
   ): Promise<InvoiceComment | null> {
     const comment = await this.prisma.invoiceComment.findUnique({
       where: { id: commentId },
@@ -213,7 +227,7 @@ export class InvoiceCommentService {
         replies: include?.replies
           ? {
               where: { isDeleted: false },
-              orderBy: { createdAt: 'asc' },
+              orderBy: { createdAt: "asc" },
             }
           : false,
       },
@@ -232,7 +246,7 @@ export class InvoiceCommentService {
       includeReplies?: boolean;
       limit?: number;
       offset?: number;
-    }
+    },
   ): Promise<InvoiceComment[]> {
     const comments = await this.prisma.invoiceComment.findMany({
       where: {
@@ -246,12 +260,12 @@ export class InvoiceCommentService {
         replies: options?.includeReplies
           ? {
               where: { isDeleted: false },
-              orderBy: { createdAt: 'asc' },
+              orderBy: { createdAt: "asc" },
               include: { createdBy: true },
             }
           : false,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: options?.limit,
       skip: options?.offset,
     });

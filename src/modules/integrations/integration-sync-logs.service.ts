@@ -2,12 +2,12 @@
 // Integration Sync Logs Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { SyncStatus } from '../../domain/enums/SyncStatus';
+import { prisma } from "../../db/prisma";
+import { SyncStatus } from "../../domain/enums/SyncStatus";
 
 export interface CreateSyncLogInput {
   integrationId: string;
-  syncType: 'IMPORT' | 'EXPORT' | 'BIDIRECTIONAL' | 'DELTA';
+  syncType: "IMPORT" | "EXPORT" | "BIDIRECTIONAL" | "DELTA";
   status: SyncStatus;
   recordsProcessed?: number;
   recordsSucceeded?: number;
@@ -31,7 +31,7 @@ export async function listSyncLogs(
     endDate?: Date;
     page?: number;
     limit?: number;
-  }
+  },
 ) {
   const where: any = { integrationId };
 
@@ -49,7 +49,7 @@ export async function listSyncLogs(
   const [logs, total] = await Promise.all([
     prisma.integrationSyncLog.findMany({
       where,
-      orderBy: { startedAt: 'desc' },
+      orderBy: { startedAt: "desc" },
       skip,
       take: limit,
     }),
@@ -120,7 +120,7 @@ export async function updateSyncLogStatus(
     errorMessage?: string;
     errorDetails?: Record<string, unknown>;
     completedAt?: Date;
-  }
+  },
 ) {
   return prisma.integrationSyncLog.update({
     where: { id },
@@ -138,7 +138,7 @@ export async function completeSyncLog(
   id: string,
   recordsProcessed: number,
   recordsSucceeded: number,
-  recordsFailed: number
+  recordsFailed: number,
 ) {
   return prisma.integrationSyncLog.update({
     where: { id },
@@ -158,7 +158,7 @@ export async function completeSyncLog(
 export async function failSyncLog(
   id: string,
   errorMessage: string,
-  errorDetails?: Record<string, unknown>
+  errorDetails?: Record<string, unknown>,
 ) {
   return prisma.integrationSyncLog.update({
     where: { id },
@@ -177,7 +177,7 @@ export async function failSyncLog(
 export async function getLatestSyncLog(integrationId: string) {
   return prisma.integrationSyncLog.findFirst({
     where: { integrationId },
-    orderBy: { startedAt: 'desc' },
+    orderBy: { startedAt: "desc" },
   });
 }
 
@@ -188,38 +188,39 @@ export async function getSyncStats(integrationId: string, days: number = 30) {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
-  const [totalSyncs, successCount, failedCount, avgDuration] = await Promise.all([
-    prisma.integrationSyncLog.count({
-      where: {
-        integrationId,
-        startedAt: { gte: startDate },
-      },
-    }),
-    prisma.integrationSyncLog.count({
-      where: {
-        integrationId,
-        status: SyncStatus.SUCCESS,
-        startedAt: { gte: startDate },
-      },
-    }),
-    prisma.integrationSyncLog.count({
-      where: {
-        integrationId,
-        status: SyncStatus.FAILED,
-        startedAt: { gte: startDate },
-      },
-    }),
-    prisma.integrationSyncLog.aggregate({
-      where: {
-        integrationId,
-        startedAt: { gte: startDate },
-        completedAt: { not: null },
-      },
-      _avg: {
-        // Calculate duration manually since Prisma doesn't support expression aggregates
-      },
-    }),
-  ]);
+  const [totalSyncs, successCount, failedCount, avgDuration] =
+    await Promise.all([
+      prisma.integrationSyncLog.count({
+        where: {
+          integrationId,
+          startedAt: { gte: startDate },
+        },
+      }),
+      prisma.integrationSyncLog.count({
+        where: {
+          integrationId,
+          status: SyncStatus.SUCCESS,
+          startedAt: { gte: startDate },
+        },
+      }),
+      prisma.integrationSyncLog.count({
+        where: {
+          integrationId,
+          status: SyncStatus.FAILED,
+          startedAt: { gte: startDate },
+        },
+      }),
+      prisma.integrationSyncLog.aggregate({
+        where: {
+          integrationId,
+          startedAt: { gte: startDate },
+          completedAt: { not: null },
+        },
+        _avg: {
+          // Calculate duration manually since Prisma doesn't support expression aggregates
+        },
+      }),
+    ]);
 
   // Get recent sync logs
   const recentLogs = await prisma.integrationSyncLog.findMany({
@@ -227,7 +228,7 @@ export async function getSyncStats(integrationId: string, days: number = 30) {
       integrationId,
       startedAt: { gte: startDate },
     },
-    orderBy: { startedAt: 'desc' },
+    orderBy: { startedAt: "desc" },
     take: 10,
   });
 
@@ -260,7 +261,7 @@ export async function getFailedSyncLogs(
   options?: {
     limit?: number;
     startDate?: Date;
-  }
+  },
 ) {
   const where: any = {
     status: SyncStatus.FAILED,
@@ -271,7 +272,7 @@ export async function getFailedSyncLogs(
 
   return prisma.integrationSyncLog.findMany({
     where,
-    orderBy: { startedAt: 'desc' },
+    orderBy: { startedAt: "desc" },
     take: options?.limit || 20,
     include: {
       integration: {

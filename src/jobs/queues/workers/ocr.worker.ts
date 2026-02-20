@@ -1,7 +1,7 @@
-import { Job } from 'bullmq';
-import { prisma } from '../../../lib/prisma';
-import { createWorker, QUEUE_NAMES } from '../queue';
-import { info, error } from '../../../observability/logger';
+import { Job } from "bullmq";
+import { prisma } from "@/db/prisma";
+import { createWorker, QUEUE_NAMES } from "../queue";
+import { info, error } from "../../../observability/logger";
 
 interface OCROutput {
   fileId: string;
@@ -21,14 +21,14 @@ async function processOCRJob(job: Job<OCROutput>): Promise<void> {
     // Update file status
     await prisma.fileAttachment.update({
       where: { id: fileId },
-      data: { processingStatus: 'PROCESSING' },
+      data: { processingStatus: "PROCESSING" },
     });
 
     // TODO: Implement actual OCR processing
     // This would use Tesseract.js, Google Vision, AWS Textract, etc.
-    
+
     // Simulated OCR result
-    const extractedText = 'Extracted text from document...';
+    const extractedText = "Extracted text from document...";
     const confidence = 95;
 
     // Update file with OCR results
@@ -38,7 +38,7 @@ async function processOCRJob(job: Job<OCROutput>): Promise<void> {
         ocrText: extractedText,
         ocrConfidence: confidence,
         ocrProcessedAt: new Date(),
-        processingStatus: 'COMPLETED',
+        processingStatus: "COMPLETED",
       },
     });
 
@@ -47,24 +47,26 @@ async function processOCRJob(job: Job<OCROutput>): Promise<void> {
       where: { id: fileId },
     });
 
-    if (file?.fileType === 'application/pdf' || file?.fileType?.startsWith('image/')) {
+    if (
+      file?.fileType === "application/pdf" ||
+      file?.fileType?.startsWith("image/")
+    ) {
       // Trigger invoice extraction if applicable
       // await triggerInvoiceExtraction(fileId, extractedText);
     }
 
     info(`OCR completed for file ${fileId}`, { jobId: job.id, confidence });
-
   } catch (err) {
     error(`OCR failed for file ${fileId}`, {
       jobId: job.id,
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: err instanceof Error ? err.message : "Unknown error",
     });
 
     await prisma.fileAttachment.update({
       where: { id: fileId },
       data: {
-        processingStatus: 'FAILED',
-        processingError: err instanceof Error ? err.message : 'Unknown error',
+        processingStatus: "FAILED",
+        processingError: err instanceof Error ? err.message : "Unknown error",
       },
     });
 
@@ -78,7 +80,7 @@ async function processOCRJob(job: Job<OCROutput>): Promise<void> {
 export const ocrWorker = createWorker<OCROutput>(
   QUEUE_NAMES.OCR,
   processOCRJob,
-  { concurrency: 2 } // Process 2 OCR jobs concurrently
+  { concurrency: 2 }, // Process 2 OCR jobs concurrently
 );
 
 export default ocrWorker;

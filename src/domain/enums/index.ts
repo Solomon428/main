@@ -1,38 +1,25 @@
-// Export all enums
-export * from './UserRole';
-export * from './Department';
-export * from './ComplianceStatus';
-export * from './InvoiceStatus';
-export * from './PaymentStatus';
-export * from './ApprovalStatus';
-export * from './ApprovalDecision';
-export * from './PaymentMethod';
-export * from './RiskLevel';
-export * from './SLAStatus';
-export * from './BankAccountType';
-export * from './ReconciliationStatus';
-export * from './TransactionType';
-export * from './ReconciliationItemStatus';
-export * from './ComplianceCheckType';
-export * from './NotificationType';
-export * from './NotificationPriority';
-export * from './NotificationChannel';
-export * from './NotificationStatus';
-export * from './ScheduledTaskType';
-export * from './ScheduledTaskStatus';
-export * from './StorageProvider';
-export * from './IntegrationType';
-export * from './IntegrationStatus';
-export * from './SyncStatus';
-export * from './WebhookStatus';
-export * from './SupplierCategory';
-export * from './SupplierStatus';
-export * from './EntityType';
-export * from './AuditAction';
-export * from './LogSeverity';
-export * from './Currency';
-export * from './DocumentType';
-export * from './TaxType';
-export * from './MatchingStatus';
-export * from './ApprovalChainType';
-export * from './FraudScoreLevel';
+/**
+ * Domain enum barrel — re-exports all enums from @prisma/client.
+ * Centralised here to maintain import compatibility throughout the codebase.
+ */
+export {
+  ApprovalChainType,
+  ApprovalDecision,
+  ApprovalStatus,
+  AuditAction,
+  BankAccountType,
+  Currency,
+  EntityType,
+  InvoiceStatus,
+  LogSeverity,
+  NotificationChannel,
+  NotificationPriority,
+  NotificationType,
+  RiskLevel,
+  StorageProvider,
+  SupplierCategory,
+  SupplierStatus,
+  SyncStatus,
+  TransactionType,
+  UserRole,
+} from "@prisma/client";

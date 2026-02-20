@@ -1,34 +1,39 @@
-import { z } from 'zod';
-import { Decimal } from 'decimal.js';
-import { isAfter } from 'date-fns';
-import { prisma } from '../../../lib/prisma';
-import { systemLogger } from '../../../observability/logger';
-import { metrics } from '../../../observability/metrics';
-import { generateId } from '../../../utils/ids';
-import { validateCurrency } from '../../../utils/money';
-import { validateEmail, validateVAT } from '../../../utils/validation';
-import { Currency } from '../../../domain/enums/Currency';
+import { z } from "zod";
+import { Decimal } from "decimal.js";
+import { isAfter } from "date-fns";
+import { prisma } from "@/db/prisma";
+import { systemLogger } from "../../../observability/logger";
+import { metrics } from "../../../observability/metrics";
+import { generateId } from "../../../utils/ids";
+import { validateCurrency } from "../../../utils/money";
+import { validateEmail, validateVAT } from "../../../utils/validation";
+import { Currency } from "../../../domain/enums/Currency";
 
 import type {
   ExtractedInvoiceData,
   ExtractionConfig,
   ExtractionResult,
   ExtractionProgress,
-  ExtractedLineItem
-} from './types';
+  ExtractedLineItem,
+} from "./types";
 import {
   ExtractionServiceError,
   ExtractionValidationError,
   ExtractionParsingError,
-  ExtractionEnrichmentError
-} from './types';
+  ExtractionEnrichmentError,
+} from "./types";
 
-import { createDefaultConfig } from './constants';
-import { createValidationSchemas } from './parsers';
-import { validateExtractedData } from './extractors/invoice-extractor';
-import { extractWithRegexInternal as extractWithRegex } from './extractors/table-extractor';
-import { parseDateString, parseAmountString, extractSupplierName, calculateMissingAmounts } from './extractors/field-extractor';
-import { calculateOverallConfidence } from './confidence';
+import { createDefaultConfig } from "./constants";
+import { createValidationSchemas } from "./parsers";
+import { validateExtractedData } from "./extractors/invoice-extractor";
+import { extractWithRegexInternal as extractWithRegex } from "./extractors/table-extractor";
+import {
+  parseDateString,
+  parseAmountString,
+  extractSupplierName,
+  calculateMissingAmounts,
+} from "./extractors/field-extractor";
+import { calculateOverallConfidence } from "./confidence";
 
 export class ExtractionService {
   private readonly logger: typeof systemLogger;
@@ -39,7 +44,7 @@ export class ExtractionService {
   constructor(
     config?: Partial<ExtractionConfig>,
     logger?: typeof systemLogger,
-    metricsInstance?: typeof metrics
+    metricsInstance?: typeof metrics,
   ) {
     this.logger = logger || systemLogger;
     this.metrics = metricsInstance || metrics;
@@ -51,74 +56,84 @@ export class ExtractionService {
     extractedText: string,
     fileId?: string,
     organizationId?: string,
-    progressCallback?: (progress: ExtractionProgress) => void
+    progressCallback?: (progress: ExtractionProgress) => void,
   ): Promise<ExtractionResult> {
     const startTime = Date.now();
     const jobId = generateId();
 
     try {
-      this.logger.info('Starting invoice parsing', {
+      this.logger.info("Starting invoice parsing", {
         jobId,
         fileId,
         organizationId,
-        textLength: extractedText.length
+        textLength: extractedText.length,
       });
 
       this.updateProgress(progressCallback, {
-        stage: 'parsing',
+        stage: "parsing",
         progress: 10,
-        message: 'Starting invoice data extraction',
-        timestamp: new Date()
+        message: "Starting invoice data extraction",
+        timestamp: new Date(),
       });
 
-      const extractedData = await extractWithRegex(extractedText, this.config, this.logger);
+      const extractedData = await extractWithRegex(
+        extractedText,
+        this.config,
+        this.logger,
+      );
 
       this.updateProgress(progressCallback, {
-        stage: 'parsing',
+        stage: "parsing",
         progress: 40,
-        message: 'Basic data extracted, now validating',
+        message: "Basic data extracted, now validating",
         details: {
           invoiceNumber: extractedData.invoiceNumber,
           totalAmount: extractedData.totalAmount?.toString(),
-          lineItems: extractedData.lineItems.length
+          lineItems: extractedData.lineItems.length,
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
-      const validation = await validateExtractedData(extractedData, this.config, this.logger);
+      const validation = await validateExtractedData(
+        extractedData,
+        this.config,
+        this.logger,
+      );
 
       this.updateProgress(progressCallback, {
-        stage: 'validating',
+        stage: "validating",
         progress: 60,
-        message: 'Data validated, now matching with existing records',
+        message: "Data validated, now matching with existing records",
         details: {
           validationScore: validation.score,
-          issues: validation.issues.length
+          issues: validation.issues.length,
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       if (organizationId) {
         extractedData.lineItems = await this.enrichLineItems(
           extractedData.lineItems,
-          organizationId
+          organizationId,
         );
       }
 
       this.updateProgress(progressCallback, {
-        stage: 'enriching',
+        stage: "enriching",
         progress: 80,
-        message: 'Data enriched, finalizing extraction',
-        timestamp: new Date()
+        message: "Data enriched, finalizing extraction",
+        timestamp: new Date(),
       });
 
       if (extractedData.lineItems.length > 0) {
-        extractedData.lineItems = calculateMissingAmounts(extractedData.lineItems);
+        extractedData.lineItems = calculateMissingAmounts(
+          extractedData.lineItems,
+        );
       }
 
       const overallConfidence = calculateOverallConfidence(
         { data: extractedData, validationScore: validation.score },
-        this.config
+        this.config,
       );
 
       const processingTime = Date.now() - startTime;
@@ -126,12 +141,12 @@ export class ExtractionService {
         success: overallConfidence >= this.config.confidenceThreshold,
         data: {
           ...extractedData,
-          confidence: overallConfidence
+          confidence: overallConfidence,
         },
         processingTime,
         pagesProcessed: 1,
         textLength: extractedText.length,
-        validation
+        validation,
       };
 
       await this.logExtraction({
@@ -145,17 +160,17 @@ export class ExtractionService {
         totalAmount: extractedData.totalAmount?.toString(),
         lineItemsCount: extractedData.lineItems.length,
         validationScore: validation.score,
-        issuesCount: validation.issues.length
+        issuesCount: validation.issues.length,
       });
 
-      this.metrics.incrementCounter('invoice.extractions.completed', 1, {
+      this.metrics.incrementCounter("invoice.extractions.completed", 1, {
         success: result.success,
         method: extractedData.extractionMethod,
-        confidence: Math.floor(overallConfidence)
+        confidence: Math.floor(overallConfidence),
       });
 
       this.updateProgress(progressCallback, {
-        stage: 'completed',
+        stage: "completed",
         progress: 100,
         message: result.success
           ? `Invoice extraction completed with ${overallConfidence.toFixed(1)}% confidence`
@@ -164,39 +179,40 @@ export class ExtractionService {
           success: result.success,
           confidence: overallConfidence,
           invoiceNumber: extractedData.invoiceNumber,
-          lineItems: extractedData.lineItems.length
+          lineItems: extractedData.lineItems.length,
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
-      this.logger.info('Invoice parsing completed', {
+      this.logger.info("Invoice parsing completed", {
         jobId,
         success: result.success,
         confidence: overallConfidence,
         processingTime,
-        invoiceNumber: extractedData.invoiceNumber
+        invoiceNumber: extractedData.invoiceNumber,
       });
 
       return result;
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      this.logger.error('Failed to parse invoice', {
+      this.logger.error("Failed to parse invoice", {
         jobId,
         fileId,
         processingTime,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       this.updateProgress(progressCallback, {
-        stage: 'failed',
+        stage: "failed",
         progress: 100,
-        message: `Invoice parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        timestamp: new Date()
+        message: `Invoice parsing failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        timestamp: new Date(),
       });
 
-      this.metrics.incrementCounter('invoice.extractions.failed', 1, {
-        errorType: error instanceof ExtractionServiceError ? error.code : 'UNKNOWN'
+      this.metrics.incrementCounter("invoice.extractions.failed", 1, {
+        errorType:
+          error instanceof ExtractionServiceError ? error.code : "UNKNOWN",
       });
 
       if (error instanceof ExtractionServiceError) {
@@ -204,9 +220,9 @@ export class ExtractionService {
       }
 
       throw new ExtractionParsingError(
-        'Failed to parse invoice',
+        "Failed to parse invoice",
         { fileId, processingTime },
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }
@@ -215,7 +231,7 @@ export class ExtractionService {
     result: ExtractionResult,
     fileAttachmentId: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<string> {
     try {
       const extractionId = generateId();
@@ -234,56 +250,56 @@ export class ExtractionService {
           extractionMethod: result.data.extractionMethod,
           validationScore: result.validation.score,
           extractedData: result.data as any,
-          rawText: 'REDACTED',
+          rawText: "REDACTED",
           metadata: {
             validationIssues: result.validation.issues,
-            savedAt: new Date().toISOString()
+            savedAt: new Date().toISOString(),
           },
           createdAt: new Date(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       });
 
-      this.logger.info('Extraction result saved', {
+      this.logger.info("Extraction result saved", {
         extractionId,
         fileAttachmentId,
         confidence: result.data.confidence,
-        validationScore: result.validation.score
+        validationScore: result.validation.score,
       });
 
       return extractionId;
     } catch (error) {
-      this.logger.error('Failed to save extraction result', {
+      this.logger.error("Failed to save extraction result", {
         fileAttachmentId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
 
       throw new ExtractionServiceError(
-        'Failed to save extraction result',
-        'SAVE_FAILED',
+        "Failed to save extraction result",
+        "SAVE_FAILED",
         { fileAttachmentId },
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }
 
   private async enrichLineItems(
     lineItems: ExtractedLineItem[],
-    _organizationId: string
+    _organizationId: string,
   ): Promise<ExtractedLineItem[]> {
     return lineItems;
   }
 
   private updateProgress(
     callback: ((progress: ExtractionProgress) => void) | undefined,
-    progress: ExtractionProgress
+    progress: ExtractionProgress,
   ): void {
     if (callback) {
       try {
         callback(progress);
       } catch (error) {
-        this.logger.warn('Failed to call progress callback', {
-          error: error instanceof Error ? error.message : 'Unknown error'
+        this.logger.warn("Failed to call progress callback", {
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -317,13 +333,13 @@ export class ExtractionService {
           lineItemsCount: logData.lineItemsCount,
           validationScore: logData.validationScore,
           issuesCount: logData.issuesCount,
-          createdAt: new Date()
-        }
+          createdAt: new Date(),
+        },
       });
     } catch (error) {
-      this.logger.error('Failed to log extraction audit', {
+      this.logger.error("Failed to log extraction audit", {
         jobId: logData.jobId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }

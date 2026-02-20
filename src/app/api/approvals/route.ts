@@ -8,8 +8,12 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
-    const page = searchParams.get("page") ? parseInt(searchParams.get("page")!) : 1;
-    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : 20;
+    const page = searchParams.get("page")
+      ? parseInt(searchParams.get("page")!)
+      : 1;
+    const limit = searchParams.get("limit")
+      ? parseInt(searchParams.get("limit")!)
+      : 20;
 
     const service = new ApprovalService({
       userId: DEFAULT_USER_ID,
@@ -39,7 +43,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching approvals:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch approvals" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -70,22 +74,25 @@ export async function POST(req: NextRequest) {
       notes: body.notes,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: approval,
-      message: "Invoice submitted for approval",
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        data: approval,
+        message: "Invoice submitted for approval",
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Error processing approval:", error);
     if (error instanceof Error) {
       return NextResponse.json(
         { success: false, error: error.message },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { success: false, error: "Failed to process approval" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

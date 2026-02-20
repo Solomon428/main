@@ -2,7 +2,7 @@
 // Reconciliations Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export async function listReconciliations() {
   return prisma.reconciliation.findMany({
@@ -10,7 +10,7 @@ export async function listReconciliations() {
       bankAccount: true,
       items: true,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 }
 
@@ -39,7 +39,7 @@ export async function matchItems(reconciliationId: string, data: any) {
   return prisma.reconciliationItem.updateMany({
     where: { reconciliationId },
     data: {
-      status: 'MATCHED',
+      status: "MATCHED",
       matchedPaymentId: data.paymentId,
       matchedAmount: data.amount,
     },
@@ -49,6 +49,6 @@ export async function matchItems(reconciliationId: string, data: any) {
 export async function getReconciliationItems(reconciliationId: string) {
   return prisma.reconciliationItem.findMany({
     where: { reconciliationId },
-    orderBy: { transactionDate: 'desc' },
+    orderBy: { transactionDate: "desc" },
   });
 }

@@ -3,10 +3,10 @@
 // ============================================================================
 // Handles dispatching notifications through various channels
 
-import { prisma } from '../../db/prisma';
-import { NotificationChannel } from '../../domain/enums/NotificationChannel';
-import { NotificationStatus } from '../../domain/enums/NotificationStatus';
-import { NotificationPriority } from '../../domain/enums/NotificationPriority';
+import { prisma } from "../../db/prisma";
+import { NotificationChannel } from "../../domain/enums/NotificationChannel";
+import { NotificationStatus } from "../../domain/enums/NotificationStatus";
+import { NotificationPriority } from "../../domain/enums/NotificationPriority";
 
 export interface DispatchOptions {
   channels?: NotificationChannel[];
@@ -20,7 +20,7 @@ export interface DispatchOptions {
  */
 export async function dispatchNotification(
   notificationId: string,
-  options: DispatchOptions = {}
+  options: DispatchOptions = {},
 ) {
   const notification = await prisma.notification.findUnique({
     where: { id: notificationId },
@@ -39,11 +39,15 @@ export async function dispatchNotification(
   });
 
   if (!notification) {
-    throw new Error('Notification not found');
+    throw new Error("Notification not found");
   }
 
   const channels = options.channels || [notification.channel];
-  const results: Array<{ channel: NotificationChannel; success: boolean; error?: string }> = [];
+  const results: Array<{
+    channel: NotificationChannel;
+    success: boolean;
+    error?: string;
+  }> = [];
 
   for (const channel of channels) {
     try {
@@ -53,7 +57,7 @@ export async function dispatchNotification(
       results.push({
         channel,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -66,7 +70,9 @@ export async function dispatchNotification(
       status: anySuccess ? NotificationStatus.SENT : NotificationStatus.FAILED,
       sentAt: anySuccess ? new Date() : undefined,
       deliveryAttempts: { increment: 1 },
-      lastError: anySuccess ? undefined : results.find((r) => !r.success)?.error,
+      lastError: anySuccess
+        ? undefined
+        : results.find((r) => !r.success)?.error,
     },
   });
 
@@ -97,7 +103,7 @@ async function dispatchToChannel(
       pushNotifications: boolean;
     } | null;
   },
-  channel: NotificationChannel
+  channel: NotificationChannel,
 ) {
   switch (channel) {
     case NotificationChannel.EMAIL:
@@ -140,11 +146,13 @@ async function dispatchEmail(notification: {
   actionUrl?: string | null;
 }) {
   if (!notification.user?.email || !notification.user.emailNotifications) {
-    throw new Error('Email not available or disabled');
+    throw new Error("Email not available or disabled");
   }
 
   // In production, integrate with email service
-  console.log(`[EMAIL DISPATCH] To: ${notification.user.email}, Subject: ${notification.title}`);
+  console.log(
+    `[EMAIL DISPATCH] To: ${notification.user.email}, Subject: ${notification.title}`,
+  );
 
   await prisma.notification.update({
     where: { id: notification.id },
@@ -172,19 +180,21 @@ async function dispatchSMS(notification: {
     notification.priority !== NotificationPriority.CRITICAL &&
     notification.priority !== NotificationPriority.EMERGENCY
   ) {
-    throw new Error('SMS only for high priority notifications');
+    throw new Error("SMS only for high priority notifications");
   }
 
   if (!notification.user?.mobileNumber || !notification.user.smsNotifications) {
-    throw new Error('Mobile number not available or SMS disabled');
+    throw new Error("Mobile number not available or SMS disabled");
   }
 
   if (!notification.shortMessage) {
-    throw new Error('Short message required for SMS');
+    throw new Error("Short message required for SMS");
   }
 
   // In production, integrate with SMS service
-  console.log(`[SMS DISPATCH] To: ${notification.user.mobileNumber}, Message: ${notification.shortMessage}`);
+  console.log(
+    `[SMS DISPATCH] To: ${notification.user.mobileNumber}, Message: ${notification.shortMessage}`,
+  );
 
   await prisma.notification.update({
     where: { id: notification.id },
@@ -207,11 +217,13 @@ async function dispatchPush(notification: {
   message: string;
 }) {
   if (!notification.user?.pushNotifications) {
-    throw new Error('Push notifications disabled');
+    throw new Error("Push notifications disabled");
   }
 
   // In production, integrate with push service (Firebase, etc.)
-  console.log(`[PUSH DISPATCH] To: ${notification.userId}, Title: ${notification.title}`);
+  console.log(
+    `[PUSH DISPATCH] To: ${notification.userId}, Title: ${notification.title}`,
+  );
 
   await prisma.notification.update({
     where: { id: notification.id },
@@ -231,7 +243,9 @@ async function dispatchSlack(notification: {
   priority: NotificationPriority;
 }) {
   // In production, integrate with Slack API
-  console.log(`[SLACK DISPATCH] Title: ${notification.title}, Priority: ${notification.priority}`);
+  console.log(
+    `[SLACK DISPATCH] Title: ${notification.title}, Priority: ${notification.priority}`,
+  );
 }
 
 /**
@@ -244,7 +258,9 @@ async function dispatchTeams(notification: {
   priority: NotificationPriority;
 }) {
   // In production, integrate with Teams webhook
-  console.log(`[TEAMS DISPATCH] Title: ${notification.title}, Priority: ${notification.priority}`);
+  console.log(
+    `[TEAMS DISPATCH] Title: ${notification.title}, Priority: ${notification.priority}`,
+  );
 }
 
 /**
@@ -258,7 +274,9 @@ async function dispatchWebhook(notification: {
   priority: NotificationPriority;
 }) {
   // In production, send to configured webhook URL
-  console.log(`[WEBHOOK DISPATCH] User: ${notification.userId}, Event: ${notification.title}`);
+  console.log(
+    `[WEBHOOK DISPATCH] User: ${notification.userId}, Event: ${notification.title}`,
+  );
 
   await prisma.notification.update({
     where: { id: notification.id },
@@ -273,7 +291,7 @@ async function dispatchWebhook(notification: {
  */
 export async function batchDispatch(
   notificationIds: string[],
-  options: DispatchOptions = {}
+  options: DispatchOptions = {},
 ) {
   const results = [];
 
@@ -285,7 +303,7 @@ export async function batchDispatch(
       results.push({
         notificationId,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -322,7 +340,7 @@ export async function retryFailedNotifications(maxRetries: number = 3) {
       results.push({
         notificationId: notification.id,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -342,7 +360,7 @@ export async function retryFailedNotifications(maxRetries: number = 3) {
  */
 export async function scheduleNotification(
   notificationId: string,
-  scheduledFor: Date
+  scheduledFor: Date,
 ) {
   return prisma.notification.update({
     where: { id: notificationId },
@@ -376,7 +394,7 @@ export async function processScheduledNotifications() {
       results.push({
         notificationId: notification.id,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }

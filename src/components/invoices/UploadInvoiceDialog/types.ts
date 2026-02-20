@@ -38,4 +38,4 @@ export interface ManualFormState {
   currency: string;
 }
 
-export type UploadStage = 'idle' | 'uploading' | 'preview' | 'success';
+export type UploadStage = "idle" | "uploading" | "preview" | "success";

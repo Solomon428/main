@@ -1,8 +1,8 @@
-import { NotificationType } from '../enums/NotificationType';
-import { NotificationPriority } from '../enums/NotificationPriority';
-import { NotificationChannel } from '../enums/NotificationChannel';
-import { NotificationStatus } from '../enums/NotificationStatus';
-import { EntityType } from '../enums/EntityType';
+import { NotificationType } from "../enums/NotificationType";
+import { NotificationPriority } from "../enums/NotificationPriority";
+import { NotificationChannel } from "../enums/NotificationChannel";
+import { NotificationStatus } from "../enums/NotificationStatus";
+import { EntityType } from "../enums/EntityType";
 
 export interface Notification {
   id: string;

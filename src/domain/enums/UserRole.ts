@@ -1,14 +1,6 @@
-export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',
-  ADMIN = 'ADMIN',
-  FINANCE_MANAGER = 'FINANCE_MANAGER',
-  APPROVER = 'APPROVER',
-  PROCUREMENT = 'PROCUREMENT',
-  VIEWER = 'VIEWER',
-  AUDITOR = 'AUDITOR',
-  CREDIT_CLERK = 'CREDIT_CLERK',
-  BRANCH_MANAGER = 'BRANCH_MANAGER',
-  FINANCIAL_MANAGER = 'FINANCIAL_MANAGER',
-  EXECUTIVE = 'EXECUTIVE',
-  GROUP_FINANCIAL_MANAGER = 'GROUP_FINANCIAL_MANAGER',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { UserRole as UserRole } from "@prisma/client";

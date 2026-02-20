@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { ComplianceStatus } from '../../domain/enums/ComplianceStatus';
-import { ComplianceCheckType } from '../../domain/enums/ComplianceCheckType';
+import { z } from "zod";
+import { ComplianceStatus } from "../../domain/enums/ComplianceStatus";
+import { ComplianceCheckType } from "../../domain/enums/ComplianceCheckType";
 
 export const runComplianceCheckSchema = z.object({
   invoiceId: z.string().uuid().optional(),
@@ -22,13 +22,13 @@ export const complianceResultSchema = z.object({
 export const overrideComplianceSchema = z.object({
   checkId: z.string().uuid(),
   userId: z.string().uuid(),
-  notes: z.string().min(1, 'Override reason is required'),
+  notes: z.string().min(1, "Override reason is required"),
 });
 
 export const complianceRemediationSchema = z.object({
   checkId: z.string().uuid(),
   remediatedBy: z.string().uuid(),
-  remediationNotes: z.string().min(1, 'Remediation notes are required'),
+  remediationNotes: z.string().min(1, "Remediation notes are required"),
   evidence: z.array(z.string()).optional(),
 });
 
@@ -45,17 +45,17 @@ export const listComplianceChecksQuerySchema = z.object({
 });
 
 export const complianceRuleSchema = z.object({
-  name: z.string().min(1, 'Rule name is required'),
+  name: z.string().min(1, "Rule name is required"),
   checkType: z.nativeEnum(ComplianceCheckType),
   enabled: z.boolean().default(true),
-  severity: z.enum(['ERROR', 'WARNING', 'INFO']).default('ERROR'),
+  severity: z.enum(["ERROR", "WARNING", "INFO"]).default("ERROR"),
   conditions: z.record(z.unknown()),
   message: z.string(),
 });
 
 export const bulkComplianceCheckSchema = z.object({
   entityIds: z.array(z.string().uuid()).min(1),
-  entityType: z.enum(['INVOICE', 'SUPPLIER']),
+  entityType: z.enum(["INVOICE", "SUPPLIER"]),
   checkTypes: z.array(z.nativeEnum(ComplianceCheckType)).optional(),
 });
 
@@ -69,8 +69,14 @@ export const complianceReportSchema = z.object({
 export type RunComplianceCheckInput = z.infer<typeof runComplianceCheckSchema>;
 export type ComplianceResultInput = z.infer<typeof complianceResultSchema>;
 export type OverrideComplianceInput = z.infer<typeof overrideComplianceSchema>;
-export type ComplianceRemediationInput = z.infer<typeof complianceRemediationSchema>;
-export type ListComplianceChecksQuery = z.infer<typeof listComplianceChecksQuerySchema>;
+export type ComplianceRemediationInput = z.infer<
+  typeof complianceRemediationSchema
+>;
+export type ListComplianceChecksQuery = z.infer<
+  typeof listComplianceChecksQuerySchema
+>;
 export type ComplianceRuleInput = z.infer<typeof complianceRuleSchema>;
-export type BulkComplianceCheckInput = z.infer<typeof bulkComplianceCheckSchema>;
+export type BulkComplianceCheckInput = z.infer<
+  typeof bulkComplianceCheckSchema
+>;
 export type ComplianceReportInput = z.infer<typeof complianceReportSchema>;

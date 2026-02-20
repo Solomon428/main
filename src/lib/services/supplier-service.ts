@@ -76,7 +76,13 @@ export class SupplierService extends BaseService {
       this.prisma.supplier.count({ where }),
     ]);
 
-    return { suppliers, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+      suppliers,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findById(id: string) {
@@ -166,12 +172,19 @@ export class SupplierService extends BaseService {
   async getStats() {
     const orgId = this.requireOrg();
 
-    const [totalCount, activeCount, inactiveCount, highRiskCount] = await Promise.all([
-      this.prisma.supplier.count({ where: { organizationId: orgId } }),
-      this.prisma.supplier.count({ where: { organizationId: orgId, status: "ACTIVE" } }),
-      this.prisma.supplier.count({ where: { organizationId: orgId, status: "INACTIVE" } }),
-      this.prisma.supplier.count({ where: { organizationId: orgId, riskLevel: "HIGH" } }),
-    ]);
+    const [totalCount, activeCount, inactiveCount, highRiskCount] =
+      await Promise.all([
+        this.prisma.supplier.count({ where: { organizationId: orgId } }),
+        this.prisma.supplier.count({
+          where: { organizationId: orgId, status: "ACTIVE" },
+        }),
+        this.prisma.supplier.count({
+          where: { organizationId: orgId, status: "INACTIVE" },
+        }),
+        this.prisma.supplier.count({
+          where: { organizationId: orgId, riskLevel: "HIGH" },
+        }),
+      ]);
 
     return {
       totalCount,

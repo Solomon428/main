@@ -41,5 +41,7 @@ export const supplierFiltersSchema = z.object({
 
 export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
 export type UpdateSupplierInput = z.infer<typeof updateSupplierSchema>;
-export type UpdateSupplierStatusInput = z.infer<typeof updateSupplierStatusSchema>;
+export type UpdateSupplierStatusInput = z.infer<
+  typeof updateSupplierStatusSchema
+>;
 export type SupplierFilters = z.infer<typeof supplierFiltersSchema>;

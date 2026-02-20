@@ -1,9 +1,9 @@
-import { SupplierStatus } from '../enums/SupplierStatus';
-import { SupplierCategory } from '../enums/SupplierCategory';
-import { RiskLevel } from '../enums/RiskLevel';
-import { ComplianceStatus } from '../enums/ComplianceStatus';
-import { BankAccountType } from '../enums/BankAccountType';
-import { Currency } from '../enums/Currency';
+import { SupplierStatus } from "../enums/SupplierStatus";
+import { SupplierCategory } from "../enums/SupplierCategory";
+import { RiskLevel } from "../enums/RiskLevel";
+import { ComplianceStatus } from "../enums/ComplianceStatus";
+import { BankAccountType } from "../enums/BankAccountType";
+import { Currency } from "../enums/Currency";
 
 export interface Supplier {
   id: string;

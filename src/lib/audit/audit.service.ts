@@ -1,6 +1,6 @@
-import { prisma } from '@/lib/prisma';
-import { logger } from '@/lib/logger';
-import { AuditAction, EntityType } from '@/domain/enums';
+import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
+import { AuditAction, EntityType } from "@/domain/enums";
 
 export interface CreateAuditLogInput {
   action: AuditAction;
@@ -46,7 +46,7 @@ export class AuditService {
       });
     } catch (error) {
       // Log to console but don't throw - audit should not break business logic
-      logger.error({ error, input }, 'Failed to create audit log');
+      logger.error({ error, input }, "Failed to create audit log");
     }
   }
 
@@ -89,7 +89,7 @@ export class AuditService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           user: {
             select: { id: true, name: true, email: true },
@@ -114,7 +114,7 @@ export class AuditService {
     entityType: EntityType,
     entityId: string,
     organizationId: string,
-    limit: number = 10
+    limit: number = 10,
   ) {
     return prisma.auditLog.findMany({
       where: {
@@ -123,7 +123,7 @@ export class AuditService {
         organizationId,
       },
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         user: {
           select: { id: true, name: true, email: true },
@@ -141,7 +141,7 @@ export class AuditService {
         where: { userId, organizationId },
       }),
       prisma.auditLog.groupBy({
-        by: ['action'],
+        by: ["action"],
         where: { userId, organizationId },
         _count: { action: true },
       }),
@@ -149,10 +149,13 @@ export class AuditService {
 
     return {
       totalActions,
-      actionsByType: actionsByType.reduce((acc, item) => {
-        acc[item.action] = item._count.action;
-        return acc;
-      }, {} as Record<string, number>),
+      actionsByType: actionsByType.reduce(
+        (acc, item) => {
+          acc[item.action] = item._count.action;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
     };
   }
 }

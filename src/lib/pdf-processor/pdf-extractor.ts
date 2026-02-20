@@ -5,7 +5,7 @@ export class PDFExtractor {
   static async extractInvoiceData(filePath: string): Promise<{
     success: boolean;
     data?: any;
-    strategy: 'TEXT' | 'OCR' | 'MANUAL' | 'NONE';
+    strategy: "TEXT" | "OCR" | "MANUAL" | "NONE";
     errors: string[];
     warnings: string[];
     confidence: number;
@@ -21,8 +21,8 @@ export class PDFExtractor {
     return {
       success: false,
       data: undefined,
-      strategy: 'NONE',
-      errors: ['PDF extraction not implemented in this fork yet'],
+      strategy: "NONE",
+      errors: ["PDF extraction not implemented in this fork yet"],
       warnings: [],
       confidence: 0,
       processingTime: 0,

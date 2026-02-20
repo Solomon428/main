@@ -2,7 +2,7 @@
 // S3 Storage Provider
 // ============================================================================
 
-import { Readable } from 'stream';
+import { Readable } from "stream";
 
 // AWS SDK types - using any for compatibility when not installed
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,20 +23,20 @@ function getS3Client(): S3Client {
   if (!s3Client) {
     // Dynamically import AWS SDK to avoid errors when not installed
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { S3Client } = require('@aws-sdk/client-s3');
-    
+    const { S3Client } = require("@aws-sdk/client-s3");
+
     s3Client = new S3Client({
-      region: process.env.AWS_REGION || 'us-east-1',
+      region: process.env.AWS_REGION || "us-east-1",
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
       },
     });
   }
   return s3Client;
 }
 
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'creditorflow-uploads';
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || "creditorflow-uploads";
 
 export interface UploadResult {
   key: string;
@@ -60,11 +60,11 @@ export async function uploadFile(
   key: string,
   buffer: Buffer,
   contentType: string,
-  metadata?: Record<string, string>
+  metadata?: Record<string, string>,
 ): Promise<UploadResult> {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { PutObjectCommand } = require('@aws-sdk/client-s3');
-  
+  const { PutObjectCommand } = require("@aws-sdk/client-s3");
+
   const client = getS3Client();
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
@@ -90,8 +90,8 @@ export async function uploadFile(
  */
 export async function downloadFile(key: string): Promise<DownloadResult> {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { GetObjectCommand } = require('@aws-sdk/client-s3');
-  
+  const { GetObjectCommand } = require("@aws-sdk/client-s3");
+
   const client = getS3Client();
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
@@ -101,12 +101,12 @@ export async function downloadFile(key: string): Promise<DownloadResult> {
   const result = await client.send(command);
 
   if (!result.Body) {
-    throw new Error('File not found');
+    throw new Error("File not found");
   }
 
   return {
     stream: result.Body as Readable,
-    contentType: result.ContentType || 'application/octet-stream',
+    contentType: result.ContentType || "application/octet-stream",
     contentLength: result.ContentLength || 0,
     lastModified: result.LastModified,
   };
@@ -117,8 +117,8 @@ export async function downloadFile(key: string): Promise<DownloadResult> {
  */
 export async function deleteFile(key: string): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
-  
+  const { DeleteObjectCommand } = require("@aws-sdk/client-s3");
+
   const client = getS3Client();
   const command = new DeleteObjectCommand({
     Bucket: BUCKET_NAME,
@@ -134,8 +134,8 @@ export async function deleteFile(key: string): Promise<void> {
 export async function fileExists(key: string): Promise<boolean> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { HeadObjectCommand } = require('@aws-sdk/client-s3');
-    
+    const { HeadObjectCommand } = require("@aws-sdk/client-s3");
+
     const client = getS3Client();
     const command = new HeadObjectCommand({
       Bucket: BUCKET_NAME,
@@ -152,12 +152,15 @@ export async function fileExists(key: string): Promise<boolean> {
 /**
  * Generate a presigned URL for file download
  */
-export async function getPresignedDownloadUrl(key: string, expiresIn: number = 3600): Promise<string> {
+export async function getPresignedDownloadUrl(
+  key: string,
+  expiresIn: number = 3600,
+): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { GetObjectCommand } = require('@aws-sdk/client-s3');
+  const { GetObjectCommand } = require("@aws-sdk/client-s3");
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-  
+  const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
   const client = getS3Client();
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
@@ -173,13 +176,13 @@ export async function getPresignedDownloadUrl(key: string, expiresIn: number = 3
 export async function getPresignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
 ): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { PutObjectCommand } = require('@aws-sdk/client-s3');
+  const { PutObjectCommand } = require("@aws-sdk/client-s3");
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-  
+  const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
   const client = getS3Client();
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
@@ -196,10 +199,10 @@ export async function getPresignedUploadUrl(
 export function generateStorageKey(
   organizationId: string,
   invoiceId: string,
-  filename: string
+  filename: string,
 ): string {
   const timestamp = Date.now();
-  const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
   return `uploads/${organizationId}/${invoiceId}/${timestamp}-${sanitizedFilename}`;
 }
 

@@ -4,8 +4,8 @@
  * Risk analysis result interfaces
  */
 
-import { FraudDetectionMethod, RiskLevel } from './enums';
-import { FraudRiskFactor } from './core-types';
+import { FraudDetectionMethod, RiskLevel } from "./enums";
+import { FraudRiskFactor } from "./core-types";
 
 export interface AmountRiskAnalysis {
   score: number;

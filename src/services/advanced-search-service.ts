@@ -1,11 +1,11 @@
-import { prisma } from '@/lib/database/client';
-import { Prisma } from '@prisma/client';
-import { InvoiceStatus, ApprovalStatus, PriorityLevel } from '@/types';
+import { prisma } from "@/lib/database/client";
+import { Prisma } from "@prisma/client";
+import { InvoiceStatus, ApprovalStatus, PriorityLevel } from "@/types";
 
 export interface SearchFilters {
   // Text search
   query?: string;
-  
+
   // Date filters
   invoiceDateFrom?: Date;
   invoiceDateTo?: Date;
@@ -13,40 +13,40 @@ export interface SearchFilters {
   dueDateTo?: Date;
   createdDateFrom?: Date;
   createdDateTo?: Date;
-  
+
   // Amount filters
   minAmount?: number;
   maxAmount?: number;
-  
+
   // Status filters
   status?: InvoiceStatus[];
   approvalStatus?: ApprovalStatus[];
   priority?: Priority[];
-  
+
   // Entity filters
   supplierId?: string[];
   approverId?: string[];
   createdById?: string[];
-  
+
   // Flags
   isOverdue?: boolean;
   isDuplicate?: boolean;
   requiresAttention?: boolean;
   hasSLABreach?: boolean;
   isEscalated?: boolean;
-  
+
   // Category/Tags
   category?: string[];
   department?: string[];
   costCenter?: string[];
-  
+
   // Pagination
   page?: number;
   pageSize?: number;
-  
+
   // Sorting
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface SearchResult {
@@ -79,13 +79,13 @@ export interface FacetResult {
 
 export class AdvancedSearchService {
   private static readonly searchableFields = [
-    'invoiceNumber',
-    'purchaseOrderNo',
-    'referenceNo',
-    'notes',
-    'ocrText',
-    'supplier.name',
-    'lineItems.description',
+    "invoiceNumber",
+    "purchaseOrderNo",
+    "referenceNo",
+    "notes",
+    "ocrText",
+    "supplier.name",
+    "lineItems.description",
   ];
 
   /**
@@ -93,7 +93,7 @@ export class AdvancedSearchService {
    */
   static async search(
     filters: SearchFilters,
-    userId?: string
+    userId?: string,
   ): Promise<{
     results: SearchResult[];
     total: number;
@@ -124,7 +124,7 @@ export class AdvancedSearchService {
             select: { id: true, name: true },
           },
           approvals: {
-            where: { status: 'PENDING' },
+            where: { status: "PENDING" },
             select: { status: true },
             take: 1,
           },
@@ -141,18 +141,22 @@ export class AdvancedSearchService {
     ]);
 
     // Transform results
-    const results: SearchResult[] = invoices.map(invoice => {
-      const isOverdue = new Date(invoice.dueDate) < new Date() && 
-        !['PAID', 'CANCELLED'].includes(invoice.status);
-      
+    const results: SearchResult[] = invoices.map((invoice) => {
+      const isOverdue =
+        new Date(invoice.dueDate) < new Date() &&
+        !["PAID", "CANCELLED"].includes(invoice.status);
+
       const daysOverdue = isOverdue
-        ? Math.floor((Date.now() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24))
+        ? Math.floor(
+            (Date.now() - new Date(invoice.dueDate).getTime()) /
+              (1000 * 60 * 60 * 24),
+          )
         : 0;
 
       return {
         id: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
-        supplierName: invoice.supplier?.name || 'Unknown',
+        supplierName: invoice.supplier?.name || "Unknown",
         supplierId: invoice.supplierId,
         status: invoice.status,
         priority: invoice.priority,
@@ -187,17 +191,19 @@ export class AdvancedSearchService {
    */
   static async quickSearch(
     query: string,
-    limit: number = 10
-  ): Promise<Array<{
-    id: string;
-    type: 'invoice' | 'supplier' | 'po';
-    title: string;
-    subtitle: string;
-    value: string;
-  }>> {
+    limit: number = 10,
+  ): Promise<
+    Array<{
+      id: string;
+      type: "invoice" | "supplier" | "po";
+      title: string;
+      subtitle: string;
+      value: string;
+    }>
+  > {
     const results: Array<{
       id: string;
-      type: 'invoice' | 'supplier' | 'po';
+      type: "invoice" | "supplier" | "po";
       title: string;
       subtitle: string;
       value: string;
@@ -207,9 +213,9 @@ export class AdvancedSearchService {
     const invoices = await prisma.invoices.findMany({
       where: {
         OR: [
-          { invoiceNumber: { contains: query, mode: 'insensitive' } },
-          { purchaseOrderNo: { contains: query, mode: 'insensitive' } },
-          { referenceNo: { contains: query, mode: 'insensitive' } },
+          { invoiceNumber: { contains: query, mode: "insensitive" } },
+          { purchaseOrderNo: { contains: query, mode: "insensitive" } },
+          { referenceNo: { contains: query, mode: "insensitive" } },
         ],
       },
       include: { supplier: { select: { name: true } } },
@@ -219,9 +225,9 @@ export class AdvancedSearchService {
     for (const invoice of invoices) {
       results.push({
         id: invoice.id,
-        type: 'invoice',
+        type: "invoice",
         title: invoice.invoiceNumber,
-        subtitle: `Invoice from ${invoice.supplier?.name || 'Unknown'}`,
+        subtitle: `Invoice from ${invoice.supplier?.name || "Unknown"}`,
         value: invoice.invoiceNumber,
       });
     }
@@ -229,7 +235,7 @@ export class AdvancedSearchService {
     // Search suppliers
     const suppliers = await prisma.supplier.findMany({
       where: {
-        name: { contains: query, mode: 'insensitive' },
+        name: { contains: query, mode: "insensitive" },
       },
       take: limit,
     });
@@ -237,7 +243,7 @@ export class AdvancedSearchService {
     for (const supplier of suppliers) {
       results.push({
         id: supplier.id,
-        type: 'supplier',
+        type: "supplier",
         title: supplier.name,
         subtitle: `Supplier (${supplier.category})`,
         value: supplier.name,
@@ -250,14 +256,16 @@ export class AdvancedSearchService {
   /**
    * Get saved searches for user
    */
-  static async getSavedSearches(userId: string): Promise<Array<{
-    id: string;
-    name: string;
-    filters: SearchFilters;
-    createdAt: Date;
-    lastUsed: Date;
-    resultCount: number;
-  }>> {
+  static async getSavedSearches(userId: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      filters: SearchFilters;
+      createdAt: Date;
+      lastUsed: Date;
+      resultCount: number;
+    }>
+  > {
     // This would query a saved_searches table
     // For now, return empty array
     return [];
@@ -269,7 +277,7 @@ export class AdvancedSearchService {
   static async saveSearch(
     userId: string,
     name: string,
-    filters: SearchFilters
+    filters: SearchFilters,
   ): Promise<{ id: string }> {
     // This would save to a saved_searches table
     // For now, just return a mock ID
@@ -281,7 +289,7 @@ export class AdvancedSearchService {
    */
   static async exportResults(
     filters: SearchFilters,
-    format: 'csv' | 'excel' | 'pdf'
+    format: "csv" | "excel" | "pdf",
   ): Promise<{
     data: Buffer | string;
     filename: string;
@@ -289,12 +297,12 @@ export class AdvancedSearchService {
   }> {
     const { results } = await this.search({ ...filters, pageSize: 1000 });
 
-    if (format === 'csv') {
+    if (format === "csv") {
       const csv = this.convertToCSV(results);
       return {
         data: csv,
-        filename: `invoices_export_${new Date().toISOString().split('T')[0]}.csv`,
-        contentType: 'text/csv',
+        filename: `invoices_export_${new Date().toISOString().split("T")[0]}.csv`,
+        contentType: "text/csv",
       };
     }
 
@@ -307,7 +315,7 @@ export class AdvancedSearchService {
    */
   static async getSuggestions(
     partialQuery: string,
-    field?: string
+    field?: string,
   ): Promise<string[]> {
     if (!partialQuery || partialQuery.length < 2) {
       return [];
@@ -315,27 +323,27 @@ export class AdvancedSearchService {
 
     const suggestions: string[] = [];
 
-    if (!field || field === 'invoiceNumber') {
+    if (!field || field === "invoiceNumber") {
       const invoices = await prisma.invoices.findMany({
         where: {
-          invoiceNumber: { startsWith: partialQuery, mode: 'insensitive' },
+          invoiceNumber: { startsWith: partialQuery, mode: "insensitive" },
         },
         select: { invoiceNumber: true },
         take: 5,
-        distinct: ['invoiceNumber'],
+        distinct: ["invoiceNumber"],
       });
-      suggestions.push(...invoices.map(i => i.invoiceNumber));
+      suggestions.push(...invoices.map((i) => i.invoiceNumber));
     }
 
-    if (!field || field === 'supplier') {
+    if (!field || field === "supplier") {
       const suppliers = await prisma.supplier.findMany({
         where: {
-          name: { startsWith: partialQuery, mode: 'insensitive' },
+          name: { startsWith: partialQuery, mode: "insensitive" },
         },
         select: { name: true },
         take: 5,
       });
-      suggestions.push(...suppliers.map(s => s.name));
+      suggestions.push(...suppliers.map((s) => s.name));
     }
 
     return suggestions;
@@ -343,27 +351,34 @@ export class AdvancedSearchService {
 
   // Private helper methods
 
-  private static buildWhereClause(filters: SearchFilters): Prisma.invoicesWhereInput {
+  private static buildWhereClause(
+    filters: SearchFilters,
+  ): Prisma.invoicesWhereInput {
     const where: Prisma.invoicesWhereInput = {};
 
     // Text search
     if (filters.query) {
       const query = filters.query.trim();
       where.OR = [
-        { invoiceNumber: { contains: query, mode: 'insensitive' } },
-        { purchaseOrderNo: { contains: query, mode: 'insensitive' } },
-        { referenceNo: { contains: query, mode: 'insensitive' } },
-        { notes: { contains: query, mode: 'insensitive' } },
-        { ocrText: { contains: query, mode: 'insensitive' } },
-        { supplier: { name: { contains: query, mode: 'insensitive' } } },
-        { lineItems: { some: { description: { contains: query, mode: 'insensitive' } } } },
+        { invoiceNumber: { contains: query, mode: "insensitive" } },
+        { purchaseOrderNo: { contains: query, mode: "insensitive" } },
+        { referenceNo: { contains: query, mode: "insensitive" } },
+        { notes: { contains: query, mode: "insensitive" } },
+        { ocrText: { contains: query, mode: "insensitive" } },
+        { supplier: { name: { contains: query, mode: "insensitive" } } },
+        {
+          lineItems: {
+            some: { description: { contains: query, mode: "insensitive" } },
+          },
+        },
       ];
     }
 
     // Date filters
     if (filters.invoiceDateFrom || filters.invoiceDateTo) {
       where.invoiceDate = {};
-      if (filters.invoiceDateFrom) where.invoiceDate.gte = filters.invoiceDateFrom;
+      if (filters.invoiceDateFrom)
+        where.invoiceDate.gte = filters.invoiceDateFrom;
       if (filters.invoiceDateTo) where.invoiceDate.lte = filters.invoiceDateTo;
     }
 
@@ -375,7 +390,8 @@ export class AdvancedSearchService {
 
     if (filters.createdDateFrom || filters.createdDateTo) {
       where.createdAt = {};
-      if (filters.createdDateFrom) where.createdAt.gte = filters.createdDateFrom;
+      if (filters.createdDateFrom)
+        where.createdAt.gte = filters.createdDateFrom;
       if (filters.createdDateTo) where.createdAt.lte = filters.createdDateTo;
     }
 
@@ -424,43 +440,40 @@ export class AdvancedSearchService {
     // Overdue filter
     if (filters.isOverdue) {
       where.dueDate = { lt: new Date() };
-      where.status = { notIn: ['PAID', 'CANCELLED'] };
+      where.status = { notIn: ["PAID", "CANCELLED"] };
     }
 
     // SLA breach filter
     if (filters.hasSLABreach) {
-      where.slaStatus = 'BREACHED';
+      where.slaStatus = "BREACHED";
     }
 
     return where;
   }
 
   private static buildOrderBy(
-    filters: SearchFilters
+    filters: SearchFilters,
   ): Prisma.InvoiceOrderByWithRelationInput {
-    const sortBy = filters.sortBy || 'createdAt';
-    const sortOrder = filters.sortOrder || 'desc';
+    const sortBy = filters.sortBy || "createdAt";
+    const sortOrder = filters.sortOrder || "desc";
 
     const validFields: Record<string, string> = {
-      invoiceNumber: 'invoiceNumber',
-      invoiceDate: 'invoiceDate',
-      dueDate: 'dueDate',
-      totalAmount: 'totalAmount',
-      status: 'status',
-      priority: 'priority',
-      createdAt: 'createdAt',
-      updatedAt: 'updatedAt',
+      invoiceNumber: "invoiceNumber",
+      invoiceDate: "invoiceDate",
+      dueDate: "dueDate",
+      totalAmount: "totalAmount",
+      status: "status",
+      priority: "priority",
+      createdAt: "createdAt",
+      updatedAt: "updatedAt",
     };
 
-    const field = validFields[sortBy] || 'createdAt';
+    const field = validFields[sortBy] || "createdAt";
 
     return { [field]: sortOrder };
   }
 
-  private static calculateMatchScore(
-    invoice: any,
-    query?: string
-  ): number {
+  private static calculateMatchScore(invoice: any, query?: string): number {
     if (!query) return 1;
 
     const queryLower = query.toLowerCase();
@@ -493,35 +506,35 @@ export class AdvancedSearchService {
     const queryLower = query.toLowerCase();
 
     if (invoice.invoiceNumber.toLowerCase().includes(queryLower)) {
-      fields.push('invoiceNumber');
+      fields.push("invoiceNumber");
     }
 
     if (invoice.supplier?.name.toLowerCase().includes(queryLower)) {
-      fields.push('supplier');
+      fields.push("supplier");
     }
 
     if (invoice.purchaseOrderNo?.toLowerCase().includes(queryLower)) {
-      fields.push('purchaseOrderNo');
+      fields.push("purchaseOrderNo");
     }
 
     return fields;
   }
 
   private static async generateFacets(
-    baseWhere: Prisma.invoicesWhereInput
+    baseWhere: Prisma.invoicesWhereInput,
   ): Promise<FacetResult[]> {
     const facets: FacetResult[] = [];
 
     // Status facet
     const statusCounts = await prisma.invoices.groupBy({
-      by: ['status'],
+      by: ["status"],
       where: baseWhere,
       _count: { status: true },
     });
 
     facets.push({
-      field: 'status',
-      values: statusCounts.map(s => ({
+      field: "status",
+      values: statusCounts.map((s) => ({
         value: s.status,
         count: s._count.status,
         display: s.status,
@@ -530,14 +543,14 @@ export class AdvancedSearchService {
 
     // Priority facet
     const priorityCounts = await prisma.invoices.groupBy({
-      by: ['priority'],
+      by: ["priority"],
       where: baseWhere,
       _count: { priority: true },
     });
 
     facets.push({
-      field: 'priority',
-      values: priorityCounts.map(p => ({
+      field: "priority",
+      values: priorityCounts.map((p) => ({
         value: p.priority,
         count: p._count.priority,
         display: p.priority,
@@ -546,24 +559,25 @@ export class AdvancedSearchService {
 
     // Supplier facet (top 10)
     const supplierCounts = await prisma.invoices.groupBy({
-      by: ['supplierId'],
+      by: ["supplierId"],
       where: baseWhere,
       _count: { supplierId: true },
-      orderBy: { _count: { supplierId: 'desc' } },
+      orderBy: { _count: { supplierId: "desc" } },
       take: 10,
     });
 
     const suppliers = await prisma.supplier.findMany({
-      where: { id: { in: supplierCounts.map(s => s.supplierId) } },
+      where: { id: { in: supplierCounts.map((s) => s.supplierId) } },
       select: { id: true, name: true },
     });
 
     facets.push({
-      field: 'supplier',
-      values: supplierCounts.map(s => ({
+      field: "supplier",
+      values: supplierCounts.map((s) => ({
         value: s.supplierId,
         count: s._count.supplierId,
-        display: suppliers.find(sup => sup.id === s.supplierId)?.name || 'Unknown',
+        display:
+          suppliers.find((sup) => sup.id === s.supplierId)?.name || "Unknown",
       })),
     });
 
@@ -572,31 +586,31 @@ export class AdvancedSearchService {
 
   private static convertToCSV(results: SearchResult[]): string {
     const headers = [
-      'Invoice Number',
-      'Supplier',
-      'Status',
-      'Priority',
-      'Invoice Date',
-      'Due Date',
-      'Amount',
-      'Currency',
-      'Overdue',
-      'Days Overdue',
+      "Invoice Number",
+      "Supplier",
+      "Status",
+      "Priority",
+      "Invoice Date",
+      "Due Date",
+      "Amount",
+      "Currency",
+      "Overdue",
+      "Days Overdue",
     ];
 
-    const rows = results.map(r => [
+    const rows = results.map((r) => [
       r.invoiceNumber,
       r.supplierName,
       r.status,
       r.priority,
-      r.invoiceDate.toISOString().split('T')[0],
-      r.dueDate.toISOString().split('T')[0],
+      r.invoiceDate.toISOString().split("T")[0],
+      r.dueDate.toISOString().split("T")[0],
       r.totalAmount,
       r.currency,
-      r.isOverdue ? 'Yes' : 'No',
+      r.isOverdue ? "Yes" : "No",
       r.daysOverdue,
     ]);
 
-    return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
   }
 }

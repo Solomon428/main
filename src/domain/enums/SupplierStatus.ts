@@ -1,10 +1,6 @@
-export enum SupplierStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  BLACKLISTED = 'BLACKLISTED',
-  PENDING_VERIFICATION = 'PENDING_VERIFICATION',
-  VERIFIED = 'VERIFIED',
-  UNDER_REVIEW = 'UNDER_REVIEW',
-  REJECTED = 'REJECTED',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { SupplierStatus as SupplierStatus } from "@prisma/client";

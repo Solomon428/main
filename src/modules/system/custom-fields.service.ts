@@ -2,15 +2,22 @@
 // Custom Fields Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { EntityType } from '../../domain/enums/EntityType';
+import { prisma } from "../../db/prisma";
+import { EntityType } from "../../domain/enums/EntityType";
 
 export interface CreateCustomFieldInput {
   organizationId: string;
   name: string;
   key: string;
   entityType: EntityType;
-  fieldType: 'TEXT' | 'NUMBER' | 'DATE' | 'BOOLEAN' | 'SELECT' | 'MULTI_SELECT' | 'URL';
+  fieldType:
+    | "TEXT"
+    | "NUMBER"
+    | "DATE"
+    | "BOOLEAN"
+    | "SELECT"
+    | "MULTI_SELECT"
+    | "URL";
   description?: string;
   isRequired?: boolean;
   defaultValue?: string | number | boolean | Date | string[];
@@ -50,7 +57,7 @@ export async function listCustomFields(
     isActive?: boolean;
     page?: number;
     limit?: number;
-  }
+  },
 ) {
   const where: any = { organizationId };
 
@@ -64,7 +71,7 @@ export async function listCustomFields(
   const [fields, total] = await Promise.all([
     prisma.customField.findMany({
       where,
-      orderBy: [{ entityType: 'asc' }, { displayOrder: 'asc' }],
+      orderBy: [{ entityType: "asc" }, { displayOrder: "asc" }],
       skip,
       take: limit,
     }),
@@ -97,7 +104,7 @@ export async function getCustomField(id: string) {
 export async function getCustomFieldByKey(
   organizationId: string,
   entityType: EntityType,
-  key: string
+  key: string,
 ) {
   return prisma.customField.findFirst({
     where: {
@@ -122,7 +129,9 @@ export async function createCustomField(data: CreateCustomFieldInput) {
   });
 
   if (existing) {
-    throw new Error(`Custom field with key "${data.key}" already exists for this entity type`);
+    throw new Error(
+      `Custom field with key "${data.key}" already exists for this entity type`,
+    );
   }
 
   return prisma.customField.create({
@@ -145,7 +154,10 @@ export async function createCustomField(data: CreateCustomFieldInput) {
 /**
  * Update a custom field
  */
-export async function updateCustomField(id: string, data: UpdateCustomFieldInput) {
+export async function updateCustomField(
+  id: string,
+  data: UpdateCustomFieldInput,
+) {
   return prisma.customField.update({
     where: { id },
     data: {
@@ -170,7 +182,7 @@ export async function deleteCustomField(id: string) {
 export async function reorderCustomFields(
   organizationId: string,
   entityType: EntityType,
-  fieldOrders: { id: string; displayOrder: number }[]
+  fieldOrders: { id: string; displayOrder: number }[],
 ) {
   const updates = fieldOrders.map((item) =>
     prisma.customField.update({
@@ -182,7 +194,7 @@ export async function reorderCustomFields(
       data: {
         displayOrder: item.displayOrder,
       },
-    })
+    }),
   );
 
   return prisma.$transaction(updates);
@@ -194,7 +206,7 @@ export async function reorderCustomFields(
 export async function getEntityCustomFields(
   organizationId: string,
   entityType: EntityType,
-  entityId: string
+  entityId: string,
 ) {
   const [fields, values] = await Promise.all([
     prisma.customField.findMany({
@@ -203,7 +215,7 @@ export async function getEntityCustomFields(
         entityType,
         isActive: true,
       },
-      orderBy: { displayOrder: 'asc' },
+      orderBy: { displayOrder: "asc" },
     }),
     prisma.customFieldValue.findMany({
       where: {
@@ -216,7 +228,9 @@ export async function getEntityCustomFields(
   // Map values to fields
   return fields.map((field) => ({
     ...field,
-    value: values.find((v) => v.customFieldId === field.id)?.value || field.defaultValue,
+    value:
+      values.find((v) => v.customFieldId === field.id)?.value ||
+      field.defaultValue,
   }));
 }
 
@@ -227,18 +241,18 @@ export async function setCustomFieldValue(
   customFieldId: string,
   entityType: EntityType,
   entityId: string,
-  value: unknown
+  value: unknown,
 ) {
   const customField = await prisma.customField.findUnique({
     where: { id: customFieldId },
   });
 
   if (!customField) {
-    throw new Error('Custom field not found');
+    throw new Error("Custom field not found");
   }
 
   if (customField.entityType !== entityType) {
-    throw new Error('Entity type mismatch');
+    throw new Error("Entity type mismatch");
   }
 
   // Validate value
@@ -279,7 +293,7 @@ export async function setCustomFieldValue(
 export async function setMultipleCustomFieldValues(
   entityType: EntityType,
   entityId: string,
-  values: Record<string, unknown>
+  values: Record<string, unknown>,
 ) {
   const fields = await prisma.customField.findMany({
     where: {
@@ -306,7 +320,7 @@ export async function setMultipleCustomFieldValues(
 export async function deleteCustomFieldValue(
   customFieldId: string,
   entityType: EntityType,
-  entityId: string
+  entityId: string,
 ) {
   return prisma.customFieldValue.deleteMany({
     where: {
@@ -325,7 +339,7 @@ export async function getCustomFieldStats(organizationId: string) {
     prisma.customField.count({ where: { organizationId } }),
     prisma.customField.count({ where: { organizationId, isActive: true } }),
     prisma.customField.groupBy({
-      by: ['entityType'],
+      by: ["entityType"],
       where: { organizationId },
       _count: { entityType: true },
     }),
@@ -335,10 +349,13 @@ export async function getCustomFieldStats(organizationId: string) {
     totalFields,
     activeFields,
     inactiveFields: totalFields - activeFields,
-    fieldsByType: fieldsByType.reduce((acc, item) => {
-      acc[item.entityType] = item._count.entityType;
-      return acc;
-    }, {} as Record<string, number>),
+    fieldsByType: fieldsByType.reduce(
+      (acc, item) => {
+        acc[item.entityType] = item._count.entityType;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
   };
 }
 
@@ -356,34 +373,43 @@ function validateFieldValue(
       maxLength?: number;
     };
   },
-  value: unknown
+  value: unknown,
 ) {
-  if (value === null || value === undefined || value === '') {
+  if (value === null || value === undefined || value === "") {
     if (field.isRequired) {
-      throw new Error('This field is required');
+      throw new Error("This field is required");
     }
     return;
   }
 
   switch (field.fieldType) {
-    case 'TEXT':
-      if (typeof value !== 'string') {
-        throw new Error('Value must be a string');
+    case "TEXT":
+      if (typeof value !== "string") {
+        throw new Error("Value must be a string");
       }
-      if (field.validation?.minLength && value.length < field.validation.minLength) {
+      if (
+        field.validation?.minLength &&
+        value.length < field.validation.minLength
+      ) {
         throw new Error(`Minimum length is ${field.validation.minLength}`);
       }
-      if (field.validation?.maxLength && value.length > field.validation.maxLength) {
+      if (
+        field.validation?.maxLength &&
+        value.length > field.validation.maxLength
+      ) {
         throw new Error(`Maximum length is ${field.validation.maxLength}`);
       }
-      if (field.validation?.pattern && !new RegExp(field.validation.pattern).test(value)) {
-        throw new Error('Value does not match required pattern');
+      if (
+        field.validation?.pattern &&
+        !new RegExp(field.validation.pattern).test(value)
+      ) {
+        throw new Error("Value does not match required pattern");
       }
       break;
 
-    case 'NUMBER':
-      if (typeof value !== 'number') {
-        throw new Error('Value must be a number');
+    case "NUMBER":
+      if (typeof value !== "number") {
+        throw new Error("Value must be a number");
       }
       if (field.validation?.min !== undefined && value < field.validation.min) {
         throw new Error(`Minimum value is ${field.validation.min}`);
@@ -393,27 +419,30 @@ function validateFieldValue(
       }
       break;
 
-    case 'BOOLEAN':
-      if (typeof value !== 'boolean') {
-        throw new Error('Value must be a boolean');
+    case "BOOLEAN":
+      if (typeof value !== "boolean") {
+        throw new Error("Value must be a boolean");
       }
       break;
 
-    case 'DATE':
+    case "DATE":
       if (!(value instanceof Date) && isNaN(Date.parse(value as string))) {
-        throw new Error('Value must be a valid date');
+        throw new Error("Value must be a valid date");
       }
       break;
 
-    case 'SELECT':
-      if (typeof value !== 'string' || !field.options.includes(value)) {
-        throw new Error('Invalid option selected');
+    case "SELECT":
+      if (typeof value !== "string" || !field.options.includes(value)) {
+        throw new Error("Invalid option selected");
       }
       break;
 
-    case 'MULTI_SELECT':
-      if (!Array.isArray(value) || !value.every((v) => field.options.includes(v))) {
-        throw new Error('Invalid options selected');
+    case "MULTI_SELECT":
+      if (
+        !Array.isArray(value) ||
+        !value.every((v) => field.options.includes(v))
+      ) {
+        throw new Error("Invalid options selected");
       }
       break;
   }

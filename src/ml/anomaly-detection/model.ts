@@ -22,7 +22,7 @@ export interface AnomalyDetectionOutput {
   isAnomaly: boolean;
   confidence: number;
   anomalyType: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  severity: "LOW" | "MEDIUM" | "HIGH";
   details: {
     zScore?: number;
     iqrOutlier?: boolean;
@@ -36,41 +36,51 @@ export interface AnomalyDetectionOutput {
 export class AnomalyDetectionModel {
   private readonly Z_SCORE_THRESHOLD = 2.5;
   private readonly IQR_MULTIPLIER = 1.5;
-  private readonly BENFORD_EXPECTED = [0.301, 0.176, 0.125, 0.097, 0.079, 0.067, 0.058, 0.051, 0.046];
+  private readonly BENFORD_EXPECTED = [
+    0.301, 0.176, 0.125, 0.097, 0.079, 0.067, 0.058, 0.051, 0.046,
+  ];
 
   /**
    * Detect anomalies in invoice data
    */
   async detect(input: AnomalyDetectionInput): Promise<AnomalyDetectionOutput> {
-    const results: Partial<AnomalyDetectionOutput['details']> = {};
+    const results: Partial<AnomalyDetectionOutput["details"]> = {};
     let isAnomaly = false;
-    let anomalyType = '';
-    let severity: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
+    let anomalyType = "";
+    let severity: "LOW" | "MEDIUM" | "HIGH" = "LOW";
     const explanations: string[] = [];
 
     // 1. Z-score analysis
     if (input.historicalAmounts.length >= 5) {
-      const zScore = this.calculateZScore(input.amount, input.historicalAmounts);
+      const zScore = this.calculateZScore(
+        input.amount,
+        input.historicalAmounts,
+      );
       results.zScore = zScore;
-      
+
       if (Math.abs(zScore) > this.Z_SCORE_THRESHOLD) {
         isAnomaly = true;
-        anomalyType = 'AMOUNT_OUTLIER';
-        severity = Math.abs(zScore) > 4 ? 'HIGH' : 'MEDIUM';
-        explanations.push(`Amount is ${Math.abs(zScore).toFixed(2)} standard deviations from average`);
+        anomalyType = "AMOUNT_OUTLIER";
+        severity = Math.abs(zScore) > 4 ? "HIGH" : "MEDIUM";
+        explanations.push(
+          `Amount is ${Math.abs(zScore).toFixed(2)} standard deviations from average`,
+        );
       }
     }
 
     // 2. IQR analysis
     if (input.historicalAmounts.length >= 5) {
-      const isIqrOutlier = this.isIQROutlier(input.amount, input.historicalAmounts);
+      const isIqrOutlier = this.isIQROutlier(
+        input.amount,
+        input.historicalAmounts,
+      );
       results.iqrOutlier = isIqrOutlier;
-      
+
       if (isIqrOutlier && !isAnomaly) {
         isAnomaly = true;
-        anomalyType = 'AMOUNT_OUTLIER';
-        severity = 'MEDIUM';
-        explanations.push('Amount falls outside the interquartile range');
+        anomalyType = "AMOUNT_OUTLIER";
+        severity = "MEDIUM";
+        explanations.push("Amount falls outside the interquartile range");
       }
     }
 
@@ -78,35 +88,39 @@ export class AnomalyDetectionModel {
     if (input.historicalDates.length >= 10) {
       const frequencySpike = this.detectFrequencySpike(input.historicalDates);
       results.frequencySpike = frequencySpike;
-      
+
       if (frequencySpike) {
         isAnomaly = true;
-        anomalyType = anomalyType || 'FREQUENCY_ANOMALY';
-        severity = severity === 'HIGH' ? 'HIGH' : 'MEDIUM';
-        explanations.push('Unusual frequency of invoices detected');
+        anomalyType = anomalyType || "FREQUENCY_ANOMALY";
+        severity = severity === "HIGH" ? "HIGH" : "MEDIUM";
+        explanations.push("Unusual frequency of invoices detected");
       }
     }
 
     // 4. Time-based anomalies
     const timeAnomaly = this.detectTimeAnomaly(input.invoiceDate);
     results.timeAnomaly = timeAnomaly;
-    
+
     if (timeAnomaly) {
       isAnomaly = true;
-      anomalyType = anomalyType || 'TIME_ANOMALY';
-      explanations.push('Invoice dated on weekend or holiday');
+      anomalyType = anomalyType || "TIME_ANOMALY";
+      explanations.push("Invoice dated on weekend or holiday");
     }
 
     // 5. Benford's Law analysis
     if (input.lineItemAmounts.length >= 5) {
-      const benfordDeviation = this.calculateBenfordDeviation(input.lineItemAmounts);
+      const benfordDeviation = this.calculateBenfordDeviation(
+        input.lineItemAmounts,
+      );
       results.benfordDeviation = benfordDeviation;
-      
+
       if (benfordDeviation > 0.3) {
         isAnomaly = true;
-        anomalyType = anomalyType || 'DIGIT_ANOMALY';
-        severity = benfordDeviation > 0.4 ? 'HIGH' : 'MEDIUM';
-        explanations.push('Digit distribution deviates significantly from Benford\'s Law');
+        anomalyType = anomalyType || "DIGIT_ANOMALY";
+        severity = benfordDeviation > 0.4 ? "HIGH" : "MEDIUM";
+        explanations.push(
+          "Digit distribution deviates significantly from Benford's Law",
+        );
       }
     }
 
@@ -115,16 +129,18 @@ export class AnomalyDetectionModel {
     return {
       isAnomaly,
       confidence,
-      anomalyType: anomalyType || 'NONE',
+      anomalyType: anomalyType || "NONE",
       severity,
-      details: results as AnomalyDetectionOutput['details'],
-      explanation: explanations.join('; ') || 'No anomalies detected',
+      details: results as AnomalyDetectionOutput["details"],
+      explanation: explanations.join("; ") || "No anomalies detected",
     };
   }
 
   private calculateZScore(value: number, historical: number[]): number {
     const mean = historical.reduce((a, b) => a + b, 0) / historical.length;
-    const variance = historical.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / historical.length;
+    const variance =
+      historical.reduce((a, b) => a + Math.pow(b - mean, 2), 0) /
+      historical.length;
     const stdDev = Math.sqrt(variance);
     return stdDev === 0 ? 0 : (value - mean) / stdDev;
   }
@@ -145,10 +161,12 @@ export class AnomalyDetectionModel {
     // Check if there are unusually many invoices in recent 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    
-    const recentCount = historicalDates.filter(d => d > thirtyDaysAgo).length;
-    const olderCount = historicalDates.filter(d => d <= thirtyDaysAgo && d > sixtyDaysAgo).length;
-    
+
+    const recentCount = historicalDates.filter((d) => d > thirtyDaysAgo).length;
+    const olderCount = historicalDates.filter(
+      (d) => d <= thirtyDaysAgo && d > sixtyDaysAgo,
+    ).length;
+
     if (olderCount === 0) return recentCount > 5;
     return recentCount > olderCount * 2;
   }
@@ -160,17 +178,17 @@ export class AnomalyDetectionModel {
 
   private calculateBenfordDeviation(amounts: number[]): number {
     const firstDigits = amounts
-      .map(a => parseInt(a.toString()[0]))
-      .filter(d => d > 0);
-    
+      .map((a) => parseInt(a.toString()[0]))
+      .filter((d) => d > 0);
+
     if (firstDigits.length < 5) return 0;
 
     const observed = new Array(9).fill(0);
-    firstDigits.forEach(d => observed[d - 1]++);
-    
+    firstDigits.forEach((d) => observed[d - 1]++);
+
     const total = firstDigits.length;
-    const observedFreq = observed.map(c => c / total);
-    
+    const observedFreq = observed.map((c) => c / total);
+
     const deviation = observedFreq.reduce((sum, freq, i) => {
       return sum + Math.abs(freq - this.BENFORD_EXPECTED[i]);
     }, 0);
@@ -178,9 +196,11 @@ export class AnomalyDetectionModel {
     return deviation / 9;
   }
 
-  private calculateOverallConfidence(details: Partial<AnomalyDetectionOutput['details']>): number {
+  private calculateOverallConfidence(
+    details: Partial<AnomalyDetectionOutput["details"]>,
+  ): number {
     let confidence = 0.5;
-    
+
     if (details.zScore !== undefined) {
       confidence += Math.min(Math.abs(details.zScore) * 0.1, 0.2);
     }

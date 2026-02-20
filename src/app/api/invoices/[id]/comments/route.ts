@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "../../../../lib/prisma";
 
 /**
  * GET /api/invoices/[id]/comments - Fetch all comments for an invoice
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const invoiceId = params.id;
@@ -18,15 +18,15 @@ export async function GET(
 
     if (!invoice) {
       return NextResponse.json(
-        { success: false, error: 'Invoice not found' },
-        { status: 404 }
+        { success: false, error: "Invoice not found" },
+        { status: 404 },
       );
     }
 
     // Fetch comments
     const comments = await prisma.comment.findMany({
       where: { invoiceId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json({
@@ -34,10 +34,10 @@ export async function GET(
       data: comments,
     });
   } catch (error) {
-    console.error('[Comments API] GET Error:', error);
+    console.error("[Comments API] GET Error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch comments' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch comments" },
+      { status: 500 },
     );
   }
 }
@@ -47,7 +47,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const invoiceId = params.id;
@@ -55,13 +55,13 @@ export async function POST(
     const { content, isInternalNote } = body;
 
     // Get user from headers (simplified auth)
-    const userId = request.headers.get('x-user-id') || 'system';
-    const userName = request.headers.get('x-user-name') || 'System User';
+    const userId = request.headers.get("x-user-id") || "system";
+    const userName = request.headers.get("x-user-name") || "System User";
 
-    if (!content || content.trim() === '') {
+    if (!content || content.trim() === "") {
       return NextResponse.json(
-        { success: false, error: 'Comment content is required' },
-        { status: 400 }
+        { success: false, error: "Comment content is required" },
+        { status: 400 },
       );
     }
 
@@ -72,8 +72,8 @@ export async function POST(
 
     if (!invoice) {
       return NextResponse.json(
-        { success: false, error: 'Invoice not found' },
-        { status: 404 }
+        { success: false, error: "Invoice not found" },
+        { status: 404 },
       );
     }
 
@@ -84,20 +84,20 @@ export async function POST(
         user: userName,
         content: content.trim(),
         isInternalNote: isInternalNote || false,
-        attachments: '[]', // Empty JSON array as string for SQLite
+        attachments: "[]", // Empty JSON array as string for SQLite
       },
     });
 
     return NextResponse.json({
       success: true,
       data: comment,
-      message: 'Comment added successfully',
+      message: "Comment added successfully",
     });
   } catch (error) {
-    console.error('[Comments API] POST Error:', error);
+    console.error("[Comments API] POST Error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to add comment' },
-      { status: 500 }
+      { success: false, error: "Failed to add comment" },
+      { status: 500 },
     );
   }
 }

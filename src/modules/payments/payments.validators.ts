@@ -1,12 +1,12 @@
-import { z } from 'zod';
-import { PaymentStatus } from '../../domain/enums/PaymentStatus';
-import { PaymentMethod } from '../../domain/enums/PaymentMethod';
-import { Currency } from '../../domain/enums/Currency';
-import { BankAccountType } from '../../domain/enums/BankAccountType';
+import { z } from "zod";
+import { PaymentStatus } from "../../domain/enums/PaymentStatus";
+import { PaymentMethod } from "../../domain/enums/PaymentMethod";
+import { Currency } from "../../domain/enums/Currency";
+import { BankAccountType } from "../../domain/enums/BankAccountType";
 
-const decimalSchema = z.union([z.string(), z.number()]).transform(val =>
-  typeof val === 'string' ? parseFloat(val) : val
-);
+const decimalSchema = z
+  .union([z.string(), z.number()])
+  .transform((val) => (typeof val === "string" ? parseFloat(val) : val));
 
 export const createPaymentSchema = z.object({
   invoiceId: z.string().uuid().optional(),
@@ -14,10 +14,15 @@ export const createPaymentSchema = z.object({
   bankAccountId: z.string().uuid().optional(),
   paymentNumber: z.string().optional(),
   paymentDate: z.coerce.date(),
-  amount: decimalSchema.refine(val => val > 0, 'Amount must be greater than 0'),
+  amount: decimalSchema.refine(
+    (val) => val > 0,
+    "Amount must be greater than 0",
+  ),
   currency: z.nativeEnum(Currency).default(Currency.ZAR),
   exchangeRate: decimalSchema.optional(),
-  paymentMethod: z.nativeEnum(PaymentMethod).default(PaymentMethod.BANK_TRANSFER),
+  paymentMethod: z
+    .nativeEnum(PaymentMethod)
+    .default(PaymentMethod.BANK_TRANSFER),
   bankReference: z.string().optional(),
   checkNumber: z.string().optional(),
   transactionId: z.string().optional(),
@@ -25,7 +30,7 @@ export const createPaymentSchema = z.object({
   internalNotes: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
   externalId: z.string().optional(),
-  source: z.string().default('MANUAL'),
+  source: z.string().default("MANUAL"),
 });
 
 export const updatePaymentSchema = z.object({
@@ -62,7 +67,9 @@ export const updatePaymentBatchSchema = z.object({
 });
 
 export const addPaymentToBatchSchema = z.object({
-  paymentIds: z.array(z.string().uuid()).min(1, 'At least one payment is required'),
+  paymentIds: z
+    .array(z.string().uuid())
+    .min(1, "At least one payment is required"),
 });
 
 export const removePaymentFromBatchSchema = z.object({
@@ -79,7 +86,7 @@ export const releasePaymentBatchSchema = z.object({
 });
 
 export const cancelPaymentSchema = z.object({
-  reason: z.string().min(1, 'Cancellation reason is required'),
+  reason: z.string().min(1, "Cancellation reason is required"),
 });
 
 export const reconcilePaymentSchema = z.object({
@@ -88,9 +95,9 @@ export const reconcilePaymentSchema = z.object({
 });
 
 export const createBankAccountSchema = z.object({
-  accountName: z.string().min(1, 'Account name is required'),
-  accountNumber: z.string().min(1, 'Account number is required'),
-  bankName: z.string().min(1, 'Bank name is required'),
+  accountName: z.string().min(1, "Account name is required"),
+  accountNumber: z.string().min(1, "Account number is required"),
+  bankName: z.string().min(1, "Bank name is required"),
   bankCode: z.string().optional(),
   branchName: z.string().optional(),
   branchCode: z.string().optional(),
@@ -107,7 +114,7 @@ export const updateBankAccountSchema = createBankAccountSchema.partial();
 
 export const bulkPaymentActionSchema = z.object({
   paymentIds: z.array(z.string().uuid()).min(1),
-  action: z.enum(['PROCESS', 'CANCEL', 'RECONCILE']),
+  action: z.enum(["PROCESS", "CANCEL", "RECONCILE"]),
   notes: z.string().optional(),
 });
 
@@ -139,13 +146,21 @@ export type UpdatePaymentInput = z.infer<typeof updatePaymentSchema>;
 export type CreatePaymentBatchInput = z.infer<typeof createPaymentBatchSchema>;
 export type UpdatePaymentBatchInput = z.infer<typeof updatePaymentBatchSchema>;
 export type AddPaymentToBatchInput = z.infer<typeof addPaymentToBatchSchema>;
-export type RemovePaymentFromBatchInput = z.infer<typeof removePaymentFromBatchSchema>;
-export type ProcessPaymentBatchInput = z.infer<typeof processPaymentBatchSchema>;
-export type ReleasePaymentBatchInput = z.infer<typeof releasePaymentBatchSchema>;
+export type RemovePaymentFromBatchInput = z.infer<
+  typeof removePaymentFromBatchSchema
+>;
+export type ProcessPaymentBatchInput = z.infer<
+  typeof processPaymentBatchSchema
+>;
+export type ReleasePaymentBatchInput = z.infer<
+  typeof releasePaymentBatchSchema
+>;
 export type CancelPaymentInput = z.infer<typeof cancelPaymentSchema>;
 export type ReconcilePaymentInput = z.infer<typeof reconcilePaymentSchema>;
 export type CreateBankAccountInput = z.infer<typeof createBankAccountSchema>;
 export type UpdateBankAccountInput = z.infer<typeof updateBankAccountSchema>;
 export type BulkPaymentActionInput = z.infer<typeof bulkPaymentActionSchema>;
 export type ListPaymentsQuery = z.infer<typeof listPaymentsQuerySchema>;
-export type ListPaymentBatchesQuery = z.infer<typeof listPaymentBatchesQuerySchema>;
+export type ListPaymentBatchesQuery = z.infer<
+  typeof listPaymentBatchesQuerySchema
+>;

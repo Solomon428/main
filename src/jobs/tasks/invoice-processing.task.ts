@@ -1,16 +1,16 @@
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { InvoiceStatus } from '../../domain/enums/InvoiceStatus';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { InvoiceStatus } from "../../domain/enums/InvoiceStatus";
+import { info, error } from "../../observability/logger";
 
 /**
  * Process pending invoices - validate, extract data, check duplicates
  */
 export async function runTask(
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
-  info('Starting invoice processing task', { taskId: task.id });
+  info("Starting invoice processing task", { taskId: task.id });
 
   const invoices = await prisma.invoices.findMany({
     where: {
@@ -26,7 +26,7 @@ export async function runTask(
 
   for (const invoice of invoices) {
     if (signal.aborted) {
-      info('Invoice processing task aborted', { taskId: task.id });
+      info("Invoice processing task aborted", { taskId: task.id });
       return;
     }
 
@@ -45,16 +45,15 @@ export async function runTask(
       // Mark as validated if all checks pass
       await prisma.invoices.update({
         where: { id: invoice.id },
-        data: { 
+        data: {
           status: InvoiceStatus.VALIDATED,
           validatedDate: new Date(),
         },
       });
-
     } catch (err) {
       error(`Failed to process invoice ${invoice.id}`, {
         taskId: task.id,
-        error: err instanceof Error ? err.message : 'Unknown error',
+        error: err instanceof Error ? err.message : "Unknown error",
       });
 
       // Mark for manual review
@@ -63,11 +62,11 @@ export async function runTask(
         data: {
           status: InvoiceStatus.UNDER_REVIEW,
           manualReviewRequired: true,
-          manualReviewReason: 'Processing failed',
+          manualReviewReason: "Processing failed",
         },
       });
     }
   }
 
-  info('Invoice processing task completed', { taskId: task.id });
+  info("Invoice processing task completed", { taskId: task.id });
 }

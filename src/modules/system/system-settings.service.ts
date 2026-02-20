@@ -2,11 +2,11 @@
 // System Settings Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export async function listSettings() {
   return prisma.systemSetting.findMany({
-    orderBy: { category: 'asc' },
+    orderBy: { category: "asc" },
   });
 }
 
@@ -37,8 +37,8 @@ export async function updateSetting(key: string, data: any) {
       key,
       value: data.value,
       description: data.description,
-      category: data.category || 'GENERAL',
-      dataType: data.dataType || 'STRING',
+      category: data.category || "GENERAL",
+      dataType: data.dataType || "STRING",
       updatedBy: data.updatedBy,
     },
   });
@@ -53,6 +53,6 @@ export async function deleteSetting(key: string) {
 export async function getSettingsByCategory(category: string) {
   return prisma.systemSetting.findMany({
     where: { category },
-    orderBy: { key: 'asc' },
+    orderBy: { key: "asc" },
   });
 }

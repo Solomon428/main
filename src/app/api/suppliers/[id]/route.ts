@@ -6,7 +6,7 @@ const DEFAULT_USER_ID = "default-user-id";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const service = new SupplierService({
@@ -25,19 +25,19 @@ export async function GET(
     if (error instanceof Error && error.message === "Supplier not found") {
       return NextResponse.json(
         { success: false, error: "Supplier not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     return NextResponse.json(
       { success: false, error: "Failed to fetch supplier" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const body = await req.json();
@@ -67,19 +67,19 @@ export async function PATCH(
     if (error instanceof Error && error.message === "Supplier not found") {
       return NextResponse.json(
         { success: false, error: "Supplier not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     return NextResponse.json(
       { success: false, error: "Failed to update supplier" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const service = new SupplierService({
@@ -99,17 +99,17 @@ export async function DELETE(
       if (error.message === "Supplier not found") {
         return NextResponse.json(
           { success: false, error: "Supplier not found" },
-          { status: 404 }
+          { status: 404 },
         );
       }
       return NextResponse.json(
         { success: false, error: error.message },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { success: false, error: "Failed to delete supplier" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

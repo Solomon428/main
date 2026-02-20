@@ -35,14 +35,14 @@ interface ApprovalData {
 
 export class EmailTemplates {
   private static formatCurrency(amount: number): string {
-    return `R${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `R${amount.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   private static formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('en-ZA', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
+    return new Date(date).toLocaleDateString("en-ZA", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     });
   }
 
@@ -91,9 +91,12 @@ export class EmailTemplates {
   static approvalRequired(
     invoice: InvoiceData,
     approver: UserData,
-    approval: ApprovalData
+    approval: ApprovalData,
   ): EmailTemplate {
-    const isUrgent = invoice.priority === 'CRITICAL' || invoice.priority === 'HIGH' || invoice.isUrgent;
+    const isUrgent =
+      invoice.priority === "CRITICAL" ||
+      invoice.priority === "HIGH" ||
+      invoice.isUrgent;
     const subject = `Approval Required: Invoice ${invoice.invoiceNumber} - ${this.formatCurrency(Number(invoice.totalAmount))}`;
 
     const html = this.getBaseTemplate(`
@@ -104,7 +107,7 @@ export class EmailTemplates {
       <div class="info-box">
         <p class="amount">${this.formatCurrency(Number(invoice.totalAmount))}</p>
         <p><strong>Invoice:</strong> ${invoice.invoiceNumber}</p>
-        <p><strong>Supplier:</strong> ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}</p>
+        <p><strong>Supplier:</strong> ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}</p>
         <p><strong>Invoice Date:</strong> ${this.formatDate(invoice.invoiceDate)}</p>
         <p><strong>Due Date:</strong> ${this.formatDate(invoice.dueDate)}</p>
       </div>
@@ -113,7 +116,7 @@ export class EmailTemplates {
         <a href="${process.env.NEXTAUTH_URL}/invoices/${invoice.id}" class="button">View Invoice</a>
       </p>
 
-      ${isUrgent ? '<div class="critical-box"><strong>⚠️ URGENT:</strong> This invoice is marked as urgent and requires immediate attention.</div>' : ''}
+      ${isUrgent ? '<div class="critical-box"><strong>⚠️ URGENT:</strong> This invoice is marked as urgent and requires immediate attention.</div>' : ""}
     `);
 
     const text = `
@@ -125,13 +128,13 @@ You have a new invoice requiring your approval:
 
 Invoice: ${invoice.invoiceNumber}
 Amount: ${this.formatCurrency(Number(invoice.totalAmount))}
-Supplier: ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}
+Supplier: ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}
 Invoice Date: ${this.formatDate(invoice.invoiceDate)}
 Due Date: ${this.formatDate(invoice.dueDate)}
 
 View Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
 
-${isUrgent ? '⚠️ URGENT: This invoice requires immediate attention.' : ''}
+${isUrgent ? "⚠️ URGENT: This invoice requires immediate attention." : ""}
     `.trim();
 
     return { subject, html, text };
@@ -140,7 +143,7 @@ ${isUrgent ? '⚠️ URGENT: This invoice requires immediate attention.' : ''}
   static invoiceApproved(
     invoice: InvoiceData,
     user: UserData,
-    approver: UserData
+    approver: UserData,
   ): EmailTemplate {
     const subject = `Invoice Approved: ${invoice.invoiceNumber}`;
 
@@ -151,7 +154,7 @@ ${isUrgent ? '⚠️ URGENT: This invoice requires immediate attention.' : ''}
       
       <div class="info-box">
         <p><strong>Invoice:</strong> ${invoice.invoiceNumber}</p>
-        <p><strong>Supplier:</strong> ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}</p>
+        <p><strong>Supplier:</strong> ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}</p>
         <p><strong>Amount:</strong> ${this.formatCurrency(Number(invoice.totalAmount))}</p>
         <p><strong>Approved By:</strong> ${approver.name}</p>
         <p><strong>Approved Date:</strong> ${this.formatDate(new Date())}</p>
@@ -170,7 +173,7 @@ Hello ${user.name},
 Invoice ${invoice.invoiceNumber} has been approved and is ready for payment.
 
 Invoice: ${invoice.invoiceNumber}
-Supplier: ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}
+Supplier: ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}
 Amount: ${this.formatCurrency(Number(invoice.totalAmount))}
 Approved By: ${approver.name}
 Approved Date: ${this.formatDate(new Date())}
@@ -185,7 +188,7 @@ View Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
     invoice: InvoiceData,
     user: UserData,
     approver: UserData,
-    reason?: string
+    reason?: string,
   ): EmailTemplate {
     const subject = `Invoice Rejected: ${invoice.invoiceNumber}`;
 
@@ -196,10 +199,10 @@ View Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
       
       <div class="warning-box">
         <p><strong>Invoice:</strong> ${invoice.invoiceNumber}</p>
-        <p><strong>Supplier:</strong> ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}</p>
+        <p><strong>Supplier:</strong> ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}</p>
         <p><strong>Amount:</strong> ${this.formatCurrency(Number(invoice.totalAmount))}</p>
         <p><strong>Rejected By:</strong> ${approver.name}</p>
-        ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+        ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
       </div>
 
       <p style="text-align: center;">
@@ -215,10 +218,10 @@ Hello ${user.name},
 Invoice ${invoice.invoiceNumber} has been rejected.
 
 Invoice: ${invoice.invoiceNumber}
-Supplier: ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}
+Supplier: ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}
 Amount: ${this.formatCurrency(Number(invoice.totalAmount))}
 Rejected By: ${approver.name}
-${reason ? `Reason: ${reason}` : ''}
+${reason ? `Reason: ${reason}` : ""}
 
 View Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
     `.trim();
@@ -226,10 +229,7 @@ View Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
     return { subject, html, text };
   }
 
-  static slaBreach(
-    invoice: InvoiceData,
-    manager: UserData
-  ): EmailTemplate {
+  static slaBreach(invoice: InvoiceData, manager: UserData): EmailTemplate {
     const subject = `🚨 SLA Breach Alert: Invoice ${invoice.invoiceNumber}`;
 
     const html = this.getBaseTemplate(`
@@ -241,7 +241,7 @@ View Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
       
       <table class="details-table">
         <tr><th>Invoice Number</th><td>${invoice.invoiceNumber}</td></tr>
-        <tr><th>Supplier</th><td>${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}</td></tr>
+        <tr><th>Supplier</th><td>${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}</td></tr>
         <tr><th>Amount</th><td>${this.formatCurrency(Number(invoice.totalAmount))}</td></tr>
         <tr><th>Due Date</th><td>${this.formatDate(invoice.dueDate)}</td></tr>
       </table>
@@ -257,7 +257,7 @@ View Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
 Invoice ${invoice.invoiceNumber} has breached its SLA and requires immediate attention.
 
 Invoice: ${invoice.invoiceNumber}
-Supplier: ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}
+Supplier: ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}
 Amount: ${this.formatCurrency(Number(invoice.totalAmount))}
 Due Date: ${this.formatDate(invoice.dueDate)}
 
@@ -270,7 +270,7 @@ Take Action: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
   static fraudAlert(
     invoice: InvoiceData,
     user: UserData,
-    fraudScore: number
+    fraudScore: number,
   ): EmailTemplate {
     const subject = `🚨 Fraud Alert: Invoice ${invoice.invoiceNumber} (Score: ${fraudScore})`;
 
@@ -283,7 +283,7 @@ Take Action: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
       
       <table class="details-table">
         <tr><th>Invoice Number</th><td>${invoice.invoiceNumber}</td></tr>
-        <tr><th>Supplier</th><td>${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}</td></tr>
+        <tr><th>Supplier</th><td>${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}</td></tr>
         <tr><th>Amount</th><td>${this.formatCurrency(Number(invoice.totalAmount))}</td></tr>
         <tr><th>Fraud Score</th><td style="color: #f44336; font-weight: bold;">${fraudScore}/100</td></tr>
       </table>
@@ -299,7 +299,7 @@ Take Action: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
 A potentially fraudulent invoice has been detected and requires immediate review.
 
 Invoice: ${invoice.invoiceNumber}
-Supplier: ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}
+Supplier: ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}
 Amount: ${this.formatCurrency(Number(invoice.totalAmount))}
 Fraud Score: ${fraudScore}/100
 
@@ -312,26 +312,27 @@ Review Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
   static paymentReminder(
     invoice: InvoiceData,
     user: UserData,
-    daysOverdue: number
+    daysOverdue: number,
   ): EmailTemplate {
     const isOverdue = daysOverdue > 0;
-    const subject = isOverdue 
+    const subject = isOverdue
       ? `🚨 Payment Overdue: Invoice ${invoice.invoiceNumber} (${daysOverdue} days)`
       : `⏰ Payment Due Soon: Invoice ${invoice.invoiceNumber}`;
 
     const html = this.getBaseTemplate(`
-      <h2>${isOverdue ? 'Payment Overdue' : 'Payment Due Soon'}</h2>
-      ${isOverdue 
-        ? `<div class="critical-box"><h3>⚠️ Payment is ${daysOverdue} days overdue</h3></div>`
-        : `<div class="warning-box"><h3>⏰ Payment is due soon</h3></div>`
+      <h2>${isOverdue ? "Payment Overdue" : "Payment Due Soon"}</h2>
+      ${
+        isOverdue
+          ? `<div class="critical-box"><h3>⚠️ Payment is ${daysOverdue} days overdue</h3></div>`
+          : `<div class="warning-box"><h3>⏰ Payment is due soon</h3></div>`
       }
       
       <div class="info-box">
         <p><strong>Invoice:</strong> ${invoice.invoiceNumber}</p>
-        <p><strong>Supplier:</strong> ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}</p>
+        <p><strong>Supplier:</strong> ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}</p>
         <p><strong>Amount:</strong> ${this.formatCurrency(Number(invoice.totalAmount))}</p>
         <p><strong>Due Date:</strong> ${this.formatDate(invoice.dueDate)}</p>
-        ${isOverdue ? `<p><strong>Days Overdue:</strong> ${daysOverdue}</p>` : ''}
+        ${isOverdue ? `<p><strong>Days Overdue:</strong> ${daysOverdue}</p>` : ""}
       </div>
 
       <p style="text-align: center;">
@@ -340,13 +341,13 @@ Review Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
     `);
 
     const text = `
-${isOverdue ? '🚨 PAYMENT OVERDUE' : '⏰ PAYMENT DUE SOON'} - CreditorFlow
+${isOverdue ? "🚨 PAYMENT OVERDUE" : "⏰ PAYMENT DUE SOON"} - CreditorFlow
 
 Invoice: ${invoice.invoiceNumber}
-Supplier: ${invoice.supplier?.name || invoice.supplierName || 'Unknown Supplier'}
+Supplier: ${invoice.supplier?.name || invoice.supplierName || "Unknown Supplier"}
 Amount: ${this.formatCurrency(Number(invoice.totalAmount))}
 Due Date: ${this.formatDate(invoice.dueDate)}
-${isOverdue ? `Days Overdue: ${daysOverdue}` : ''}
+${isOverdue ? `Days Overdue: ${daysOverdue}` : ""}
 
 View Invoice: ${process.env.NEXTAUTH_URL}/invoices/${invoice.id}
     `.trim();

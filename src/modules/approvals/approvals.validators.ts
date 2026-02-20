@@ -1,12 +1,12 @@
-import { z } from 'zod';
-import { ApprovalStatus } from '../../domain/enums/ApprovalStatus';
-import { ApprovalDecision } from '../../domain/enums/ApprovalDecision';
-import { ApprovalChainType } from '../../domain/enums/ApprovalChainType';
-import { Currency } from '../../domain/enums/Currency';
+import { z } from "zod";
+import { ApprovalStatus } from "../../domain/enums/ApprovalStatus";
+import { ApprovalDecision } from "../../domain/enums/ApprovalDecision";
+import { ApprovalChainType } from "../../domain/enums/ApprovalChainType";
+import { Currency } from "../../domain/enums/Currency";
 
-const decimalSchema = z.union([z.string(), z.number()]).transform(val =>
-  typeof val === 'string' ? parseFloat(val) : val
-);
+const decimalSchema = z
+  .union([z.string(), z.number()])
+  .transform((val) => (typeof val === "string" ? parseFloat(val) : val));
 
 export const approvalDecisionSchema = z.object({
   decision: z.nativeEnum(ApprovalDecision),
@@ -25,7 +25,7 @@ export const approvalLevelSchema = z.object({
 });
 
 export const createApprovalChainSchema = z.object({
-  name: z.string().min(1, 'Approval chain name is required'),
+  name: z.string().min(1, "Approval chain name is required"),
   description: z.string().optional(),
   type: z.nativeEnum(ApprovalChainType).default(ApprovalChainType.SEQUENTIAL),
   department: z.string().optional(),
@@ -33,7 +33,9 @@ export const createApprovalChainSchema = z.object({
   minAmount: decimalSchema.default(0),
   maxAmount: decimalSchema.optional(),
   currency: z.nativeEnum(Currency).default(Currency.ZAR),
-  levels: z.array(approvalLevelSchema).min(1, 'At least one approval level is required'),
+  levels: z
+    .array(approvalLevelSchema)
+    .min(1, "At least one approval level is required"),
   approverRoles: z.array(z.string()).default([]),
   specificApprovers: z.array(z.string().uuid()).default([]),
   alternateApprovers: z.array(z.string().uuid()).default([]),
@@ -50,11 +52,11 @@ export const createApprovalChainSchema = z.object({
 export const updateApprovalChainSchema = createApprovalChainSchema.partial();
 
 export const delegationSchema = z.object({
-  delegateeId: z.string().uuid('Valid delegatee ID is required'),
+  delegateeId: z.string().uuid("Valid delegatee ID is required"),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   reason: z.string().optional(),
-  scope: z.string().default('ALL'),
+  scope: z.string().default("ALL"),
   specificCategories: z.array(z.string()).default([]),
 });
 
@@ -63,13 +65,13 @@ export const cancelDelegationSchema = z.object({
 });
 
 export const escalateApprovalSchema = z.object({
-  reason: z.string().min(1, 'Escalation reason is required'),
+  reason: z.string().min(1, "Escalation reason is required"),
   escalateToId: z.string().uuid().optional(),
 });
 
 export const createApprovalRequestSchema = z.object({
-  invoiceId: z.string().uuid('Valid invoice ID is required'),
-  approverId: z.string().uuid('Valid approver ID is required'),
+  invoiceId: z.string().uuid("Valid invoice ID is required"),
+  approverId: z.string().uuid("Valid approver ID is required"),
   approvalChainId: z.string().uuid().optional(),
   level: z.number().int().min(1).default(1),
   sequence: z.number().int().default(1),
@@ -102,12 +104,20 @@ export const listApprovalChainsQuerySchema = z.object({
 });
 
 export type ApprovalDecisionInput = z.infer<typeof approvalDecisionSchema>;
-export type CreateApprovalChainInput = z.infer<typeof createApprovalChainSchema>;
-export type UpdateApprovalChainInput = z.infer<typeof updateApprovalChainSchema>;
+export type CreateApprovalChainInput = z.infer<
+  typeof createApprovalChainSchema
+>;
+export type UpdateApprovalChainInput = z.infer<
+  typeof updateApprovalChainSchema
+>;
 export type DelegationInput = z.infer<typeof delegationSchema>;
 export type CancelDelegationInput = z.infer<typeof cancelDelegationSchema>;
 export type EscalateApprovalInput = z.infer<typeof escalateApprovalSchema>;
-export type CreateApprovalRequestInput = z.infer<typeof createApprovalRequestSchema>;
+export type CreateApprovalRequestInput = z.infer<
+  typeof createApprovalRequestSchema
+>;
 export type BulkApprovalActionInput = z.infer<typeof bulkApprovalActionSchema>;
 export type ListApprovalsQuery = z.infer<typeof listApprovalsQuerySchema>;
-export type ListApprovalChainsQuery = z.infer<typeof listApprovalChainsQuerySchema>;
+export type ListApprovalChainsQuery = z.infer<
+  typeof listApprovalChainsQuerySchema
+>;

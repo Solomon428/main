@@ -1,5 +1,5 @@
-import type { OcrResult, LanguageInfo } from '../types';
-import { OcrProcessingError } from '../errors';
+import type { OcrResult, LanguageInfo } from "../types";
+import { OcrProcessingError } from "../errors";
 
 export interface AzureCognitiveConfig {
   language: string;
@@ -18,16 +18,16 @@ export class AzureCognitiveEngine {
     // Azure Computer Vision initialization would go here
     // Requires @azure/cognitiveservices-computervision package
     throw new OcrProcessingError(
-      'Azure Cognitive Services not yet implemented',
-      'AZURE_NOT_IMPLEMENTED'
+      "Azure Cognitive Services not yet implemented",
+      "AZURE_NOT_IMPLEMENTED",
     );
   }
 
   async process(_imageBuffer: Buffer, fileName: string): Promise<OcrResult> {
     throw new OcrProcessingError(
-      'Azure Cognitive Services not yet implemented',
-      'AZURE_NOT_IMPLEMENTED',
-      { fileName }
+      "Azure Cognitive Services not yet implemented",
+      "AZURE_NOT_IMPLEMENTED",
+      { fileName },
     );
   }
 
@@ -37,10 +37,10 @@ export class AzureCognitiveEngine {
 
   async getLanguages(): Promise<LanguageInfo[]> {
     return [
-      { code: 'en', name: 'English', nativeName: 'English', supported: true },
-      { code: 'es', name: 'Spanish', nativeName: 'Español', supported: true },
-      { code: 'fr', name: 'French', nativeName: 'Français', supported: true },
-      { code: 'de', name: 'German', nativeName: 'Deutsch', supported: true },
+      { code: "en", name: "English", nativeName: "English", supported: true },
+      { code: "es", name: "Spanish", nativeName: "Español", supported: true },
+      { code: "fr", name: "French", nativeName: "Français", supported: true },
+      { code: "de", name: "German", nativeName: "Deutsch", supported: true },
     ];
   }
 }

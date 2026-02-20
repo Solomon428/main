@@ -1,1 +1,1 @@
-export * from './reporting-service.impl.ts';
+export * from "./reporting-service.impl.ts";

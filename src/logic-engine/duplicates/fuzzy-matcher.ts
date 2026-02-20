@@ -15,18 +15,18 @@ export class FuzzyMatcher {
     const distance = this.levenshteinDistance(s1, s2);
     const maxLength = Math.max(s1.length, s2.length);
 
-    return 1 - (distance / maxLength);
+    return 1 - distance / maxLength;
   }
 
   /**
    * Normalize a string for comparison
    */
   private static normalizeString(str: string): string {
-    if (!str) return '';
+    if (!str) return "";
     return str
       .toLowerCase()
-      .replace(/[^a-z0-9]/g, '') // Remove special characters
-      .replace(/\s+/g, '') // Remove whitespace
+      .replace(/[^a-z0-9]/g, "") // Remove special characters
+      .replace(/\s+/g, "") // Remove whitespace
       .trim();
   }
 
@@ -34,8 +34,8 @@ export class FuzzyMatcher {
    * Calculate Levenshtein distance between two strings
    */
   private static levenshteinDistance(str1: string, str2: string): number {
-    const s1 = str1 || '';
-    const s2 = str2 || '';
+    const s1 = str1 || "";
+    const s2 = str2 || "";
     const m = s1.length;
     const n = s2.length;
 
@@ -59,9 +59,9 @@ export class FuzzyMatcher {
           dp[i][j] = dp[i - 1][j - 1];
         } else {
           dp[i][j] = Math.min(
-            dp[i - 1][j] + 1,     // Deletion
-            dp[i][j - 1] + 1,     // Insertion
-            dp[i - 1][j - 1] + 1  // Substitution
+            dp[i - 1][j] + 1, // Deletion
+            dp[i][j - 1] + 1, // Insertion
+            dp[i - 1][j - 1] + 1, // Substitution
           );
         }
       }
@@ -73,7 +73,10 @@ export class FuzzyMatcher {
   /**
    * Find the best match for a query string from a list of candidates
    */
-  static findBestMatch(query: string, candidates: string[]): {
+  static findBestMatch(
+    query: string,
+    candidates: string[],
+  ): {
     bestMatch: string | null;
     similarity: number;
     index: number;
@@ -83,7 +86,7 @@ export class FuzzyMatcher {
     let bestIndex = -1;
 
     for (let i = 0; i < candidates.length; i++) {
-      const candidate = candidates[i] || '';
+      const candidate = candidates[i] || "";
       const similarity = this.calculateSimilarity(query, candidate);
       if (similarity > bestSimilarity) {
         bestSimilarity = similarity;
@@ -95,7 +98,7 @@ export class FuzzyMatcher {
     return {
       bestMatch,
       similarity: bestSimilarity,
-      index: bestIndex
+      index: bestIndex,
     };
   }
 
@@ -105,7 +108,7 @@ export class FuzzyMatcher {
   static findMatchesAboveThreshold(
     query: string,
     candidates: string[],
-    threshold: number = 0.8
+    threshold: number = 0.8,
   ): Array<{
     candidate: string;
     similarity: number;
@@ -118,13 +121,13 @@ export class FuzzyMatcher {
     }> = [];
 
     for (let i = 0; i < candidates.length; i++) {
-      const candidate = candidates[i] || '';
+      const candidate = candidates[i] || "";
       const similarity = this.calculateSimilarity(query, candidate);
       if (similarity >= threshold) {
         matches.push({
           candidate: candidate,
           similarity,
-          index: i
+          index: i,
         });
       }
     }
@@ -135,14 +138,21 @@ export class FuzzyMatcher {
   /**
    * Check if two strings are similar enough to be considered a match
    */
-  static isSimilar(str1: string, str2: string, threshold: number = 0.85): boolean {
+  static isSimilar(
+    str1: string,
+    str2: string,
+    threshold: number = 0.85,
+  ): boolean {
     return this.calculateSimilarity(str1, str2) >= threshold;
   }
 
   /**
    * Tokenize a string into words and find similar tokens
    */
-  static tokenizeAndMatch(text: string, dictionary: string[]): Array<{
+  static tokenizeAndMatch(
+    text: string,
+    dictionary: string[],
+  ): Array<{
     token: string;
     bestMatch: string | null;
     similarity: number;
@@ -159,7 +169,7 @@ export class FuzzyMatcher {
       results.push({
         token,
         bestMatch,
-        similarity
+        similarity,
       });
     }
 

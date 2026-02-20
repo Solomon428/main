@@ -2,56 +2,65 @@
 // Reconciliations Routes
 // ============================================================================
 
-import { Router } from 'express';
-import * as reconciliationsService from './reconciliations.service';
+import { Router } from "express";
+import * as reconciliationsService from "./reconciliations.service";
 
 const router = Router();
 
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const reconciliations = await reconciliationsService.listReconciliations();
     res.json(reconciliations);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch reconciliations' });
+    res.status(500).json({ error: "Failed to fetch reconciliations" });
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
-    const reconciliation = await reconciliationsService.getReconciliation(req.params.id);
+    const reconciliation = await reconciliationsService.getReconciliation(
+      req.params.id,
+    );
     if (!reconciliation) {
-      return res.status(404).json({ error: 'Reconciliation not found' });
+      return res.status(404).json({ error: "Reconciliation not found" });
     }
     res.json(reconciliation);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch reconciliation' });
+    res.status(500).json({ error: "Failed to fetch reconciliation" });
   }
 });
 
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const reconciliation = await reconciliationsService.createReconciliation(req.body);
+    const reconciliation = await reconciliationsService.createReconciliation(
+      req.body,
+    );
     res.status(201).json(reconciliation);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create reconciliation' });
+    res.status(500).json({ error: "Failed to create reconciliation" });
   }
 });
 
-router.post('/:id/match', async (req, res) => {
+router.post("/:id/match", async (req, res) => {
   try {
-    const result = await reconciliationsService.matchItems(req.params.id, req.body);
+    const result = await reconciliationsService.matchItems(
+      req.params.id,
+      req.body,
+    );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to match items' });
+    res.status(500).json({ error: "Failed to match items" });
   }
 });
 
-router.get('/:id/items', async (req, res) => {
+router.get("/:id/items", async (req, res) => {
   try {
-    const items = await reconciliationsService.getReconciliationItems(req.params.id);
+    const items = await reconciliationsService.getReconciliationItems(
+      req.params.id,
+    );
     res.json(items);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch reconciliation items' });
+    res.status(500).json({ error: "Failed to fetch reconciliation items" });
   }
 });
 

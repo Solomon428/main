@@ -10,12 +10,12 @@
 // Integrates with: ApproverRouter, WorkloadBalancer, SLACalculator, Notifications
 // ============================================================================
 
-import { prisma } from '@/lib/database/client';
-import { ApproverRouter } from '@/logic-engine/approval-engine/approver-router';
-import { WorkloadBalancer } from '@/logic-engine/approval-engine/workload-balancer';
-import { SLACalculator } from '@/logic-engine/approval-engine/sla-calculator';
-import { NotificationService } from '@/services/notification-service';
-import { auditLogger } from '@/lib/utils/audit-logger';
+import { prisma } from "@/lib/database/client";
+import { ApproverRouter } from "@/logic-engine/approval-engine/approver-router";
+import { WorkloadBalancer } from "@/logic-engine/approval-engine/workload-balancer";
+import { SLACalculator } from "@/logic-engine/approval-engine/sla-calculator";
+import { NotificationService } from "@/services/notification-service";
+import { auditLogger } from "@/lib/utils/audit-logger";
 import {
   ApprovalStatus,
   InvoiceStatus,
@@ -23,7 +23,7 @@ import {
   EntityType,
   LogSeverity,
   Department,
-} from '@/types';
+} from "@/types";
 
 export interface WorkflowInitiationResult {
   success: boolean;
@@ -47,7 +47,9 @@ export class ApprovalWorkflow {
   /**
    * Initiate approval workflow for an invoice
    */
-  static async initiateWorkflow(invoiceId: string): Promise<WorkflowInitiationResult> {
+  static async initiateWorkflow(
+    invoiceId: string,
+  ): Promise<WorkflowInitiationResult> {
     try {
       // Use SQLite table names
       const invoice = await prisma.invoices.findUnique({
@@ -55,7 +57,7 @@ export class ApprovalWorkflow {
       });
 
       if (!invoice) {
-        return { success: false, message: 'Invoice not found' };
+        return { success: false, message: "Invoice not found" };
       }
 
       if (invoice.status !== InvoiceStatus.PENDING_APPROVAL) {
@@ -66,7 +68,8 @@ export class ApprovalWorkflow {
       }
 
       // Determine approval chain
-      const department = (invoice.department as Department) || Department.FINANCE;
+      const department =
+        (invoice.department as Department) || Department.FINANCE;
 
       const chain = await ApproverRouter.determineApprovalChain({
         id: invoice.id,
@@ -84,7 +87,7 @@ export class ApprovalWorkflow {
       if (chain.length === 0) {
         return {
           success: false,
-          message: 'No approval chain could be determined for this invoice',
+          message: "No approval chain could be determined for this invoice",
         };
       }
 
@@ -134,7 +137,7 @@ export class ApprovalWorkflow {
             await NotificationService.sendApprovalNotification({
               userId: approver.id,
               invoiceId,
-              type: 'APPROVAL_REQUIRED',
+              type: "APPROVAL_REQUIRED",
             });
 
             // Update invoice with current approver
@@ -156,10 +159,10 @@ export class ApprovalWorkflow {
 
       // Log workflow initiation
       await auditLogger.log({
-        action: 'CREATE',
+        action: "CREATE",
         entityType: EntityType.APPROVAL,
         entityId: invoiceId,
-        entityDescription: `Approval workflow initiated with chain: ${chain.join(' -> ')}`,
+        entityDescription: `Approval workflow initiated with chain: ${chain.join(" -> ")}`,
         severity: LogSeverity.INFO,
         metadata: {
           invoiceId,
@@ -170,14 +173,14 @@ export class ApprovalWorkflow {
 
       return {
         success: true,
-        message: 'Approval workflow initiated successfully',
+        message: "Approval workflow initiated successfully",
         chain,
       };
     } catch (error) {
-      console.error('Failed to initiate approval workflow:', error);
+      console.error("Failed to initiate approval workflow:", error);
       return {
         success: false,
-        message: `Failed to initiate workflow: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Failed to initiate workflow: ${error instanceof Error ? error.message : "Unknown error"}`,
       };
     }
   }
@@ -185,24 +188,26 @@ export class ApprovalWorkflow {
   /**
    * Advance workflow to next stage
    */
-  static async advanceToNextStage(invoiceId: string): Promise<WorkflowAdvanceResult> {
+  static async advanceToNextStage(
+    invoiceId: string,
+  ): Promise<WorkflowAdvanceResult> {
     try {
       const invoice = await prisma.invoices.findUnique({
         where: { id: invoiceId },
         include: {
           approvals: {
-            orderBy: { sequenceNumber: 'asc' },
+            orderBy: { sequenceNumber: "asc" },
           },
         },
       });
 
       if (!invoice) {
-        return { success: false, message: 'Invoice not found' };
+        return { success: false, message: "Invoice not found" };
       }
 
       const currentStage = invoice.currentStage || 0;
       const nextApproval = invoice.approvals.find(
-        (a) => a.sequenceNumber === currentStage + 1
+        (a) => a.sequenceNumber === currentStage + 1,
       );
 
       if (!nextApproval) {
@@ -223,22 +228,22 @@ export class ApprovalWorkflow {
           await NotificationService.sendApprovalNotification({
             userId: invoice.createdById,
             invoiceId,
-            type: 'INVOICE_APPROVED',
+            type: "INVOICE_APPROVED",
           });
         }
 
         // Log completion
         await auditLogger.log({
-          action: 'APPROVE',
+          action: "APPROVE",
           entityType: EntityType.INVOICE,
           entityId: invoiceId,
-          entityDescription: 'Invoice fully approved',
+          entityDescription: "Invoice fully approved",
           severity: LogSeverity.INFO,
         });
 
         return {
           success: true,
-          message: 'Invoice fully approved',
+          message: "Invoice fully approved",
           isComplete: true,
         };
       }
@@ -246,7 +251,7 @@ export class ApprovalWorkflow {
       // Activate next approval
       await prisma.approval.update({
         where: { id: nextApproval.id },
-        data: { 
+        data: {
           status: ApprovalStatus.PENDING,
           assignedDate: new Date(),
         },
@@ -265,7 +270,7 @@ export class ApprovalWorkflow {
       await NotificationService.sendApprovalNotification({
         userId: nextApproval.approverId,
         invoiceId,
-        type: 'APPROVAL_REQUIRED',
+        type: "APPROVAL_REQUIRED",
       });
 
       return {
@@ -275,10 +280,10 @@ export class ApprovalWorkflow {
         nextStage: nextApproval.sequenceNumber,
       };
     } catch (error) {
-      console.error('Failed to advance workflow:', error);
+      console.error("Failed to advance workflow:", error);
       return {
         success: false,
-        message: `Failed to advance workflow: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Failed to advance workflow: ${error instanceof Error ? error.message : "Unknown error"}`,
       };
     }
   }
@@ -289,7 +294,7 @@ export class ApprovalWorkflow {
   static async rejectInvoice(
     invoiceId: string,
     reason: string,
-    userId: string
+    userId: string,
   ): Promise<WorkflowRejectionResult> {
     try {
       await prisma.$transaction(async (tx) => {
@@ -328,13 +333,13 @@ export class ApprovalWorkflow {
         await NotificationService.sendApprovalNotification({
           userId: invoice.createdById,
           invoiceId,
-          type: 'INVOICE_REJECTED',
+          type: "INVOICE_REJECTED",
         });
       }
 
       // Log rejection
       await auditLogger.log({
-        action: 'REJECT',
+        action: "REJECT",
         entityType: EntityType.INVOICE,
         entityId: invoiceId,
         entityDescription: `Invoice rejected: ${reason}`,
@@ -345,13 +350,13 @@ export class ApprovalWorkflow {
 
       return {
         success: true,
-        message: 'Invoice rejected successfully',
+        message: "Invoice rejected successfully",
       };
     } catch (error) {
-      console.error('Failed to reject invoice:', error);
+      console.error("Failed to reject invoice:", error);
       return {
         success: false,
-        message: `Failed to reject invoice: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Failed to reject invoice: ${error instanceof Error ? error.message : "Unknown error"}`,
       };
     }
   }
@@ -366,7 +371,7 @@ export class ApprovalWorkflow {
         isActive: true,
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: "asc",
       },
     });
   }
@@ -389,7 +394,7 @@ export class ApprovalWorkflow {
       where: { id: invoiceId },
       include: {
         approvals: {
-          orderBy: { sequenceNumber: 'asc' },
+          orderBy: { sequenceNumber: "asc" },
         },
       },
     });
@@ -397,12 +402,14 @@ export class ApprovalWorkflow {
     if (!invoice) return null;
 
     // Fetch approver details separately since there's no relation
-    const approverIds = [...new Set(invoice.approvals.map(a => a.approverId).filter(Boolean))];
+    const approverIds = [
+      ...new Set(invoice.approvals.map((a) => a.approverId).filter(Boolean)),
+    ];
     const approvers = await prisma.users.findMany({
       where: { id: { in: approverIds } },
       select: { id: true, name: true },
     });
-    const approverMap = new Map(approvers.map(a => [a.id, a]));
+    const approverMap = new Map(approvers.map((a) => [a.id, a]));
 
     const currentApprover = invoice.currentApproverId
       ? await prisma.users.findUnique({
@@ -417,7 +424,9 @@ export class ApprovalWorkflow {
       currentApprover,
       approvals: invoice.approvals.map((a) => ({
         stage: a.sequenceNumber,
-        approver: a.approverId ? approverMap.get(a.approverId)?.name || 'Unknown' : 'Unknown',
+        approver: a.approverId
+          ? approverMap.get(a.approverId)?.name || "Unknown"
+          : "Unknown",
         status: a.status,
         decisionDate: a.decisionDate,
       })),

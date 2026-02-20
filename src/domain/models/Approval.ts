@@ -1,5 +1,5 @@
-import { ApprovalStatus } from '../enums/ApprovalStatus';
-import { ApprovalDecision } from '../enums/ApprovalDecision';
+import { ApprovalStatus } from "../enums/ApprovalStatus";
+import { ApprovalDecision } from "../enums/ApprovalDecision";
 
 export interface Approval {
   id: string;

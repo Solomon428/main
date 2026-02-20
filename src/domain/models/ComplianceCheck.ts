@@ -1,5 +1,5 @@
-import { ComplianceCheckType } from '../enums/ComplianceCheckType';
-import { ComplianceStatus } from '../enums/ComplianceStatus';
+import { ComplianceCheckType } from "../enums/ComplianceCheckType";
+import { ComplianceStatus } from "../enums/ComplianceStatus";
 
 export interface ComplianceCheck {
   id: string;

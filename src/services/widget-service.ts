@@ -1,6 +1,6 @@
-import { prisma } from '@/lib/database/client';
-import { Prisma } from '@prisma/client';
-import { InvoiceStatus, PriorityLevel, ApprovalStatus } from '@/types';
+import { prisma } from "@/lib/database/client";
+import { Prisma } from "@prisma/client";
+import { InvoiceStatus, PriorityLevel, ApprovalStatus } from "@/types";
 
 export interface WidgetData {
   id: string;
@@ -83,15 +83,15 @@ export class WidgetService {
     ] = await Promise.all([
       prisma.invoices.count(),
       prisma.invoices.count({
-        where: { status: { in: ['PENDING_APPROVAL', 'UNDER_REVIEW'] } },
+        where: { status: { in: ["PENDING_APPROVAL", "UNDER_REVIEW"] } },
       }),
       prisma.invoices.aggregate({
-        where: { status: 'PAID' },
+        where: { status: "PAID" },
         _sum: { totalAmount: true },
       }),
       prisma.invoices.count({
         where: {
-          status: { notIn: ['PAID', 'CANCELLED'] },
+          status: { notIn: ["PAID", "CANCELLED"] },
           dueDate: { lt: new Date() },
         },
       }),
@@ -99,9 +99,9 @@ export class WidgetService {
     ]);
 
     return {
-      id: 'stats',
-      type: 'stats',
-      title: 'Key Metrics',
+      id: "stats",
+      type: "stats",
+      title: "Key Metrics",
       data: {
         totalInvoices,
         pendingApprovals,
@@ -118,7 +118,7 @@ export class WidgetService {
    */
   static async getPendingApprovalsWidget(userId?: string): Promise<WidgetData> {
     const where: Prisma.invoicesWhereInput = {
-      status: { in: ['PENDING_APPROVAL', 'UNDER_REVIEW'] },
+      status: { in: ["PENDING_APPROVAL", "UNDER_REVIEW"] },
     };
 
     if (userId) {
@@ -128,11 +128,11 @@ export class WidgetService {
     const [count, highPriority, atRisk] = await Promise.all([
       prisma.invoices.count({ where }),
       prisma.invoices.count({
-        where: { ...where, priority: 'HIGH' },
+        where: { ...where, priority: "HIGH" },
       }),
       prisma.approval.count({
         where: {
-          status: 'PENDING',
+          status: "PENDING",
           slaDeadline: { lt: new Date() },
         },
       }),
@@ -141,7 +141,7 @@ export class WidgetService {
     // Get top 5 pending
     const pending = await prisma.invoices.findMany({
       where,
-      orderBy: { priority: 'desc' },
+      orderBy: { priority: "desc" },
       take: 5,
       include: {
         supplier: { select: { name: true } },
@@ -149,14 +149,14 @@ export class WidgetService {
     });
 
     return {
-      id: 'pending',
-      type: 'list',
-      title: 'Pending Approvals',
+      id: "pending",
+      type: "list",
+      title: "Pending Approvals",
       data: {
         count,
         highPriority,
         atRisk,
-        items: pending.map(p => ({
+        items: pending.map((p) => ({
           id: p.id,
           invoiceNumber: p.invoiceNumber,
           supplierName: p.supplier?.name,
@@ -176,10 +176,10 @@ export class WidgetService {
   static async getOverdueWidget(): Promise<WidgetData> {
     const overdue = await prisma.invoices.findMany({
       where: {
-        status: { notIn: ['PAID', 'CANCELLED'] },
+        status: { notIn: ["PAID", "CANCELLED"] },
         dueDate: { lt: new Date() },
       },
-      orderBy: { dueDate: 'asc' },
+      orderBy: { dueDate: "asc" },
       take: 5,
       include: {
         supplier: { select: { name: true } },
@@ -188,27 +188,28 @@ export class WidgetService {
 
     const totalOverdue = await prisma.invoices.aggregate({
       where: {
-        status: { notIn: ['PAID', 'CANCELLED'] },
+        status: { notIn: ["PAID", "CANCELLED"] },
         dueDate: { lt: new Date() },
       },
       _sum: { totalAmount: true },
     });
 
     return {
-      id: 'overdue',
-      type: 'list',
-      title: 'Overdue Invoices',
+      id: "overdue",
+      type: "list",
+      title: "Overdue Invoices",
       data: {
         count: overdue.length,
         totalAmount: totalOverdue._sum.totalAmount || 0,
-        items: overdue.map(o => ({
+        items: overdue.map((o) => ({
           id: o.id,
           invoiceNumber: o.invoiceNumber,
           supplierName: o.supplier?.name,
           amount: o.totalAmount.toString(),
           currency: o.currency,
           daysOverdue: Math.floor(
-            (Date.now() - new Date(o.dueDate).getTime()) / (1000 * 60 * 60 * 24)
+            (Date.now() - new Date(o.dueDate).getTime()) /
+              (1000 * 60 * 60 * 24),
           ),
         })),
       },
@@ -221,19 +222,19 @@ export class WidgetService {
    */
   static async getCategoryWidget(): Promise<WidgetData> {
     const categories = await prisma.line_items.groupBy({
-      by: ['category'],
+      by: ["category"],
       where: { category: { not: null } },
       _count: { category: true },
       _sum: { lineTotal: true },
     });
 
     return {
-      id: 'categories',
-      type: 'chart',
-      title: 'Spending by Category',
+      id: "categories",
+      type: "chart",
+      title: "Spending by Category",
       data: {
-        type: 'pie',
-        categories: categories.map(c => ({
+        type: "pie",
+        categories: categories.map((c) => ({
           name: c.category,
           count: c._count.category,
           total: c._sum.lineTotal || 0,
@@ -248,27 +249,29 @@ export class WidgetService {
    */
   static async getTopSuppliersWidget(): Promise<WidgetData> {
     const suppliers = await prisma.invoices.groupBy({
-      by: ['supplierId'],
+      by: ["supplierId"],
       _count: { id: true },
       _sum: { totalAmount: true },
-      orderBy: { _sum: { totalAmount: 'desc' } },
+      orderBy: { _sum: { totalAmount: "desc" } },
       take: 5,
     });
 
     const supplierDetails = await prisma.suppliers.findMany({
-      where: { id: { in: suppliers.map(s => s.supplierId) } },
+      where: { id: { in: suppliers.map((s) => s.supplierId) } },
       select: { id: true, name: true },
     });
 
     return {
-      id: 'topSuppliers',
-      type: 'chart',
-      title: 'Top Suppliers',
+      id: "topSuppliers",
+      type: "chart",
+      title: "Top Suppliers",
       data: {
-        type: 'bar',
-        suppliers: suppliers.map(s => ({
+        type: "bar",
+        suppliers: suppliers.map((s) => ({
           id: s.supplierId,
-          name: supplierDetails.find(sd => sd.id === s.supplierId)?.name || 'Unknown',
+          name:
+            supplierDetails.find((sd) => sd.id === s.supplierId)?.name ||
+            "Unknown",
           invoiceCount: s._count.id,
           totalAmount: s._sum.totalAmount || 0,
         })),
@@ -296,13 +299,16 @@ export class WidgetService {
     });
 
     // Group by month
-    const monthlyData: Record<string, { month: string; count: number; amount: number }> = {};
+    const monthlyData: Record<
+      string,
+      { month: string; count: number; amount: number }
+    > = {};
 
     for (const invoice of invoices) {
       const monthKey = invoice.createdAt.toISOString().slice(0, 7); // YYYY-MM
-      const monthLabel = invoice.createdAt.toLocaleDateString('en-US', {
-        month: 'short',
-        year: '2-digit',
+      const monthLabel = invoice.createdAt.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
       });
 
       if (!monthlyData[monthKey]) {
@@ -314,11 +320,11 @@ export class WidgetService {
     }
 
     return {
-      id: 'monthlyTrend',
-      type: 'chart',
-      title: 'Monthly Trend',
+      id: "monthlyTrend",
+      type: "chart",
+      title: "Monthly Trend",
       data: {
-        type: 'line',
+        type: "line",
         months: Object.values(monthlyData),
       },
       lastUpdated: new Date(),
@@ -331,7 +337,7 @@ export class WidgetService {
   static async getWorkloadWidget(): Promise<WidgetData> {
     const approvers = await prisma.users.findMany({
       where: {
-        role: { in: ['CREDIT_CLERK', 'BRANCH_MANAGER', 'FINANCIAL_MANAGER'] },
+        role: { in: ["CREDIT_CLERK", "BRANCH_MANAGER", "FINANCIAL_MANAGER"] },
         isActive: true,
       },
       select: {
@@ -343,7 +349,7 @@ export class WidgetService {
       },
     });
 
-    const workloadData = approvers.map(a => {
+    const workloadData = approvers.map((a) => {
       const utilization = (a.currentWorkload / a.maxWorkload) * 100;
       return {
         id: a.id,
@@ -352,16 +358,21 @@ export class WidgetService {
         current: a.currentWorkload,
         max: a.maxWorkload,
         utilization,
-        status: utilization > 80 ? 'overloaded' : utilization > 60 ? 'busy' : 'optimal',
+        status:
+          utilization > 80
+            ? "overloaded"
+            : utilization > 60
+              ? "busy"
+              : "optimal",
       };
     });
 
     return {
-      id: 'workload',
-      type: 'chart',
-      title: 'Approver Workload',
+      id: "workload",
+      type: "chart",
+      title: "Approver Workload",
       data: {
-        type: 'bar',
+        type: "bar",
         approvers: workloadData,
       },
       lastUpdated: new Date(),
@@ -373,21 +384,21 @@ export class WidgetService {
    */
   static async getCurrencyExposureWidget(): Promise<WidgetData> {
     const currencies = await prisma.invoices.groupBy({
-      by: ['currency'],
+      by: ["currency"],
       _count: { id: true },
       _sum: { totalAmount: true },
       where: {
-        status: { notIn: ['PAID', 'CANCELLED'] },
+        status: { notIn: ["PAID", "CANCELLED"] },
       },
     });
 
     return {
-      id: 'currency',
-      type: 'chart',
-      title: 'Currency Exposure',
+      id: "currency",
+      type: "chart",
+      title: "Currency Exposure",
       data: {
-        type: 'pie',
-        currencies: currencies.map(c => ({
+        type: "pie",
+        currencies: currencies.map((c) => ({
           code: c.currency,
           count: c._count.id,
           totalAmount: c._sum.totalAmount || 0,
@@ -402,7 +413,7 @@ export class WidgetService {
   private static async calculateAvgProcessingTime(): Promise<number> {
     const approvedInvoices = await prisma.invoices.findMany({
       where: {
-        status: 'APPROVED',
+        status: "APPROVED",
         approvedDate: { not: null },
       },
       select: {
@@ -429,24 +440,24 @@ export class WidgetService {
    */
   static async getWidgetUpdate(
     widgetId: string,
-    userId?: string
+    userId?: string,
   ): Promise<WidgetData> {
     switch (widgetId) {
-      case 'stats':
+      case "stats":
         return this.getStatsWidget();
-      case 'pending':
+      case "pending":
         return this.getPendingApprovalsWidget(userId);
-      case 'overdue':
+      case "overdue":
         return this.getOverdueWidget();
-      case 'categories':
+      case "categories":
         return this.getCategoryWidget();
-      case 'topSuppliers':
+      case "topSuppliers":
         return this.getTopSuppliersWidget();
-      case 'monthlyTrend':
+      case "monthlyTrend":
         return this.getMonthlyTrendWidget();
-      case 'workload':
+      case "workload":
         return this.getWorkloadWidget();
-      case 'currency':
+      case "currency":
         return this.getCurrencyExposureWidget();
       default:
         throw new Error(`Unknown widget: ${widgetId}`);

@@ -1,4 +1,4 @@
-import { DateTime, Duration, Interval } from 'luxon';
+import { DateTime, Duration, Interval } from "luxon";
 
 // ==================== DOMAIN TYPES ====================
 export interface BusinessHoursConfig {
@@ -9,7 +9,7 @@ export interface BusinessHoursConfig {
   };
   dailyHours: {
     start: string; // "09:00"
-    end: string;   // "17:00"
+    end: string; // "17:00"
   };
   lunchBreak?: {
     start: string;
@@ -51,20 +51,26 @@ export interface SLAPolicy {
   resolutionTargetMinutes: number;
   businessHoursConfig: BusinessHoursConfig;
   holidayCalendar: Holiday[];
-  priorityLevels: Record<string, { multiplier: number; maxBreachMinutes: number }>;
+  priorityLevels: Record<
+    string,
+    { multiplier: number; maxBreachMinutes: number }
+  >;
 }
 
 // ==================== CUSTOM ERRORS ====================
 export class SLACalculationError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string,
+  ) {
     super(`[SLA-${code}] ${message}`);
-    this.name = 'SLACalculationError';
+    this.name = "SLACalculationError";
   }
 }
 
 export class HolidayCalendarError extends SLACalculationError {
   constructor(message: string) {
-    super(message, 'HOLIDAY_ERR');
+    super(message, "HOLIDAY_ERR");
   }
 }
 
@@ -75,7 +81,10 @@ export class HolidayCalendarService {
 
   constructor(
     private readonly config: { holidays: Holiday[] },
-    private readonly logger?: (level: 'debug' | 'info' | 'warn' | 'error', msg: string) => void
+    private readonly logger?: (
+      level: "debug" | "info" | "warn" | "error",
+      msg: string,
+    ) => void,
   ) {
     this.holidaysByDate = new Map();
     this.partialHolidays = new Set();
@@ -104,29 +113,29 @@ export class HolidayCalendarService {
     if (!holiday?.isPartial || !holiday.partialHours) return null;
 
     const baseDate = date.setZone(this.getTimezoneFromHoliday(holiday));
-    const startTime = holiday.partialHours.start || '09:00';
-    const endTime = holiday.partialHours.end || '17:00';
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
+    const startTime = holiday.partialHours.start || "09:00";
+    const endTime = holiday.partialHours.end || "17:00";
+    const [startHour, startMin] = startTime.split(":").map(Number);
+    const [endHour, endMin] = endTime.split(":").map(Number);
     return {
       start: baseDate.set({
         hour: startHour,
         minute: startMin,
         second: 0,
-        millisecond: 0
+        millisecond: 0,
       }),
       end: baseDate.set({
         hour: endHour,
         minute: endMin,
         second: 0,
-        millisecond: 0
-      })
+        millisecond: 0,
+      }),
     };
   }
 
   private getTimezoneFromHoliday(_holiday: Holiday): string {
     // In real implementation, holidays might carry timezone info
-    return 'UTC';
+    return "UTC";
   }
 
   getNextBusinessDay(fromDate: DateTime): DateTime {
@@ -134,7 +143,7 @@ export class HolidayCalendarService {
     while (this.isHoliday(candidate) || this.isWeekend(candidate)) {
       candidate = candidate.plus({ days: 1 });
     }
-    return candidate.startOf('day');
+    return candidate.startOf("day");
   }
 
   private isWeekend(date: DateTime): boolean {
@@ -147,7 +156,7 @@ export class HolidayCalendarService {
 export class BusinessHoursEngine {
   constructor(
     private readonly config: BusinessHoursConfig,
-    private readonly holidayService: HolidayCalendarService
+    private readonly holidayService: HolidayCalendarService,
   ) {
     this.validateConfig();
   }
@@ -155,18 +164,24 @@ export class BusinessHoursEngine {
   private validateConfig(): void {
     const { dailyHours, workWeek } = this.config;
     if (workWeek.startDay < 1 || workWeek.startDay > 7) {
-      throw new SLACalculationError('Invalid startDay', 'CONFIG_ERR');
+      throw new SLACalculationError("Invalid startDay", "CONFIG_ERR");
     }
     if (workWeek.endDay < 1 || workWeek.endDay > 7) {
-      throw new SLACalculationError('Invalid endDay', 'CONFIG_ERR');
+      throw new SLACalculationError("Invalid endDay", "CONFIG_ERR");
     }
     if (workWeek.startDay > workWeek.endDay) {
-      throw new SLACalculationError('startDay cannot be after endDay', 'CONFIG_ERR');
+      throw new SLACalculationError(
+        "startDay cannot be after endDay",
+        "CONFIG_ERR",
+      );
     }
     // Validate time formats
-    [dailyHours.start, dailyHours.end].forEach(time => {
+    [dailyHours.start, dailyHours.end].forEach((time) => {
       if (time && !/^\d{2}:\d{2}$/.test(time)) {
-        throw new SLACalculationError(`Invalid time format: ${time}`, 'CONFIG_ERR');
+        throw new SLACalculationError(
+          `Invalid time format: ${time}`,
+          "CONFIG_ERR",
+        );
       }
     });
   }
@@ -174,24 +189,24 @@ export class BusinessHoursEngine {
   isBusinessHour(dateTime: DateTime): boolean {
     if (this.holidayService.isHoliday(dateTime)) return false;
     if (this.isOutsideWorkWeek(dateTime)) return false;
-    
-    const timeStr = dateTime.toFormat('HH:mm');
+
+    const timeStr = dateTime.toFormat("HH:mm");
     const { start, end } = this.config.dailyHours;
-    
+
     if (timeStr < start || timeStr >= end) return false;
-    
+
     if (this.config.lunchBreak) {
       const { start: lunchStart, end: lunchEnd } = this.config.lunchBreak;
       if (timeStr >= lunchStart && timeStr < lunchEnd) return false;
     }
-    
+
     return true;
   }
 
   private isOutsideWorkWeek(dateTime: DateTime): boolean {
     const dow = dateTime.weekday;
     const { startDay, endDay } = this.config.workWeek;
-    
+
     if (startDay <= endDay) {
       return dow < startDay || dow > endDay;
     } else {
@@ -202,8 +217,10 @@ export class BusinessHoursEngine {
 
   getNextBusinessStart(fromTime: DateTime): DateTime {
     let candidate = fromTime;
-    const [startHour, startMin] = (this.config.dailyHours.start || '09:00').split(':').map(Number);
-    
+    const [startHour, startMin] = (this.config.dailyHours.start || "09:00")
+      .split(":")
+      .map(Number);
+
     // If outside business hours, jump to next business day start
     while (!this.isBusinessHour(candidate)) {
       // Check if we're before business start today
@@ -211,31 +228,35 @@ export class BusinessHoursEngine {
         hour: startHour,
         minute: startMin,
         second: 0,
-        millisecond: 0
+        millisecond: 0,
       });
-      
-      if (candidate < dayStart && !this.holidayService.isHoliday(candidate) && !this.isOutsideWorkWeek(candidate)) {
+
+      if (
+        candidate < dayStart &&
+        !this.holidayService.isHoliday(candidate) &&
+        !this.isOutsideWorkWeek(candidate)
+      ) {
         return dayStart;
       }
-      
+
       // Move to next day start
-      candidate = candidate.plus({ days: 1 }).startOf('day').set({
+      candidate = candidate.plus({ days: 1 }).startOf("day").set({
         hour: startHour,
         minute: startMin,
         second: 0,
-        millisecond: 0
+        millisecond: 0,
       });
     }
-    
+
     return candidate;
   }
 
   getBusinessMinutesBetween(start: DateTime, end: DateTime): number {
     if (end <= start) return 0;
-    
+
     let totalMinutes = 0;
     let current = start;
-    
+
     while (current < end) {
       if (this.isBusinessHour(current)) {
         const nextMinute = current.plus({ minutes: 1 });
@@ -243,16 +264,18 @@ export class BusinessHoursEngine {
       }
       current = current.plus({ minutes: 1 });
     }
-    
+
     return totalMinutes;
   }
 
   getBusinessDuration(start: DateTime, targetMinutes: number): DateTime {
     if (targetMinutes <= 0) return start;
-    
+
     let remaining = targetMinutes;
-    let current = this.isBusinessHour(start) ? start : this.getNextBusinessStart(start);
-    
+    let current = this.isBusinessHour(start)
+      ? start
+      : this.getNextBusinessStart(start);
+
     while (remaining > 0) {
       if (this.isBusinessHour(current)) {
         remaining--;
@@ -261,7 +284,7 @@ export class BusinessHoursEngine {
         current = current.plus({ minutes: 1 });
       }
     }
-    
+
     return current;
   }
 }
@@ -274,80 +297,102 @@ export class SLACalculatorService {
   constructor(
     private readonly slaPolicy: SLAPolicy,
     private readonly opts: {
-      logger?: (level: 'debug' | 'info' | 'warn' | 'error', msg: string, meta?: any) => void;
+      logger?: (
+        level: "debug" | "info" | "warn" | "error",
+        msg: string,
+        meta?: any,
+      ) => void;
       clock?: () => DateTime;
       observabilityHook?: (event: string, data: any) => void;
-    } = {}
+    } = {},
   ) {
     this.holidayService = new HolidayCalendarService(
       { holidays: slaPolicy.businessHoursConfig.holidayCalendar || [] },
-      opts.logger
+      opts.logger,
     );
-    
+
     this.businessHoursEngine = new BusinessHoursEngine(
       slaPolicy.businessHoursConfig,
-      this.holidayService
+      this.holidayService,
     );
   }
 
   calculateResponseDeadline(
     ticketCreated: DateTime,
-    priorityLevel: string = 'standard'
+    priorityLevel: string = "standard",
   ): SLACalculationResult {
-    const priorityConfig = this.slaPolicy.priorityLevels[priorityLevel] || 
-                         this.slaPolicy.priorityLevels['standard'] || 
-                         { multiplier: 1.0, maxBreachMinutes: 60 };
-    
+    const priorityConfig = this.slaPolicy.priorityLevels[priorityLevel] ||
+      this.slaPolicy.priorityLevels["standard"] || {
+        multiplier: 1.0,
+        maxBreachMinutes: 60,
+      };
+
     const targetMinutes = Math.round(
-      this.slaPolicy.responseTargetMinutes * priorityConfig.multiplier
+      this.slaPolicy.responseTargetMinutes * priorityConfig.multiplier,
     );
-    
-    return this.calculateDeadline(ticketCreated, targetMinutes, 'response', priorityLevel);
+
+    return this.calculateDeadline(
+      ticketCreated,
+      targetMinutes,
+      "response",
+      priorityLevel,
+    );
   }
 
   calculateResolutionDeadline(
     ticketCreated: DateTime,
-    priorityLevel: string = 'standard'
+    priorityLevel: string = "standard",
   ): SLACalculationResult {
-    const priorityConfig = this.slaPolicy.priorityLevels[priorityLevel] || 
-                         this.slaPolicy.priorityLevels['standard'] || 
-                         { multiplier: 1.0, maxBreachMinutes: 480 };
-    
+    const priorityConfig = this.slaPolicy.priorityLevels[priorityLevel] ||
+      this.slaPolicy.priorityLevels["standard"] || {
+        multiplier: 1.0,
+        maxBreachMinutes: 480,
+      };
+
     const targetMinutes = Math.round(
-      this.slaPolicy.resolutionTargetMinutes * priorityConfig.multiplier
+      this.slaPolicy.resolutionTargetMinutes * priorityConfig.multiplier,
     );
-    
-    return this.calculateDeadline(ticketCreated, targetMinutes, 'resolution', priorityLevel);
+
+    return this.calculateDeadline(
+      ticketCreated,
+      targetMinutes,
+      "resolution",
+      priorityLevel,
+    );
   }
 
   private calculateDeadline(
     start: DateTime,
     targetMinutes: number,
-    slaType: 'response' | 'resolution',
-    priorityLevel: string
+    slaType: "response" | "resolution",
+    priorityLevel: string,
   ): SLACalculationResult {
     if (!start.isValid) {
-      throw new SLACalculationError('Invalid start DateTime', 'INVALID_DT');
+      throw new SLACalculationError("Invalid start DateTime", "INVALID_DT");
     }
-    
-    const deadline = this.businessHoursEngine.getBusinessDuration(start, targetMinutes);
+
+    const deadline = this.businessHoursEngine.getBusinessDuration(
+      start,
+      targetMinutes,
+    );
     const now = (this.opts.clock || (() => DateTime.now()))();
-    
+
     // Collect holidays encountered
     const holidaysEncountered: Holiday[] = [];
     const interval = Interval.fromDateTimes(start, deadline);
-    const daysInRange = Math.ceil(interval.length('days'));
-    
+    const daysInRange = Math.ceil(interval.length("days"));
+
     for (let i = 0; i <= daysInRange; i++) {
-      const date = start.plus({ days: i }).startOf('day');
+      const date = start.plus({ days: i }).startOf("day");
       const holiday = this.holidayService.getHoliday(date);
       if (holiday) holidaysEncountered.push(holiday);
     }
-    
-    const elapsedBusinessMinutes = this.businessHoursEngine.getBusinessMinutesBetween(start, now);
-    const elapsedCalendarMinutes = now.diff(start, 'minutes').minutes;
+
+    const elapsedBusinessMinutes =
+      this.businessHoursEngine.getBusinessMinutesBetween(start, now);
+    const elapsedCalendarMinutes = now.diff(start, "minutes").minutes;
     const businessDaysSkipped = this.countBusinessDaysSkipped(start, deadline);
-    
+
     const result: SLACalculationResult = {
       targetDateTime: deadline,
       elapsedBusinessMinutes,
@@ -359,57 +404,65 @@ export class SLACalculatorService {
       meta: {
         calculationId: `sla-${DateTime.now().toMillis()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: DateTime.now(),
-        timezone: this.slaPolicy.businessHoursConfig.timezone
-      }
+        timezone: this.slaPolicy.businessHoursConfig.timezone,
+      },
     };
-    
-    this.opts.observabilityHook?.('sla_calculation', {
+
+    this.opts.observabilityHook?.("sla_calculation", {
       slaType,
       priorityLevel,
       start,
       deadline,
       breached: result.breached,
-      calculationId: result.meta.calculationId
+      calculationId: result.meta.calculationId,
     });
-    
-    this.opts.logger?.('debug', `SLA ${slaType} deadline calculated`, {
+
+    this.opts.logger?.("debug", `SLA ${slaType} deadline calculated`, {
       start: start.toISO(),
       deadline: deadline.toISO(),
       targetMinutes,
-      priority: priorityLevel
+      priority: priorityLevel,
     });
-    
+
     return result;
   }
 
   private countBusinessDaysSkipped(start: DateTime, end: DateTime): number {
     if (end <= start) return 0;
-    
+
     let count = 0;
-    let current = start.startOf('day');
-    
+    let current = start.startOf("day");
+
     while (current < end) {
-      if (this.holidayService.isHoliday(current) || 
-          this.businessHoursEngine['isOutsideWorkWeek'](current)) {
+      if (
+        this.holidayService.isHoliday(current) ||
+        this.businessHoursEngine["isOutsideWorkWeek"](current)
+      ) {
         count++;
       }
       current = current.plus({ days: 1 });
     }
-    
+
     return count;
   }
 
   isWithinSLA(
     ticketCreated: DateTime,
     currentTime: DateTime = DateTime.now(),
-    priorityLevel: string = 'standard'
+    priorityLevel: string = "standard",
   ): { responseWithinSLA: boolean; resolutionWithinSLA: boolean } {
-    const response = this.calculateResponseDeadline(ticketCreated, priorityLevel);
-    const resolution = this.calculateResolutionDeadline(ticketCreated, priorityLevel);
-    
+    const response = this.calculateResponseDeadline(
+      ticketCreated,
+      priorityLevel,
+    );
+    const resolution = this.calculateResolutionDeadline(
+      ticketCreated,
+      priorityLevel,
+    );
+
     return {
       responseWithinSLA: currentTime <= response.targetDateTime,
-      resolutionWithinSLA: currentTime <= resolution.targetDateTime
+      resolutionWithinSLA: currentTime <= resolution.targetDateTime,
     };
   }
 
@@ -419,117 +472,137 @@ export class SLACalculatorService {
 
   getActiveHolidays(): Holiday[] {
     const now = DateTime.now();
-    return Array.from(this.holidayService['holidaysByDate'].values()).filter(h => {
-      const date = DateTime.fromISO(h.observedDate || h.date);
-      return date >= now.minus({ days: 30 }) && date <= now.plus({ days: 365 });
-    });
+    return Array.from(this.holidayService["holidaysByDate"].values()).filter(
+      (h) => {
+        const date = DateTime.fromISO(h.observedDate || h.date);
+        return (
+          date >= now.minus({ days: 30 }) && date <= now.plus({ days: 365 })
+        );
+      },
+    );
   }
 }
 
 // ==================== FACTORY & UTILITIES ====================
 export class SLACalculatorFactory {
   static createDefaultEnterpriseSLA(
-    timezone: string = 'America/New_York'
+    timezone: string = "America/New_York",
   ): SLACalculatorService {
     const policy: SLAPolicy = {
-      id: 'enterprise-default',
-      name: 'Enterprise Support SLA',
+      id: "enterprise-default",
+      name: "Enterprise Support SLA",
       responseTargetMinutes: 60, // 1 hour response
       resolutionTargetMinutes: 480, // 8 business hours resolution
       businessHoursConfig: {
         timezone,
         workWeek: { startDay: 1, endDay: 5 }, // Mon-Fri
-        dailyHours: { start: '09:00', end: '17:00' },
-        lunchBreak: { start: '12:00', end: '13:00' }
+        dailyHours: { start: "09:00", end: "17:00" },
+        lunchBreak: { start: "12:00", end: "13:00" },
       },
       holidayCalendar: [
-        { date: '2026-01-01', name: 'New Year\'s Day' },
-        { date: '2026-12-25', name: 'Christmas Day' },
-        { date: '2026-07-04', name: 'Independence Day' }
+        { date: "2026-01-01", name: "New Year's Day" },
+        { date: "2026-12-25", name: "Christmas Day" },
+        { date: "2026-07-04", name: "Independence Day" },
       ],
       priorityLevels: {
-        critical: { multiplier: 0.25, maxBreachMinutes: 15 },   // 15 min response
-        high: { multiplier: 0.5, maxBreachMinutes: 30 },        // 30 min response
-        standard: { multiplier: 1.0, maxBreachMinutes: 60 },    // 60 min response
-        low: { multiplier: 2.0, maxBreachMinutes: 120 }         // 120 min response
-      }
+        critical: { multiplier: 0.25, maxBreachMinutes: 15 }, // 15 min response
+        high: { multiplier: 0.5, maxBreachMinutes: 30 }, // 30 min response
+        standard: { multiplier: 1.0, maxBreachMinutes: 60 }, // 60 min response
+        low: { multiplier: 2.0, maxBreachMinutes: 120 }, // 120 min response
+      },
     };
-    
+
     return new SLACalculatorService(policy);
   }
 
-  static create24x7SLA(timezone: string = 'UTC'): SLACalculatorService {
+  static create24x7SLA(timezone: string = "UTC"): SLACalculatorService {
     const policy: SLAPolicy = {
-      id: '24x7-premium',
-      name: '24x7 Premium Support',
+      id: "24x7-premium",
+      name: "24x7 Premium Support",
       responseTargetMinutes: 15,
       resolutionTargetMinutes: 120,
       businessHoursConfig: {
         timezone,
         workWeek: { startDay: 1, endDay: 7 }, // 24x7
-        dailyHours: { start: '00:00', end: '24:00' }
+        dailyHours: { start: "00:00", end: "24:00" },
       },
       holidayCalendar: [],
       priorityLevels: {
         critical: { multiplier: 0.33, maxBreachMinutes: 5 },
         high: { multiplier: 0.66, maxBreachMinutes: 10 },
-        standard: { multiplier: 1.0, maxBreachMinutes: 15 }
-      }
+        standard: { multiplier: 1.0, maxBreachMinutes: 15 },
+      },
     };
-    
+
     return new SLACalculatorService(policy);
   }
 }
 
 // ==================== VALIDATION HELPERS ====================
-export function validateBusinessHoursConfig(config: unknown): asserts config is BusinessHoursConfig {
-  if (typeof config !== 'object' || config === null) {
-    throw new SLACalculationError('Config must be an object', 'VALIDATION_ERR');
+export function validateBusinessHoursConfig(
+  config: unknown,
+): asserts config is BusinessHoursConfig {
+  if (typeof config !== "object" || config === null) {
+    throw new SLACalculationError("Config must be an object", "VALIDATION_ERR");
   }
-  
+
   const c = config as BusinessHoursConfig;
-  
-  if (typeof c.timezone !== 'string') {
-    throw new SLACalculationError('timezone must be string', 'VALIDATION_ERR');
+
+  if (typeof c.timezone !== "string") {
+    throw new SLACalculationError("timezone must be string", "VALIDATION_ERR");
   }
-  
-  if (typeof c.workWeek?.startDay !== 'number' || typeof c.workWeek?.endDay !== 'number') {
-    throw new SLACalculationError('workWeek requires startDay/endDay numbers', 'VALIDATION_ERR');
+
+  if (
+    typeof c.workWeek?.startDay !== "number" ||
+    typeof c.workWeek?.endDay !== "number"
+  ) {
+    throw new SLACalculationError(
+      "workWeek requires startDay/endDay numbers",
+      "VALIDATION_ERR",
+    );
   }
-  
-  if (typeof c.dailyHours?.start !== 'string' || typeof c.dailyHours?.end !== 'string') {
-    throw new SLACalculationError('dailyHours requires start/end strings', 'VALIDATION_ERR');
+
+  if (
+    typeof c.dailyHours?.start !== "string" ||
+    typeof c.dailyHours?.end !== "string"
+  ) {
+    throw new SLACalculationError(
+      "dailyHours requires start/end strings",
+      "VALIDATION_ERR",
+    );
   }
 }
 
 export function validateHoliday(holiday: unknown): asserts holiday is Holiday {
-  if (typeof holiday !== 'object' || holiday === null) {
-    throw new HolidayCalendarError('Holiday must be an object');
+  if (typeof holiday !== "object" || holiday === null) {
+    throw new HolidayCalendarError("Holiday must be an object");
   }
-  
+
   const h = holiday as Holiday;
-  
-  if (typeof h.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(h.date)) {
-    throw new HolidayCalendarError('Invalid date format (YYYY-MM-DD required)');
+
+  if (typeof h.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(h.date)) {
+    throw new HolidayCalendarError("Invalid date format (YYYY-MM-DD required)");
   }
-  
-  if (typeof h.name !== 'string') {
-    throw new HolidayCalendarError('Holiday name required');
+
+  if (typeof h.name !== "string") {
+    throw new HolidayCalendarError("Holiday name required");
   }
-  
+
   if (h.observedDate && !/^\d{4}-\d{2}-\d{2}$/.test(h.observedDate)) {
-    throw new HolidayCalendarError('Invalid observedDate format');
+    throw new HolidayCalendarError("Invalid observedDate format");
   }
 }
 
 // ==================== TYPE GUARDS ====================
-export function isSLACalculationResult(obj: unknown): obj is SLACalculationResult {
+export function isSLACalculationResult(
+  obj: unknown,
+): obj is SLACalculationResult {
   return (
-    typeof obj === 'object' &&
+    typeof obj === "object" &&
     obj !== null &&
-    'targetDateTime' in obj &&
-    'elapsedBusinessMinutes' in obj &&
-    'breached' in obj
+    "targetDateTime" in obj &&
+    "elapsedBusinessMinutes" in obj &&
+    "breached" in obj
   );
 }
 

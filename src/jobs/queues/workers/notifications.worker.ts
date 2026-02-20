@@ -1,9 +1,9 @@
-import { Job } from 'bullmq';
-import { prisma } from '../../../lib/prisma';
-import { createWorker, QUEUE_NAMES } from '../queue';
-import { info, error } from '../../../observability/logger';
-import { NotificationChannel } from '../../../domain/enums/NotificationChannel';
-import { NotificationStatus } from '../../../domain/enums/NotificationStatus';
+import { Job } from "bullmq";
+import { prisma } from "@/db/prisma";
+import { createWorker, QUEUE_NAMES } from "../queue";
+import { info, error } from "../../../observability/logger";
+import { NotificationChannel } from "../../../domain/enums/NotificationChannel";
+import { NotificationStatus } from "../../../domain/enums/NotificationStatus";
 
 interface NotificationJob {
   notificationId: string;
@@ -19,10 +19,14 @@ interface NotificationJob {
 /**
  * Process notification delivery jobs
  */
-async function processNotificationJob(job: Job<NotificationJob>): Promise<void> {
+async function processNotificationJob(
+  job: Job<NotificationJob>,
+): Promise<void> {
   const { notificationId, channel, content } = job.data;
 
-  info(`Sending notification ${notificationId} via ${channel}`, { jobId: job.id });
+  info(`Sending notification ${notificationId} via ${channel}`, {
+    jobId: job.id,
+  });
 
   try {
     let delivered = false;
@@ -57,13 +61,14 @@ async function processNotificationJob(job: Job<NotificationJob>): Promise<void> 
       },
     });
 
-    info(`Notification ${notificationId} delivered via ${channel}`, { jobId: job.id });
-
+    info(`Notification ${notificationId} delivered via ${channel}`, {
+      jobId: job.id,
+    });
   } catch (err) {
     error(`Failed to send notification ${notificationId}`, {
       jobId: job.id,
       channel,
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: err instanceof Error ? err.message : "Unknown error",
     });
 
     // Update notification with error
@@ -71,7 +76,7 @@ async function processNotificationJob(job: Job<NotificationJob>): Promise<void> 
       where: { id: notificationId },
       data: {
         status: NotificationStatus.FAILED,
-        lastError: err instanceof Error ? err.message : 'Unknown error',
+        lastError: err instanceof Error ? err.message : "Unknown error",
         lastErrorAt: new Date(),
         deliveryAttempts: { increment: 1 },
       },
@@ -84,7 +89,11 @@ async function processNotificationJob(job: Job<NotificationJob>): Promise<void> 
 /**
  * Send email notification
  */
-async function sendEmail(content: { title: string; message: string; actionUrl?: string }): Promise<boolean> {
+async function sendEmail(content: {
+  title: string;
+  message: string;
+  actionUrl?: string;
+}): Promise<boolean> {
   // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
   info(`Sending email: ${content.title}`);
   return true;
@@ -93,7 +102,10 @@ async function sendEmail(content: { title: string; message: string; actionUrl?: 
 /**
  * Send SMS notification
  */
-async function sendSMS(content: { title: string; message: string }): Promise<boolean> {
+async function sendSMS(content: {
+  title: string;
+  message: string;
+}): Promise<boolean> {
   // TODO: Integrate with SMS service (Twilio, etc.)
   info(`Sending SMS: ${content.title}`);
   return true;
@@ -102,7 +114,10 @@ async function sendSMS(content: { title: string; message: string }): Promise<boo
 /**
  * Send push notification
  */
-async function sendPush(content: { title: string; message: string }): Promise<boolean> {
+async function sendPush(content: {
+  title: string;
+  message: string;
+}): Promise<boolean> {
   // TODO: Integrate with push notification service (Firebase, etc.)
   info(`Sending push: ${content.title}`);
   return true;
@@ -111,7 +126,10 @@ async function sendPush(content: { title: string; message: string }): Promise<bo
 /**
  * Send Slack notification
  */
-async function sendSlack(content: { title: string; message: string }): Promise<boolean> {
+async function sendSlack(content: {
+  title: string;
+  message: string;
+}): Promise<boolean> {
   // TODO: Integrate with Slack webhook
   info(`Sending Slack: ${content.title}`);
   return true;
@@ -123,7 +141,7 @@ async function sendSlack(content: { title: string; message: string }): Promise<b
 export const notificationWorker = createWorker<NotificationJob>(
   QUEUE_NAMES.NOTIFICATION,
   processNotificationJob,
-  { concurrency: 10 }
+  { concurrency: 10 },
 );
 
 export default notificationWorker;

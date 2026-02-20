@@ -1,4 +1,4 @@
-import { Currency } from '../enums/Currency';
+import { Currency } from "../enums/Currency";
 
 export interface Organization {
   id: string;

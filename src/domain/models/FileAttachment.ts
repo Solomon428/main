@@ -1,5 +1,5 @@
-import { EntityType } from '../enums/EntityType';
-import { StorageProvider } from '../enums/StorageProvider';
+import { EntityType } from "../enums/EntityType";
+import { StorageProvider } from "../enums/StorageProvider";
 
 export interface FileAttachment {
   id: string;

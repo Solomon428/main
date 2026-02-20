@@ -1,18 +1,18 @@
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { ApprovalStatus } from '../../domain/enums/ApprovalStatus';
-import { sendNotification } from '../../modules/notifications/notifications.service';
-import { NotificationType } from '../../domain/enums/NotificationType';
-import { info } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { ApprovalStatus } from "../../domain/enums/ApprovalStatus";
+import { sendNotification } from "../../modules/notifications/notifications.service";
+import { NotificationType } from "../../domain/enums/NotificationType";
+import { info } from "../../observability/logger";
 
 /**
  * Escalate approvals that have breached SLA
  */
 export async function runTask(
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
-  info('Starting approval escalation task', { taskId: task.id });
+  info("Starting approval escalation task", { taskId: task.id });
 
   const now = new Date();
 
@@ -43,7 +43,7 @@ export async function runTask(
       data: {
         isEscalated: true,
         escalatedAt: now,
-        escalatedReason: 'SLA breach',
+        escalatedReason: "SLA breach",
       },
     });
 
@@ -51,10 +51,10 @@ export async function runTask(
     await sendNotification({
       userId: approval.approverId,
       type: NotificationType.SLA_BREACH,
-      title: 'Approval Escalated - SLA Breach',
+      title: "Approval Escalated - SLA Breach",
       message: `Invoice ${approval.invoice.invoiceNumber} approval has been escalated due to SLA breach.`,
-      priority: 'CRITICAL',
-      entityType: 'APPROVAL',
+      priority: "CRITICAL",
+      entityType: "APPROVAL",
       entityId: approval.id,
     });
 
@@ -62,7 +62,7 @@ export async function runTask(
     const managers = await prisma.user.findMany({
       where: {
         organizations: { some: { id: approval.invoice.organizationId } },
-        role: { in: ['ORG_ADMIN', 'FINANCE_MANAGER'] },
+        role: { in: ["ORG_ADMIN", "FINANCE_MANAGER"] },
       },
     });
 
@@ -70,10 +70,10 @@ export async function runTask(
       await sendNotification({
         userId: manager.id,
         type: NotificationType.APPROVAL_ESCALATED,
-        title: 'Approval Escalated',
+        title: "Approval Escalated",
         message: `Approval for invoice ${approval.invoice.invoiceNumber} has been escalated due to SLA breach.`,
-        priority: 'HIGH',
-        entityType: 'APPROVAL',
+        priority: "HIGH",
+        entityType: "APPROVAL",
         entityId: approval.id,
       });
     }

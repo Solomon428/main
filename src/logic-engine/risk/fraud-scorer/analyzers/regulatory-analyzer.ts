@@ -8,10 +8,10 @@ import type {
   FraudScoringInput,
   FraudScoringContext,
   FraudRiskFactor,
-  RegulatoryRiskAnalysis
-} from '../types';
-import { FraudDetectionMethod } from '../types';
-import { SA_COMPLIANCE_RULES } from '../constants';
+  RegulatoryRiskAnalysis,
+} from "../types";
+import { FraudDetectionMethod } from "../types";
+import { SA_COMPLIANCE_RULES } from "../constants";
 
 /**
  * Calculate risk score based on regulatory compliance analysis
@@ -19,7 +19,7 @@ import { SA_COMPLIANCE_RULES } from '../constants';
 export function calculateRegulatoryRisk(
   input: FraudScoringInput,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): RegulatoryRiskAnalysis {
   // Placeholder for integration with RegulatoryComplianceChecker service
 
@@ -30,15 +30,15 @@ export function calculateRegulatoryRisk(
   if (SA_COMPLIANCE_RULES.PEP_SCREENING_REQUIRED && input.supplierIsPep) {
     baseScore += 50;
     riskFactors.push({
-      category: 'REGULATORY_VIOLATION',
-      factor: 'POLITICALLY_EXPOSED_PERSON',
-      description: 'Supplier is a Politically Exposed Person (PEP)',
-      severity: 'CRITICAL',
+      category: "REGULATORY_VIOLATION",
+      factor: "POLITICALLY_EXPOSED_PERSON",
+      description: "Supplier is a Politically Exposed Person (PEP)",
+      severity: "CRITICAL",
       scoreImpact: 50,
       evidence: `supplierIsPep=${input.supplierIsPep}`,
       detectionMethod: FraudDetectionMethod.EXTERNAL_DATA,
       confidence: 0.99,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -47,7 +47,7 @@ export function calculateRegulatoryRisk(
     normalizedScore: baseScore / 100,
     riskFactors,
     detectionMethods: [FraudDetectionMethod.EXTERNAL_DATA],
-    confidence: riskFactors.length > 0 ? 0.95 : 0.70,
-    metadata: { scoringId }
+    confidence: riskFactors.length > 0 ? 0.95 : 0.7,
+    metadata: { scoringId },
   };
 }

@@ -1,6 +1,6 @@
 // Simplified Audit Logger for SQLite
-import { prisma } from '../database/client';
-import { EntityType, LogSeverity, AuditAction } from '@/types';
+import { prisma } from "../database/client";
+import { EntityType, LogSeverity, AuditAction } from "@/types";
 
 export type JsonValue =
   | string
@@ -46,13 +46,19 @@ export class AuditLogger {
       if (entry.oldValue !== undefined) metadataObj.oldValue = entry.oldValue;
       if (entry.newValue !== undefined) metadataObj.newValue = entry.newValue;
       if (entry.diff !== undefined) metadataObj.diff = entry.diff;
-      if (entry.deviceInfo !== undefined) metadataObj.deviceInfo = entry.deviceInfo;
-      if (entry.requestId !== undefined) metadataObj.requestId = entry.requestId;
-      if (entry.sessionId !== undefined) metadataObj.sessionId = entry.sessionId;
-      if (entry.correlationId !== undefined) metadataObj.correlationId = entry.correlationId;
-      if (entry.browserInfo !== undefined) metadataObj.browserInfo = entry.browserInfo;
+      if (entry.deviceInfo !== undefined)
+        metadataObj.deviceInfo = entry.deviceInfo;
+      if (entry.requestId !== undefined)
+        metadataObj.requestId = entry.requestId;
+      if (entry.sessionId !== undefined)
+        metadataObj.sessionId = entry.sessionId;
+      if (entry.correlationId !== undefined)
+        metadataObj.correlationId = entry.correlationId;
+      if (entry.browserInfo !== undefined)
+        metadataObj.browserInfo = entry.browserInfo;
       if (entry.location !== undefined) metadataObj.location = entry.location;
-      if (entry.complianceFlags !== undefined) metadataObj.complianceFlags = entry.complianceFlags;
+      if (entry.complianceFlags !== undefined)
+        metadataObj.complianceFlags = entry.complianceFlags;
 
       // Prepare data for Prisma - only include defined values
       const auditData: any = {
@@ -96,14 +102,14 @@ export class AuditLogger {
         data: auditData,
       });
     } catch (error) {
-      console.error('Failed to write audit log:', error);
+      console.error("Failed to write audit log:", error);
     }
   }
 
   static async getAuditTrail(
     entityType: EntityType,
     entityId: string,
-    limit: number = 100
+    limit: number = 100,
   ) {
     return prisma.audit_logs.findMany({
       where: {
@@ -111,7 +117,7 @@ export class AuditLogger {
         entityId,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       take: limit,
     });
@@ -123,7 +129,7 @@ export class AuditLogger {
         userId,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       take: limit,
     });
@@ -135,7 +141,7 @@ export class AuditLogger {
         action,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       take: limit,
     });
@@ -143,14 +149,14 @@ export class AuditLogger {
 
   static async getAuditTrailBySeverity(
     severity: LogSeverity,
-    limit: number = 100
+    limit: number = 100,
   ) {
     return prisma.audit_logs.findMany({
       where: {
         severity,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       take: limit,
     });
@@ -181,13 +187,13 @@ export class AuditLogger {
   static async logSystemEvent(
     action: AuditAction,
     description: string,
-    severity: LogSeverity = 'INFO',
-    metadata?: Record<string, JsonValue>
+    severity: LogSeverity = "INFO",
+    metadata?: Record<string, JsonValue>,
   ): Promise<void> {
     const entry: AuditLogEntry = {
       action,
-      entityType: 'SYSTEM',
-      entityId: 'SYSTEM',
+      entityType: "SYSTEM",
+      entityId: "SYSTEM",
       entityDescription: description,
       severity,
     };
@@ -201,13 +207,13 @@ export class AuditLogger {
     action: AuditAction,
     entityId: string,
     description: string,
-    severity: LogSeverity = 'WARNING',
+    severity: LogSeverity = "WARNING",
     userId?: string,
-    metadata?: Record<string, JsonValue>
+    metadata?: Record<string, JsonValue>,
   ): Promise<void> {
     const entry: AuditLogEntry = {
       action,
-      entityType: 'USER',
+      entityType: "USER",
       entityId,
       entityDescription: description,
       severity,
@@ -227,14 +233,14 @@ export class AuditLogger {
     description: string,
     complianceFlags: string[],
     userId?: string,
-    metadata?: Record<string, JsonValue>
+    metadata?: Record<string, JsonValue>,
   ): Promise<void> {
     const entry: AuditLogEntry = {
-      action: 'COMPLIANCE_VIOLATION',
+      action: "COMPLIANCE_VIOLATION",
       entityType,
       entityId,
       entityDescription: description,
-      severity: 'WARNING',
+      severity: "WARNING",
       complianceFlags,
     };
     if (userId) {
@@ -251,14 +257,14 @@ export class AuditLogger {
     description: string,
     fraudScore: number,
     userId?: string,
-    metadata?: Record<string, JsonValue>
+    metadata?: Record<string, JsonValue>,
   ): Promise<void> {
     const entry: AuditLogEntry = {
-      action: 'FRAUD_DETECTED',
-      entityType: 'INVOICE',
+      action: "FRAUD_DETECTED",
+      entityType: "INVOICE",
       entityId,
       entityDescription: description,
-      severity: fraudScore > 80 ? 'CRITICAL' : 'WARNING',
+      severity: fraudScore > 80 ? "CRITICAL" : "WARNING",
       metadata: {
         ...((metadata as object) || {}),
         fraudScore,

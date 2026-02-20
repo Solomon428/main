@@ -1,6 +1,6 @@
-import { Job } from 'bullmq';
-import { createWorker, QUEUE_NAMES } from '../queue';
-import { info, error } from '../../../observability/logger';
+import { Job } from "bullmq";
+import { createWorker, QUEUE_NAMES } from "../queue";
+import { info, error } from "../../../observability/logger";
 
 interface WebhookJob {
   webhookId: string;
@@ -22,16 +22,17 @@ async function processWebhookJob(job: Job<WebhookJob>): Promise<void> {
   try {
     // Generate signature if secret provided
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
 
     if (secret) {
       // In production, implement proper HMAC signature
-      headers['X-Webhook-Signature'] = 'sha256=' + generateSignature(payload, secret);
+      headers["X-Webhook-Signature"] =
+        "sha256=" + generateSignature(payload, secret);
     }
 
     const response = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers,
       body: JSON.stringify(payload),
     });
@@ -44,12 +45,11 @@ async function processWebhookJob(job: Job<WebhookJob>): Promise<void> {
       jobId: job.id,
       status: response.status,
     });
-
   } catch (err) {
     error(`Webhook delivery failed to ${url}`, {
       jobId: job.id,
       attempt,
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: err instanceof Error ? err.message : "Unknown error",
     });
 
     // Throw to trigger retry
@@ -60,11 +60,14 @@ async function processWebhookJob(job: Job<WebhookJob>): Promise<void> {
 /**
  * Generate HMAC signature for webhook
  */
-function generateSignature(payload: Record<string, unknown>, secret: string): string {
+function generateSignature(
+  payload: Record<string, unknown>,
+  secret: string,
+): string {
   // In production, use crypto module for HMAC
   // const crypto = require('crypto');
   // return crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
-  return 'placeholder-signature';
+  return "placeholder-signature";
 }
 
 /**
@@ -76,7 +79,7 @@ export const webhookWorker = createWorker<WebhookJob>(
   {
     concurrency: 5,
     limiter: { max: 10, duration: 1000 }, // 10 webhooks per second
-  }
+  },
 );
 
 export default webhookWorker;

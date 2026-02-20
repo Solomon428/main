@@ -8,17 +8,17 @@
 // - Escalation resolution
 // ============================================================================
 
-import { prisma } from '@/lib/database/client';
-import { SLACalculator } from '@/logic-engine/approval-engine/sla-calculator';
-import { NotificationService } from '@/services/notification-service';
-import { auditLogger } from '@/lib/utils/audit-logger';
+import { prisma } from "@/lib/database/client";
+import { SLACalculator } from "@/logic-engine/approval-engine/sla-calculator";
+import { NotificationService } from "@/services/notification-service";
+import { auditLogger } from "@/lib/utils/audit-logger";
 import {
   ApprovalStatus,
   InvoiceStatus,
   EntityType,
   LogSeverity,
   UserRole,
-} from '@/types';
+} from "@/types";
 
 export interface EscalationResult {
   escalated: boolean;
@@ -63,8 +63,8 @@ export class EscalationWorkflow {
       } catch (error) {
         errors.push(
           `Failed to escalate approval ${approval.id}: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
         );
       }
     }
@@ -88,11 +88,11 @@ export class EscalationWorkflow {
     });
 
     if (!approval) {
-      return { escalated: false, reason: 'Approval not found' };
+      return { escalated: false, reason: "Approval not found" };
     }
 
     if (approval.isEscalated) {
-      return { escalated: false, reason: 'Already escalated' };
+      return { escalated: false, reason: "Already escalated" };
     }
 
     // Fetch approver details separately since there's no relation
@@ -105,20 +105,20 @@ export class EscalationWorkflow {
 
     // Find next level approver
     const roleHierarchy: UserRole[] = [
-      'CREDIT_CLERK',
-      'BRANCH_MANAGER',
-      'FINANCIAL_MANAGER',
-      'EXECUTIVE',
-      'GROUP_FINANCIAL_MANAGER',
+      "CREDIT_CLERK",
+      "BRANCH_MANAGER",
+      "FINANCIAL_MANAGER",
+      "EXECUTIVE",
+      "GROUP_FINANCIAL_MANAGER",
     ];
 
     const currentRoleIndex = roleHierarchy.indexOf(
-      approval.approverRole as UserRole
+      approval.approverRole as UserRole,
     );
     const nextRole =
       currentRoleIndex >= 0 && currentRoleIndex < roleHierarchy.length - 1
         ? roleHierarchy[currentRoleIndex + 1]
-        : 'EXECUTIVE';
+        : "EXECUTIVE";
 
     // Find approver for next level
     const nextApprover = await prisma.users.findFirst({
@@ -129,7 +129,7 @@ export class EscalationWorkflow {
     });
 
     if (!nextApprover) {
-      return { escalated: false, reason: 'No higher-level approver found' };
+      return { escalated: false, reason: "No higher-level approver found" };
     }
 
     // Update approval
@@ -138,7 +138,7 @@ export class EscalationWorkflow {
       data: {
         isEscalated: true,
         escalatedFromId: approval.approverId,
-        escalationReason: 'SLA Breach - Automatic escalation',
+        escalationReason: "SLA Breach - Automatic escalation",
         status: ApprovalStatus.ESCALATED,
       },
     });
@@ -148,7 +148,7 @@ export class EscalationWorkflow {
       where: { id: approval.invoiceId },
       data: {
         isEscalated: true,
-        escalationReason: `SLA breach - escalated from ${approver?.name || 'previous approver'}`,
+        escalationReason: `SLA breach - escalated from ${approver?.name || "previous approver"}`,
         escalatedBy: approval.approverId,
         escalatedDate: new Date(),
         status: InvoiceStatus.ESCALATED,
@@ -158,7 +158,7 @@ export class EscalationWorkflow {
     // Notify managers
     const managers = await prisma.users.findMany({
       where: {
-        role: { in: ['FINANCIAL_MANAGER', 'EXECUTIVE'] },
+        role: { in: ["FINANCIAL_MANAGER", "EXECUTIVE"] },
         isActive: true,
       },
     });
@@ -166,11 +166,11 @@ export class EscalationWorkflow {
     for (const manager of managers) {
       await NotificationService.sendNotification({
         userId: manager.id,
-        title: 'SLA Breach - Escalation Required',
+        title: "SLA Breach - Escalation Required",
         message: `Invoice ${approval.invoice.invoiceNumber} has breached SLA and been escalated`,
-        type: 'SLA_BREACH',
-        priority: 'HIGH',
-        entityType: 'INVOICE',
+        type: "SLA_BREACH",
+        priority: "HIGH",
+        entityType: "INVOICE",
         entityId: approval.invoiceId,
       });
     }
@@ -179,12 +179,12 @@ export class EscalationWorkflow {
     await NotificationService.sendApprovalNotification({
       userId: nextApprover.id,
       invoiceId: approval.invoiceId,
-      type: 'APPROVAL_REQUIRED',
+      type: "APPROVAL_REQUIRED",
     });
 
     // Log escalation
     await auditLogger.log({
-      action: 'ESCALATE',
+      action: "ESCALATE",
       entityType: EntityType.APPROVAL,
       entityId: approvalId,
       entityDescription: `SLA breach escalation for invoice ${approval.invoice.invoiceNumber}`,
@@ -192,7 +192,7 @@ export class EscalationWorkflow {
       metadata: {
         previousApprover: approval.approverId,
         newApprover: nextApprover.id,
-        reason: 'SLA breach',
+        reason: "SLA breach",
       },
     });
 
@@ -208,7 +208,7 @@ export class EscalationWorkflow {
   static async resolveEscalation(
     invoiceId: string,
     resolverId: string,
-    resolution: string
+    resolution: string,
   ) {
     const invoice = await prisma.invoices.update({
       where: { id: invoiceId },
@@ -231,7 +231,7 @@ export class EscalationWorkflow {
     });
 
     await auditLogger.log({
-      action: 'UPDATE',
+      action: "UPDATE",
       entityType: EntityType.INVOICE,
       entityId: invoiceId,
       entityDescription: `Escalation resolved: ${resolution}`,
@@ -258,28 +258,34 @@ export class EscalationWorkflow {
         },
       },
       orderBy: {
-        escalatedDate: 'desc',
+        escalatedDate: "desc",
       },
     });
 
     // Fetch approver details separately since there's no relation
     const enrichedInvoices = await Promise.all(
       invoices.map(async (invoice) => {
-        const approverIds = [...new Set(invoice.approvals.map(a => a.approverId).filter(Boolean))];
+        const approverIds = [
+          ...new Set(
+            invoice.approvals.map((a) => a.approverId).filter(Boolean),
+          ),
+        ];
         const approvers = await prisma.users.findMany({
           where: { id: { in: approverIds } },
           select: { id: true, name: true, email: true },
         });
-        const approverMap = new Map(approvers.map(a => [a.id, a]));
+        const approverMap = new Map(approvers.map((a) => [a.id, a]));
 
         return {
           ...invoice,
-          approvals: invoice.approvals.map(a => ({
+          approvals: invoice.approvals.map((a) => ({
             ...a,
-            approver: a.approverId ? approverMap.get(a.approverId) || null : null,
+            approver: a.approverId
+              ? approverMap.get(a.approverId) || null
+              : null,
           })),
         };
-      })
+      }),
     );
 
     return enrichedInvoices;
@@ -300,12 +306,14 @@ export class EscalationWorkflow {
     });
 
     // Fetch approver details separately since there's no relation
-    const approverIds = [...new Set(approvals.map(a => a.approverId).filter(Boolean))];
+    const approverIds = [
+      ...new Set(approvals.map((a) => a.approverId).filter(Boolean)),
+    ];
     const approvers = await prisma.users.findMany({
       where: { id: { in: approverIds } },
       select: { id: true, name: true },
     });
-    const approverMap = new Map(approvers.map(a => [a.id, a]));
+    const approverMap = new Map(approvers.map((a) => [a.id, a]));
 
     const warnings = [];
     const now = new Date();
@@ -315,11 +323,13 @@ export class EscalationWorkflow {
 
       const slaStatus = SLACalculator.getSLAStatus(
         approval.assignedDate,
-        approval.slaHours || 48
+        approval.slaHours || 48,
       );
 
-      if (slaStatus.status === 'WARNING' || slaStatus.status === 'CRITICAL') {
-        const approver = approval.approverId ? approverMap.get(approval.approverId) : null;
+      if (slaStatus.status === "WARNING" || slaStatus.status === "CRITICAL") {
+        const approver = approval.approverId
+          ? approverMap.get(approval.approverId)
+          : null;
         warnings.push({
           approvalId: approval.id,
           invoiceId: approval.invoiceId,

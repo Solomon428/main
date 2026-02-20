@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/database/client';
+import { prisma } from "@/lib/database/client";
 
 interface ExchangeRate {
   from: string;
@@ -29,7 +29,7 @@ interface MultiCurrencyInvoice {
 }
 
 export class CurrencyService {
-  private static baseCurrency = 'ZAR';
+  private static baseCurrency = "ZAR";
   private static readonly fallbackRates: Record<string, number> = {
     USD: 18.5,
     EUR: 20.2,
@@ -54,7 +54,7 @@ export class CurrencyService {
     MYR: 3.94,
     KES: 0.14,
     NGN: 0.023,
-    EGP: 0.60,
+    EGP: 0.6,
   };
 
   /**
@@ -62,7 +62,7 @@ export class CurrencyService {
    */
   static async getExchangeRate(
     fromCurrency: string,
-    toCurrency: string
+    toCurrency: string,
   ): Promise<ExchangeRate> {
     // Normalize currency codes
     fromCurrency = fromCurrency.toUpperCase();
@@ -75,7 +75,7 @@ export class CurrencyService {
         to: toCurrency,
         rate: 1,
         timestamp: new Date(),
-        source: 'internal',
+        source: "internal",
       };
     }
 
@@ -87,12 +87,18 @@ export class CurrencyService {
 
     // Try to fetch from API
     try {
-      const apiRate = await this.fetchExchangeRateFromAPI(fromCurrency, toCurrency);
+      const apiRate = await this.fetchExchangeRateFromAPI(
+        fromCurrency,
+        toCurrency,
+      );
       await this.cacheExchangeRate(apiRate);
       return apiRate;
     } catch (error) {
-      console.warn('Failed to fetch exchange rate from API, using fallback:', error);
-      
+      console.warn(
+        "Failed to fetch exchange rate from API, using fallback:",
+        error,
+      );
+
       // Use fallback rates
       const fallbackRate = this.getFallbackRate(fromCurrency, toCurrency);
       return {
@@ -100,7 +106,7 @@ export class CurrencyService {
         to: toCurrency,
         rate: fallbackRate,
         timestamp: new Date(),
-        source: 'fallback',
+        source: "fallback",
       };
     }
   }
@@ -111,7 +117,7 @@ export class CurrencyService {
   static async convert(
     amount: number,
     fromCurrency: string,
-    toCurrency: string
+    toCurrency: string,
   ): Promise<ConversionResult> {
     const exchangeRate = await this.getExchangeRate(fromCurrency, toCurrency);
     const originalAmount = Number(amount);
@@ -132,7 +138,7 @@ export class CurrencyService {
    */
   static async convertToBase(
     amount: number,
-    fromCurrency: string
+    fromCurrency: string,
   ): Promise<ConversionResult> {
     return this.convert(amount, fromCurrency, this.baseCurrency);
   }
@@ -141,7 +147,7 @@ export class CurrencyService {
    * Process invoice with multi-currency support
    */
   static async processInvoiceCurrency(
-    invoiceId: string
+    invoiceId: string,
   ): Promise<MultiCurrencyInvoice | null> {
     const invoice = await prisma.invoices.findUnique({
       where: { id: invoiceId },
@@ -165,7 +171,10 @@ export class CurrencyService {
     }
 
     // Convert to base currency
-    const conversion = await this.convertToBase(invoice.totalAmount, invoice.currency);
+    const conversion = await this.convertToBase(
+      invoice.totalAmount,
+      invoice.currency,
+    );
 
     // Update invoice with conversion data
     await prisma.invoices.update({
@@ -198,30 +207,30 @@ export class CurrencyService {
     flag: string;
   }> {
     return [
-      { code: 'ZAR', name: 'South African Rand', symbol: 'R', flag: '🇿🇦' },
-      { code: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
-      { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
-      { code: 'GBP', name: 'British Pound', symbol: '£', flag: '🇬🇧' },
-      { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', flag: '🇦🇺' },
-      { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', flag: '🇨🇦' },
-      { code: 'CHF', name: 'Swiss Franc', symbol: 'Fr', flag: '🇨🇭' },
-      { code: 'CNY', name: 'Chinese Yuan', symbol: '¥', flag: '🇨🇳' },
-      { code: 'JPY', name: 'Japanese Yen', symbol: '¥', flag: '🇯🇵' },
-      { code: 'INR', name: 'Indian Rupee', symbol: '₹', flag: '🇮🇳' },
-      { code: 'BRL', name: 'Brazilian Real', symbol: 'R$', flag: '🇧🇷' },
-      { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', flag: '🇦🇪' },
-      { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', flag: '🇸🇬' },
-      { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$', flag: '🇭🇰' },
-      { code: 'SEK', name: 'Swedish Krona', symbol: 'kr', flag: '🇸🇪' },
-      { code: 'NOK', name: 'Norwegian Krone', symbol: 'kr', flag: '🇳🇴' },
-      { code: 'DKK', name: 'Danish Krone', symbol: 'kr', flag: '🇩🇰' },
-      { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$', flag: '🇳🇿' },
-      { code: 'MXN', name: 'Mexican Peso', symbol: '$', flag: '🇲🇽' },
-      { code: 'THB', name: 'Thai Baht', symbol: '฿', flag: '🇹🇭' },
-      { code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM', flag: '🇲🇾' },
-      { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', flag: '🇰🇪' },
-      { code: 'NGN', name: 'Nigerian Naira', symbol: '₦', flag: '🇳🇬' },
-      { code: 'EGP', name: 'Egyptian Pound', symbol: 'E£', flag: '🇪🇬' },
+      { code: "ZAR", name: "South African Rand", symbol: "R", flag: "🇿🇦" },
+      { code: "USD", name: "US Dollar", symbol: "$", flag: "🇺🇸" },
+      { code: "EUR", name: "Euro", symbol: "€", flag: "🇪🇺" },
+      { code: "GBP", name: "British Pound", symbol: "£", flag: "🇬🇧" },
+      { code: "AUD", name: "Australian Dollar", symbol: "A$", flag: "🇦🇺" },
+      { code: "CAD", name: "Canadian Dollar", symbol: "C$", flag: "🇨🇦" },
+      { code: "CHF", name: "Swiss Franc", symbol: "Fr", flag: "🇨🇭" },
+      { code: "CNY", name: "Chinese Yuan", symbol: "¥", flag: "🇨🇳" },
+      { code: "JPY", name: "Japanese Yen", symbol: "¥", flag: "🇯🇵" },
+      { code: "INR", name: "Indian Rupee", symbol: "₹", flag: "🇮🇳" },
+      { code: "BRL", name: "Brazilian Real", symbol: "R$", flag: "🇧🇷" },
+      { code: "AED", name: "UAE Dirham", symbol: "د.إ", flag: "🇦🇪" },
+      { code: "SGD", name: "Singapore Dollar", symbol: "S$", flag: "🇸🇬" },
+      { code: "HKD", name: "Hong Kong Dollar", symbol: "HK$", flag: "🇭🇰" },
+      { code: "SEK", name: "Swedish Krona", symbol: "kr", flag: "🇸🇪" },
+      { code: "NOK", name: "Norwegian Krone", symbol: "kr", flag: "🇳🇴" },
+      { code: "DKK", name: "Danish Krone", symbol: "kr", flag: "🇩🇰" },
+      { code: "NZD", name: "New Zealand Dollar", symbol: "NZ$", flag: "🇳🇿" },
+      { code: "MXN", name: "Mexican Peso", symbol: "$", flag: "🇲🇽" },
+      { code: "THB", name: "Thai Baht", symbol: "฿", flag: "🇹🇭" },
+      { code: "MYR", name: "Malaysian Ringgit", symbol: "RM", flag: "🇲🇾" },
+      { code: "KES", name: "Kenyan Shilling", symbol: "KSh", flag: "🇰🇪" },
+      { code: "NGN", name: "Nigerian Naira", symbol: "₦", flag: "🇳🇬" },
+      { code: "EGP", name: "Egyptian Pound", symbol: "E£", flag: "🇪🇬" },
     ];
   }
 
@@ -230,7 +239,7 @@ export class CurrencyService {
    */
   static async getRateHistory(
     currency: string,
-    days: number = 30
+    days: number = 30,
   ): Promise<Array<{ date: Date; rate: number }>> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -258,9 +267,11 @@ export class CurrencyService {
   /**
    * Calculate currency exposure
    */
-  static async calculateCurrencyExposure(
-    filters?: { startDate?: Date; endDate?: Date; status?: string[] }
-  ): Promise<{
+  static async calculateCurrencyExposure(filters?: {
+    startDate?: Date;
+    endDate?: Date;
+    status?: string[];
+  }): Promise<{
     baseCurrency: string;
     exposure: Array<{
       currency: string;
@@ -327,7 +338,10 @@ export class CurrencyService {
     }> = [];
 
     for (const [currency, data] of currencyMap.entries()) {
-      const currentRate = await this.getExchangeRate(currency, this.baseCurrency);
+      const currentRate = await this.getExchangeRate(
+        currency,
+        this.baseCurrency,
+      );
       const totalBase = data.originalAmount * currentRate.rate;
 
       exposure.push({
@@ -353,14 +367,14 @@ export class CurrencyService {
   static formatAmount(
     amount: number,
     currency: string,
-    locale: string = 'en-ZA'
+    locale: string = "en-ZA",
   ): string {
     const currencyInfo = this.getSupportedCurrencies().find(
-      c => c.code === currency.toUpperCase()
+      (c) => c.code === currency.toUpperCase(),
     );
 
     return new Intl.NumberFormat(locale, {
-      style: 'currency',
+      style: "currency",
       currency: currency.toUpperCase(),
     }).format(amount);
   }
@@ -369,7 +383,7 @@ export class CurrencyService {
 
   private static async getCachedRate(
     from: string,
-    to: string
+    to: string,
   ): Promise<ExchangeRate | null> {
     // Check if exchange rate table exists in schema
     // For now, return null to use fallback
@@ -378,17 +392,17 @@ export class CurrencyService {
 
   private static async fetchExchangeRateFromAPI(
     from: string,
-    to: string
+    to: string,
   ): Promise<ExchangeRate> {
     // Try exchangerate-api.com (free tier available)
     const apiKey = process.env.EXCHANGE_RATE_API_KEY;
-    
+
     if (!apiKey) {
-      throw new Error('Exchange rate API key not configured');
+      throw new Error("Exchange rate API key not configured");
     }
 
     const response = await fetch(
-      `https://v6.exchangerate-api.com/v6/${apiKey}/pair/${from}/${to}`
+      `https://v6.exchangerate-api.com/v6/${apiKey}/pair/${from}/${to}`,
     );
 
     if (!response.ok) {
@@ -397,8 +411,8 @@ export class CurrencyService {
 
     const data = await response.json();
 
-    if (data.result !== 'success') {
-      throw new Error(`API error: ${data['error-type']}`);
+    if (data.result !== "success") {
+      throw new Error(`API error: ${data["error-type"]}`);
     }
 
     return {
@@ -406,14 +420,14 @@ export class CurrencyService {
       to: data.target_code,
       rate: data.conversion_rate,
       timestamp: new Date(data.time_last_update_utc),
-      source: 'exchangerate-api',
+      source: "exchangerate-api",
     };
   }
 
   private static async cacheExchangeRate(rate: ExchangeRate): Promise<void> {
     // Cache in database if exchange rate table exists
     // For now, just log
-    console.log('Caching exchange rate:', rate);
+    console.log("Caching exchange rate:", rate);
   }
 
   private static isRateFresh(timestamp: Date): boolean {

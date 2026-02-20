@@ -1,10 +1,6 @@
-export enum ApprovalStatus {
-  PENDING = 'PENDING',
-  IN_PROGRESS = 'IN_PROGRESS',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED',
-  ESCALATED = 'ESCALATED',
-  DELEGATED = 'DELEGATED',
-  CANCELLED = 'CANCELLED',
-  AWAITING_DOCUMENTATION = 'AWAITING_DOCUMENTATION',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { ApprovalStatus as ApprovalStatus } from "@prisma/client";

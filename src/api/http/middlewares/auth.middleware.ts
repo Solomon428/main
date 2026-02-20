@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '../../../lib/auth-utils';
-import { prisma } from '../../../lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { verifyToken } from "../../../lib/auth-utils";
+import { prisma } from "@/db/prisma";
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {
@@ -15,28 +15,25 @@ export interface AuthenticatedRequest extends NextRequest {
  * Middleware to validate JWT token and attach user to request
  */
 export async function authMiddleware(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<NextResponse | AuthenticatedRequest> {
   try {
     // Get token from header
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
+    const authHeader = request.headers.get("authorization");
+    const token = authHeader?.replace("Bearer ", "");
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
+        { error: "Authentication required" },
+        { status: 401 },
       );
     }
 
     // Verify token
     const payload = await verifyToken(token);
-    
+
     if (!payload || !payload.userId) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     // Get user from database
@@ -53,8 +50,8 @@ export async function authMiddleware(
 
     if (!user || !user.isActive) {
       return NextResponse.json(
-        { error: 'User not found or inactive' },
-        { status: 401 }
+        { error: "User not found or inactive" },
+        { status: 401 },
       );
     }
 
@@ -68,10 +65,10 @@ export async function authMiddleware(
 
     return request as AuthenticatedRequest;
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    console.error("Auth middleware error:", error);
     return NextResponse.json(
-      { error: 'Authentication failed' },
-      { status: 401 }
+      { error: "Authentication failed" },
+      { status: 401 },
     );
   }
 }
@@ -80,13 +77,15 @@ export async function authMiddleware(
  * Middleware to require specific permissions
  */
 export function requirePermission(...permissions: string[]) {
-  return async (request: AuthenticatedRequest): Promise<NextResponse | null> => {
+  return async (
+    request: AuthenticatedRequest,
+  ): Promise<NextResponse | null> => {
     const user = request.user;
-    
+
     if (!user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
+        { error: "Authentication required" },
+        { status: 401 },
       );
     }
 
@@ -100,10 +99,7 @@ export function requirePermission(...permissions: string[]) {
     const hasPermission = true; // Implement proper permission check
 
     if (!hasPermission) {
-      return NextResponse.json(
-        { error: 'Permission denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
     }
 
     return null;
@@ -114,20 +110,22 @@ export function requirePermission(...permissions: string[]) {
  * Middleware to require specific roles
  */
 export function requireRole(...roles: string[]) {
-  return async (request: AuthenticatedRequest): Promise<NextResponse | null> => {
+  return async (
+    request: AuthenticatedRequest,
+  ): Promise<NextResponse | null> => {
     const user = request.user;
-    
+
     if (!user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
+        { error: "Authentication required" },
+        { status: 401 },
       );
     }
 
     if (!roles.includes(user.role)) {
       return NextResponse.json(
-        { error: 'Insufficient permissions' },
-        { status: 403 }
+        { error: "Insufficient permissions" },
+        { status: 403 },
       );
     }
 

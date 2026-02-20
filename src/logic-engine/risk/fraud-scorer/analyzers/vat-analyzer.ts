@@ -8,10 +8,10 @@ import type {
   FraudScoringInput,
   FraudScoringContext,
   FraudRiskFactor,
-  VATComplianceRiskAnalysis
-} from '../types';
-import { FraudDetectionMethod } from '../types';
-import { SA_COMPLIANCE_RULES } from '../constants';
+  VATComplianceRiskAnalysis,
+} from "../types";
+import { FraudDetectionMethod } from "../types";
+import { SA_COMPLIANCE_RULES } from "../constants";
 
 /**
  * Calculate risk score based on VAT compliance analysis
@@ -19,7 +19,7 @@ import { SA_COMPLIANCE_RULES } from '../constants';
 export function calculateVATComplianceRisk(
   input: FraudScoringInput,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): VATComplianceRiskAnalysis {
   let baseScore = 0;
   const riskFactors: FraudRiskFactor[] = [];
@@ -28,15 +28,15 @@ export function calculateVATComplianceRisk(
   if (input.supplierVatNumber && !/^4\d{9}$/.test(input.supplierVatNumber)) {
     baseScore += 30;
     riskFactors.push({
-      category: 'VAT_NON_COMPLIANCE',
-      factor: 'INVALID_VAT_NUMBER_FORMAT',
+      category: "VAT_NON_COMPLIANCE",
+      factor: "INVALID_VAT_NUMBER_FORMAT",
       description: `VAT number does not match SA format (10 digits starting with 4): ${input.supplierVatNumber}`,
-      severity: 'HIGH',
+      severity: "HIGH",
       scoreImpact: 30,
       evidence: `supplierVatNumber=${input.supplierVatNumber}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,
       confidence: 0.98,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -48,15 +48,15 @@ export function calculateVATComplianceRisk(
     if (Math.abs(input.vatAmount - expectedVat) > tolerance) {
       baseScore += 40;
       riskFactors.push({
-        category: 'VAT_NON_COMPLIANCE',
-        factor: 'VAT_CALCULATION_MISMATCH',
+        category: "VAT_NON_COMPLIANCE",
+        factor: "VAT_CALCULATION_MISMATCH",
         description: `VAT amount mismatch: expected R${expectedVat.toFixed(2)}, actual R${input.vatAmount.toFixed(2)} (tolerance: R${tolerance})`,
-        severity: 'CRITICAL',
+        severity: "CRITICAL",
         scoreImpact: 40,
         evidence: `subtotal=${input.subtotal}, vatAmount=${input.vatAmount}, expectedVat=${expectedVat}`,
         detectionMethod: FraudDetectionMethod.RULE_BASED,
         confidence: 0.95,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
   }
@@ -66,7 +66,7 @@ export function calculateVATComplianceRisk(
     normalizedScore: baseScore / 100,
     riskFactors,
     detectionMethods: [FraudDetectionMethod.RULE_BASED],
-    confidence: riskFactors.length > 0 ? 0.95 : 0.80,
-    metadata: { scoringId }
+    confidence: riskFactors.length > 0 ? 0.95 : 0.8,
+    metadata: { scoringId },
   };
 }

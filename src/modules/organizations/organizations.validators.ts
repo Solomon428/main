@@ -1,8 +1,8 @@
-import { z } from 'zod';
-import { Currency } from '../../domain/enums/Currency';
+import { z } from "zod";
+import { Currency } from "../../domain/enums/Currency";
 
 export const createOrganizationSchema = z.object({
-  name: z.string().min(2, 'Organization name is required'),
+  name: z.string().min(2, "Organization name is required"),
   legalName: z.string().optional(),
   tradingName: z.string().optional(),
   taxId: z.string().optional(),
@@ -21,9 +21,9 @@ export const createOrganizationSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   postalCode: z.string().optional(),
-  country: z.string().default('South Africa'),
-  countryCode: z.string().default('ZA'),
-  timezone: z.string().default('Africa/Johannesburg'),
+  country: z.string().default("South Africa"),
+  countryCode: z.string().default("ZA"),
+  timezone: z.string().default("Africa/Johannesburg"),
   currency: z.nativeEnum(Currency).default(Currency.ZAR),
   baseCurrency: z.nativeEnum(Currency).default(Currency.ZAR),
 });

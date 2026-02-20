@@ -1,12 +1,6 @@
-export enum LogSeverity {
-  DEBUG = 'DEBUG',
-  INFO = 'INFO',
-  WARN = 'WARN',
-  ERROR = 'ERROR',
-  FATAL = 'FATAL',
-  CRITICAL = 'CRITICAL',
-  AUDIT = 'AUDIT',
-  SECURITY = 'SECURITY',
-  COMPLIANCE = 'COMPLIANCE',
-  WARNING = 'WARNING',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { LogSeverity as LogSeverity } from "@prisma/client";

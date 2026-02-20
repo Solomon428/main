@@ -1,13 +1,17 @@
-import { fromBuffer } from 'file-type';
-import type { OcrResult, OcrProgress, OcrConfig } from '../types';
-import { OcrServiceError, OcrValidationError, OcrProcessingError } from '../errors';
-import { TextPostprocessor } from '../postprocessing';
-import { ImagePreprocessor } from '../preprocessing';
-import type { TesseractEngine } from '../engines/tesseract';
-import type { GoogleVisionEngine } from '../engines/google';
-import type { AwsTextractEngine } from '../engines/amazon';
-import type { AzureCognitiveEngine } from '../engines/azure';
-import type { OllamaEngine } from '../engines/ollama';
+import { fromBuffer } from "file-type";
+import type { OcrResult, OcrProgress, OcrConfig } from "../types";
+import {
+  OcrServiceError,
+  OcrValidationError,
+  OcrProcessingError,
+} from "../errors";
+import { TextPostprocessor } from "../postprocessing";
+import { ImagePreprocessor } from "../preprocessing";
+import type { TesseractEngine } from "../engines/tesseract";
+import type { GoogleVisionEngine } from "../engines/google";
+import type { AwsTextractEngine } from "../engines/amazon";
+import type { AzureCognitiveEngine } from "../engines/azure";
+import type { OllamaEngine } from "../engines/ollama";
 
 export interface FileProcessorOptions {
   config: OcrConfig;
@@ -31,20 +35,20 @@ export class FileProcessor {
     fileBuffer: Buffer,
     fileName: string,
     mimeType: string,
-    jobId: string
+    jobId: string,
   ): Promise<OcrResult> {
     // Determine document type and process accordingly
     const fileType = await fromBuffer(fileBuffer);
     const actualMimeType = fileType?.mime || mimeType;
 
-    if (actualMimeType === 'application/pdf') {
+    if (actualMimeType === "application/pdf") {
       return this.processPdfFile(fileBuffer, fileName, jobId);
-    } else if (actualMimeType.startsWith('image/')) {
+    } else if (actualMimeType.startsWith("image/")) {
       return this.processImageFile(fileBuffer, fileName, actualMimeType, jobId);
     } else {
       throw new OcrValidationError(`Unsupported file type: ${actualMimeType}`, {
         fileName,
-        mimeType: actualMimeType
+        mimeType: actualMimeType,
       });
     }
   }
@@ -52,28 +56,29 @@ export class FileProcessor {
   private async processPdfFile(
     pdfBuffer: Buffer,
     fileName: string,
-    jobId: string
+    jobId: string,
   ): Promise<OcrResult> {
     try {
       this.options.updateProgress(jobId, {
-        stage: 'preprocessing',
+        stage: "preprocessing",
         progress: 10,
-        message: 'Loading PDF document',
-        timestamp: new Date()
+        message: "Loading PDF document",
+        timestamp: new Date(),
       });
 
-      const pageImages = await this.options.preprocessor.convertAllPdfPages(pdfBuffer);
+      const pageImages =
+        await this.options.preprocessor.convertAllPdfPages(pdfBuffer);
       const pageCount = pageImages.length;
 
       this.options.updateProgress(jobId, {
-        stage: 'preprocessing',
+        stage: "preprocessing",
         progress: 20,
         message: `PDF loaded: ${pageCount} page(s)`,
         details: { pageCount },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
-      let allText = '';
+      let allText = "";
       let totalConfidence = 0;
       let processedPages = 0;
       const errors: string[] = [];
@@ -82,18 +87,18 @@ export class FileProcessor {
       for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
         try {
           this.options.updateProgress(jobId, {
-            stage: 'extracting',
+            stage: "extracting",
             progress: 20 + Math.floor((pageIndex / pageCount) * 60),
             message: `Processing page ${pageIndex + 1} of ${pageCount}`,
             details: { currentPage: pageIndex + 1, totalPages: pageCount },
-            timestamp: new Date()
+            timestamp: new Date(),
           });
 
           const imageBuffer = pageImages[pageIndex];
           const pageResult = await this.processImageWithProvider(
             imageBuffer,
             `${fileName}_page_${pageIndex + 1}.png`,
-            jobId
+            jobId,
           );
 
           if (pageResult.success && pageResult.text) {
@@ -104,12 +109,14 @@ export class FileProcessor {
             errors.push(`Failed to extract text from page ${pageIndex + 1}`);
           }
         } catch (pageError) {
-          const errorMsg = pageError instanceof Error ? pageError.message : 'Unknown error';
+          const errorMsg =
+            pageError instanceof Error ? pageError.message : "Unknown error";
           errors.push(`Error processing page ${pageIndex + 1}: ${errorMsg}`);
         }
       }
 
-      const averageConfidence = processedPages > 0 ? totalConfidence / processedPages : 0;
+      const averageConfidence =
+        processedPages > 0 ? totalConfidence / processedPages : 0;
 
       const validation = TextPostprocessor.validateInvoiceExtraction(allText);
 
@@ -131,14 +138,14 @@ export class FileProcessor {
           validationScore: validation.score,
         },
         errors: errors.length > 0 ? errors : undefined,
-        warnings: warnings.length > 0 ? warnings : undefined
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
     } catch (error) {
       throw new OcrProcessingError(
-        'Failed to process PDF file',
-        'PDF_PROCESSING_FAILED',
+        "Failed to process PDF file",
+        "PDF_PROCESSING_FAILED",
         { fileName },
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }
@@ -147,38 +154,41 @@ export class FileProcessor {
     imageBuffer: Buffer,
     fileName: string,
     mimeType: string,
-    jobId: string
+    jobId: string,
   ): Promise<OcrResult> {
     try {
       this.options.updateProgress(jobId, {
-        stage: 'preprocessing',
+        stage: "preprocessing",
         progress: 15,
-        message: 'Preprocessing image for OCR',
-        timestamp: new Date()
+        message: "Preprocessing image for OCR",
+        timestamp: new Date(),
       });
 
-      const preprocessedImage = await this.options.preprocessor.preprocessImage(imageBuffer, mimeType);
+      const preprocessedImage = await this.options.preprocessor.preprocessImage(
+        imageBuffer,
+        mimeType,
+      );
 
       this.options.updateProgress(jobId, {
-        stage: 'extracting',
+        stage: "extracting",
         progress: 40,
-        message: 'Extracting text from image',
-        timestamp: new Date()
+        message: "Extracting text from image",
+        timestamp: new Date(),
       });
 
       const result = await this.processImageWithProvider(
         preprocessedImage,
         fileName,
-        jobId
+        jobId,
       );
 
       return result;
     } catch (error) {
       throw new OcrProcessingError(
-        'Failed to process image file',
-        'IMAGE_PROCESSING_FAILED',
+        "Failed to process image file",
+        "IMAGE_PROCESSING_FAILED",
         { fileName, mimeType },
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }
@@ -186,40 +196,60 @@ export class FileProcessor {
   private async processImageWithProvider(
     imageBuffer: Buffer,
     fileName: string,
-    jobId: string
+    jobId: string,
   ): Promise<OcrResult> {
     const { config, updateProgress } = this.options;
 
     switch (config.provider) {
-      case 'tesseract':
+      case "tesseract":
         if (!this.options.tesseractEngine) {
-          throw new OcrServiceError('Tesseract engine not initialized', 'TESSERACT_NOT_INITIALIZED');
+          throw new OcrServiceError(
+            "Tesseract engine not initialized",
+            "TESSERACT_NOT_INITIALIZED",
+          );
         }
-        return this.options.tesseractEngine.process(imageBuffer, fileName, jobId, updateProgress);
-      case 'google-vision':
+        return this.options.tesseractEngine.process(
+          imageBuffer,
+          fileName,
+          jobId,
+          updateProgress,
+        );
+      case "google-vision":
         if (!this.options.googleVisionEngine) {
-          throw new OcrServiceError('Google Vision engine not initialized', 'GOOGLE_VISION_NOT_INITIALIZED');
+          throw new OcrServiceError(
+            "Google Vision engine not initialized",
+            "GOOGLE_VISION_NOT_INITIALIZED",
+          );
         }
         return this.options.googleVisionEngine.process(imageBuffer, fileName);
-      case 'aws-textract':
+      case "aws-textract":
         if (!this.options.awsTextractEngine) {
-          throw new OcrServiceError('AWS Textract engine not initialized', 'AWS_TEXTRACT_NOT_INITIALIZED');
+          throw new OcrServiceError(
+            "AWS Textract engine not initialized",
+            "AWS_TEXTRACT_NOT_INITIALIZED",
+          );
         }
         return this.options.awsTextractEngine.process(imageBuffer, fileName);
-      case 'azure':
+      case "azure":
         if (!this.options.azureEngine) {
-          throw new OcrServiceError('Azure engine not initialized', 'AZURE_NOT_INITIALIZED');
+          throw new OcrServiceError(
+            "Azure engine not initialized",
+            "AZURE_NOT_INITIALIZED",
+          );
         }
         return this.options.azureEngine.process(imageBuffer, fileName);
-      case 'ollama':
+      case "ollama":
         if (!this.options.ollamaEngine) {
-          throw new OcrServiceError('Ollama engine not initialized', 'OLLAMA_NOT_INITIALIZED');
+          throw new OcrServiceError(
+            "Ollama engine not initialized",
+            "OLLAMA_NOT_INITIALIZED",
+          );
         }
         return this.options.ollamaEngine.process(imageBuffer, fileName);
       default:
         throw new OcrServiceError(
           `Unsupported OCR provider: ${config.provider}`,
-          'UNSUPPORTED_PROVIDER'
+          "UNSUPPORTED_PROVIDER",
         );
     }
   }

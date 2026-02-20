@@ -36,7 +36,7 @@ export class InvoiceService extends BaseService {
 
     const calculatedLineItems = data.lineItems.map((item) => {
       const subtotal = item.quantity * item.unitPrice;
-      const taxAmount = subtotal * (item.taxRate || 0) / 100;
+      const taxAmount = (subtotal * (item.taxRate || 0)) / 100;
       return {
         ...item,
         subtotal,
@@ -45,8 +45,14 @@ export class InvoiceService extends BaseService {
       };
     });
 
-    const subtotal = calculatedLineItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const taxAmount = calculatedLineItems.reduce((sum, item) => sum + item.taxAmount, 0);
+    const subtotal = calculatedLineItems.reduce(
+      (sum, item) => sum + item.subtotal,
+      0,
+    );
+    const taxAmount = calculatedLineItems.reduce(
+      (sum, item) => sum + item.taxAmount,
+      0,
+    );
     const total = subtotal + taxAmount;
 
     const invoice = await this.prisma.invoice.create({
@@ -80,7 +86,9 @@ export class InvoiceService extends BaseService {
       },
     });
 
-    await this.audit("CREATE", "Invoice", invoice.id, { invoiceNumber: data.invoiceNumber });
+    await this.audit("CREATE", "Invoice", invoice.id, {
+      invoiceNumber: data.invoiceNumber,
+    });
 
     return invoice;
   }
@@ -92,16 +100,21 @@ export class InvoiceService extends BaseService {
       organizationId: orgId,
       ...(filters.status && { status: filters.status }),
       ...(filters.supplierId && { supplierId: filters.supplierId }),
-      ...(filters.dateFrom && filters.dateTo && {
-        issueDate: {
-          gte: filters.dateFrom,
-          lte: filters.dateTo,
-        },
-      }),
+      ...(filters.dateFrom &&
+        filters.dateTo && {
+          issueDate: {
+            gte: filters.dateFrom,
+            lte: filters.dateTo,
+          },
+        }),
       ...(filters.search && {
         OR: [
           { invoiceNumber: { contains: filters.search, mode: "insensitive" } },
-          { supplier: { name: { contains: filters.search, mode: "insensitive" } } },
+          {
+            supplier: {
+              name: { contains: filters.search, mode: "insensitive" },
+            },
+          },
         ],
       }),
     };
@@ -128,7 +141,13 @@ export class InvoiceService extends BaseService {
       this.prisma.invoice.count({ where }),
     ]);
 
-    return { invoices, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+      invoices,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findById(id: string) {
@@ -142,7 +161,12 @@ export class InvoiceService extends BaseService {
         approvals: {
           include: {
             approver: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
           },
         },
@@ -189,12 +213,15 @@ export class InvoiceService extends BaseService {
     return { success: true };
   }
 
-  async updateFileInfo(id: string, fileData: {
-    fileUrl: string;
-    fileName: string | null;
-    fileType: string | null;
-    fileSize: number | null;
-  }) {
+  async updateFileInfo(
+    id: string,
+    fileData: {
+      fileUrl: string;
+      fileName: string | null;
+      fileType: string | null;
+      fileSize: number | null;
+    },
+  ) {
     const orgId = this.requireOrg();
 
     const invoice = await this.prisma.invoice.update({
@@ -222,15 +249,24 @@ export class InvoiceService extends BaseService {
       outstandingAmount,
     ] = await Promise.all([
       this.prisma.invoice.count({ where: { organizationId: orgId } }),
-      this.prisma.invoice.count({ where: { organizationId: orgId, status: "PENDING" } }),
-      this.prisma.invoice.count({ where: { organizationId: orgId, status: "APPROVED" } }),
-      this.prisma.invoice.count({ where: { organizationId: orgId, status: "PAID" } }),
+      this.prisma.invoice.count({
+        where: { organizationId: orgId, status: "PENDING" },
+      }),
+      this.prisma.invoice.count({
+        where: { organizationId: orgId, status: "APPROVED" },
+      }),
+      this.prisma.invoice.count({
+        where: { organizationId: orgId, status: "PAID" },
+      }),
       this.prisma.invoice.aggregate({
         where: { organizationId: orgId },
         _sum: { totalAmount: true },
       }),
       this.prisma.invoice.aggregate({
-        where: { organizationId: orgId, status: { in: ["PENDING", "APPROVED"] } },
+        where: {
+          organizationId: orgId,
+          status: { in: ["PENDING", "APPROVED"] },
+        },
         _sum: { totalAmount: true },
       }),
     ]);

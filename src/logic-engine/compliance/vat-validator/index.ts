@@ -1,9 +1,9 @@
 /**
  * CREDITORFLOW EMS - VAT VALIDATOR MODULE
  * Version: 3.8.4
- * 
+ *
  * Main entry point for VAT validation functionality
- * 
+ *
  * ENTERPRISE-GRADE VAT VALIDATION WITH:
  * - Multi-jurisdiction VAT compliance (SA primary focus)
  * - Reverse charge mechanism implementation
@@ -29,7 +29,7 @@
  */
 
 // Core validator
-export { VATValidator, VATValidationException } from './core';
+export { VATValidator, VATValidationException } from "./core";
 
 // Types
 export type {
@@ -70,8 +70,8 @@ export type {
   VATGuidanceReference,
   VATIndustryPracticeReference,
   VATInternationalStandardReference,
-  VATCheckResult
-} from './types';
+  VATCheckResult,
+} from "./types";
 
 // Constants
 export {
@@ -99,8 +99,8 @@ export {
   VAT_RULING_REFERENCES,
   VAT_GUIDANCE_REFERENCES,
   VAT_INDUSTRY_PRACTICE_REFERENCES,
-  VAT_INTERNATIONAL_STANDARD_REFERENCES
-} from './constants';
+  VAT_INTERNATIONAL_STANDARD_REFERENCES,
+} from "./constants";
 
 // Formatting utilities
 export {
@@ -112,16 +112,16 @@ export {
   calculateSACheckDigit,
   validateSACheckDigit,
   sanitizeVATNumber,
-  maskVATNumber
-} from './formatting';
+  maskVATNumber,
+} from "./formatting";
 
 // Validators - South Africa
 export {
   validateSAVATNumber,
   validateSAVATTreatment,
   validateSAReverseCharge,
-  validateSATaxInvoice
-} from './validators/sa';
+  validateSATaxInvoice,
+} from "./validators/sa";
 
 // Validators - EU
 export {
@@ -133,8 +133,8 @@ export {
   EU_COUNTRY_CODES,
   EU_VAT_PATTERNS,
   EU_STANDARD_VAT_RATE,
-  EU_VAT_RATES
-} from './validators/eu';
+  EU_VAT_RATES,
+} from "./validators/eu";
 
 // Validators - UK
 export {
@@ -147,8 +147,8 @@ export {
   isNorthernIrelandVAT,
   UK_VAT_PATTERNS,
   UK_STANDARD_VAT_RATE,
-  UK_VAT_RATES
-} from './validators/uk';
+  UK_VAT_RATES,
+} from "./validators/uk";
 
 // Validators - Generic
 export {
@@ -156,8 +156,8 @@ export {
   validateGenericVATAmount,
   validateGenericTotalAmount,
   calculateGenericVAT,
-  validateGenericTaxInvoice
-} from './validators/generic';
+  validateGenericTaxInvoice,
+} from "./validators/generic";
 
 // API Clients
 export {
@@ -169,8 +169,8 @@ export {
   DEFAULT_HMRC_CONFIG,
   type SARSAPIConfig,
   type VIESConfig,
-  type HMRCConfig
-} from './api-clients';
+  type HMRCConfig,
+} from "./api-clients";
 
 // Default export
-export { VATValidator as default } from './core';
+export { VATValidator as default } from "./core";

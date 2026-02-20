@@ -7,9 +7,9 @@
 import type {
   FraudScoringInput,
   FraudScoringContext,
-  NetworkRiskAnalysis
-} from '../types';
-import { FraudDetectionMethod } from '../types';
+  NetworkRiskAnalysis,
+} from "../types";
+import { FraudDetectionMethod } from "../types";
 
 /**
  * Calculate risk score based on network analysis
@@ -17,7 +17,7 @@ import { FraudDetectionMethod } from '../types';
 export function calculateNetworkRisk(
   input: FraudScoringInput,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): NetworkRiskAnalysis {
   // Placeholder for integration with NetworkAnalyzer service
 
@@ -27,6 +27,6 @@ export function calculateNetworkRisk(
     riskFactors: [],
     detectionMethods: [FraudDetectionMethod.NETWORK_ANALYSIS],
     confidence: 0.65,
-    metadata: { scoringId }
+    metadata: { scoringId },
   };
 }

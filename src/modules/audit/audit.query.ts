@@ -3,10 +3,10 @@
 // ============================================================================
 // Provides advanced querying capabilities for audit logs
 
-import { prisma } from '../../db/prisma';
-import { AuditAction } from '../../domain/enums/AuditAction';
-import { EntityType } from '../../domain/enums/EntityType';
-import { LogSeverity } from '../../domain/enums/LogSeverity';
+import { prisma } from "../../db/prisma";
+import { AuditAction } from "../../domain/enums/AuditAction";
+import { EntityType } from "../../domain/enums/EntityType";
+import { LogSeverity } from "../../domain/enums/LogSeverity";
 
 export interface AuditQueryFilters {
   organizationId?: string;
@@ -27,7 +27,7 @@ export interface AuditQueryOptions {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   includeDetails?: boolean;
 }
 
@@ -39,7 +39,8 @@ function buildWhereClause(filters: AuditQueryFilters): any {
 
   if (filters.organizationId) where.organizationId = filters.organizationId;
   if (filters.userId) where.userId = filters.userId;
-  if (filters.userEmail) where.userEmail = { contains: filters.userEmail, mode: 'insensitive' };
+  if (filters.userEmail)
+    where.userEmail = { contains: filters.userEmail, mode: "insensitive" };
   if (filters.action) where.action = filters.action;
   if (filters.entityType) where.entityType = filters.entityType;
   if (filters.entityId) where.entityId = filters.entityId;
@@ -57,9 +58,14 @@ function buildWhereClause(filters: AuditQueryFilters): any {
 
   if (filters.searchTerm) {
     where.OR = [
-      { entityDescription: { contains: filters.searchTerm, mode: 'insensitive' } },
-      { changesSummary: { contains: filters.searchTerm, mode: 'insensitive' } },
-      { userEmail: { contains: filters.searchTerm, mode: 'insensitive' } },
+      {
+        entityDescription: {
+          contains: filters.searchTerm,
+          mode: "insensitive",
+        },
+      },
+      { changesSummary: { contains: filters.searchTerm, mode: "insensitive" } },
+      { userEmail: { contains: filters.searchTerm, mode: "insensitive" } },
     ];
   }
 
@@ -71,13 +77,13 @@ function buildWhereClause(filters: AuditQueryFilters): any {
  */
 export async function queryAuditLogs(
   filters: AuditQueryFilters,
-  options: AuditQueryOptions = {}
+  options: AuditQueryOptions = {},
 ) {
   const page = options.page || 1;
   const limit = options.limit || 50;
   const skip = (page - 1) * limit;
-  const sortBy = options.sortBy || 'createdAt';
-  const sortOrder = options.sortOrder || 'desc';
+  const sortBy = options.sortBy || "createdAt";
+  const sortOrder = options.sortOrder || "desc";
 
   const where = buildWhereClause(filters);
 
@@ -131,7 +137,7 @@ export async function getEntityAuditTrail(
     limit?: number;
     startDate?: Date;
     endDate?: Date;
-  }
+  },
 ) {
   const page = options?.page || 1;
   const limit = options?.limit || 50;
@@ -160,7 +166,7 @@ export async function getEntityAuditTrail(
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
@@ -189,7 +195,7 @@ export async function getUserActivityHistory(
     actions?: AuditAction[];
     startDate?: Date;
     endDate?: Date;
-  }
+  },
 ) {
   const page = options?.page || 1;
   const limit = options?.limit || 50;
@@ -210,7 +216,7 @@ export async function getUserActivityHistory(
   const [logs, total] = await Promise.all([
     prisma.auditLog.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
@@ -233,7 +239,7 @@ export async function getUserActivityHistory(
  */
 export async function getAuditStatistics(
   organizationId?: string,
-  dateRange?: { start: Date; end: Date }
+  dateRange?: { start: Date; end: Date },
 ) {
   const where: any = {};
 
@@ -245,49 +251,56 @@ export async function getAuditStatistics(
     };
   }
 
-  const [totalLogs, actionStats, severityStats, topUsers, recentActivity] = await Promise.all([
-    prisma.auditLog.count({ where }),
-    prisma.auditLog.groupBy({
-      by: ['action'],
-      where,
-      _count: { action: true },
-    }),
-    prisma.auditLog.groupBy({
-      by: ['severity'],
-      where,
-      _count: { severity: true },
-    }),
-    prisma.auditLog.groupBy({
-      by: ['userId', 'userEmail'],
-      where: { ...where, userId: { not: null } },
-      _count: { userId: true },
-      orderBy: { _count: { userId: 'desc' } },
-      take: 10,
-    }),
-    prisma.auditLog.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-      select: {
-        id: true,
-        action: true,
-        entityType: true,
-        createdAt: true,
-        userEmail: true,
-      },
-    }),
-  ]);
+  const [totalLogs, actionStats, severityStats, topUsers, recentActivity] =
+    await Promise.all([
+      prisma.auditLog.count({ where }),
+      prisma.auditLog.groupBy({
+        by: ["action"],
+        where,
+        _count: { action: true },
+      }),
+      prisma.auditLog.groupBy({
+        by: ["severity"],
+        where,
+        _count: { severity: true },
+      }),
+      prisma.auditLog.groupBy({
+        by: ["userId", "userEmail"],
+        where: { ...where, userId: { not: null } },
+        _count: { userId: true },
+        orderBy: { _count: { userId: "desc" } },
+        take: 10,
+      }),
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          action: true,
+          entityType: true,
+          createdAt: true,
+          userEmail: true,
+        },
+      }),
+    ]);
 
   return {
     totalLogs,
-    actionBreakdown: actionStats.reduce((acc, stat) => {
-      acc[stat.action] = stat._count.action;
-      return acc;
-    }, {} as Record<string, number>),
-    severityBreakdown: severityStats.reduce((acc, stat) => {
-      acc[stat.severity] = stat._count.severity;
-      return acc;
-    }, {} as Record<string, number>),
+    actionBreakdown: actionStats.reduce(
+      (acc, stat) => {
+        acc[stat.action] = stat._count.action;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
+    severityBreakdown: severityStats.reduce(
+      (acc, stat) => {
+        acc[stat.severity] = stat._count.severity;
+        return acc;
+      },
+      {} as Record<string, number>,
+    ),
     topUsers: topUsers.map((user) => ({
       userId: user.userId,
       email: user.userEmail,
@@ -302,26 +315,26 @@ export async function getAuditStatistics(
  */
 export async function exportAuditLogs(
   filters: AuditQueryFilters,
-  format: 'json' | 'csv' = 'json'
+  format: "json" | "csv" = "json",
 ) {
   const where = buildWhereClause(filters);
 
   const logs = await prisma.auditLog.findMany({
     where,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 
-  if (format === 'csv') {
+  if (format === "csv") {
     const headers = [
-      'ID',
-      'Timestamp',
-      'Action',
-      'Entity Type',
-      'Entity ID',
-      'User Email',
-      'Severity',
-      'IP Address',
-      'Changes Summary',
+      "ID",
+      "Timestamp",
+      "Action",
+      "Entity Type",
+      "Entity ID",
+      "User Email",
+      "Severity",
+      "IP Address",
+      "Changes Summary",
     ];
 
     const rows = logs.map((log) => [
@@ -330,13 +343,13 @@ export async function exportAuditLogs(
       log.action,
       log.entityType,
       log.entityId,
-      log.userEmail || '',
+      log.userEmail || "",
       log.severity,
-      log.ipAddress || '',
-      log.changesSummary || '',
+      log.ipAddress || "",
+      log.changesSummary || "",
     ]);
 
-    return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
   }
 
   return JSON.stringify(logs, null, 2);
@@ -351,7 +364,7 @@ export async function searchAuditLogs(
     organizationId?: string;
     page?: number;
     limit?: number;
-  }
+  },
 ) {
   const page = options?.page || 1;
   const limit = options?.limit || 50;
@@ -359,10 +372,10 @@ export async function searchAuditLogs(
 
   const where: any = {
     OR: [
-      { entityDescription: { contains: searchTerm, mode: 'insensitive' } },
-      { changesSummary: { contains: searchTerm, mode: 'insensitive' } },
-      { userEmail: { contains: searchTerm, mode: 'insensitive' } },
-      { userRole: { contains: searchTerm, mode: 'insensitive' } },
+      { entityDescription: { contains: searchTerm, mode: "insensitive" } },
+      { changesSummary: { contains: searchTerm, mode: "insensitive" } },
+      { userEmail: { contains: searchTerm, mode: "insensitive" } },
+      { userRole: { contains: searchTerm, mode: "insensitive" } },
     ],
   };
 
@@ -373,7 +386,7 @@ export async function searchAuditLogs(
   const [logs, total] = await Promise.all([
     prisma.auditLog.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
@@ -400,7 +413,7 @@ export async function getComplianceReport(
     complianceFlags?: string[];
     startDate?: Date;
     endDate?: Date;
-  }
+  },
 ) {
   const where: any = {
     organizationId,
@@ -419,16 +432,19 @@ export async function getComplianceReport(
 
   const logs = await prisma.auditLog.findMany({
     where,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 
-  const groupedByFlag = logs.reduce((acc, log) => {
-    log.complianceFlags.forEach((flag) => {
-      if (!acc[flag]) acc[flag] = [];
-      acc[flag].push(log);
-    });
-    return acc;
-  }, {} as Record<string, typeof logs>);
+  const groupedByFlag = logs.reduce(
+    (acc, log) => {
+      log.complianceFlags.forEach((flag) => {
+        if (!acc[flag]) acc[flag] = [];
+        acc[flag].push(log);
+      });
+      return acc;
+    },
+    {} as Record<string, typeof logs>,
+  );
 
   return {
     totalLogs: logs.length,

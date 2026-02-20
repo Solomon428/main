@@ -7,9 +7,9 @@
 import type {
   FraudScoringInput,
   FraudScoringContext,
-  BehavioralRiskAnalysis
-} from '../types';
-import { FraudDetectionMethod } from '../types';
+  BehavioralRiskAnalysis,
+} from "../types";
+import { FraudDetectionMethod } from "../types";
 
 /**
  * Calculate risk score based on behavioral pattern analysis
@@ -17,16 +17,16 @@ import { FraudDetectionMethod } from '../types';
 export function calculateBehavioralRisk(
   input: FraudScoringInput,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): BehavioralRiskAnalysis {
   // Placeholder for integration with BehavioralProfiler service
 
   return {
     score: 30,
-    normalizedScore: 0.30,
+    normalizedScore: 0.3,
     riskFactors: [],
     detectionMethods: [FraudDetectionMethod.MACHINE_LEARNING],
-    confidence: 0.70,
-    metadata: { scoringId }
+    confidence: 0.7,
+    metadata: { scoringId },
   };
 }

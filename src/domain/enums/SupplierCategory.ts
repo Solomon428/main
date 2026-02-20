@@ -1,19 +1,6 @@
-export enum SupplierCategory {
-  TIER_1 = 'TIER_1',
-  TIER_2 = 'TIER_2',
-  TIER_3 = 'TIER_3',
-  STRATEGIC = 'STRATEGIC',
-  NON_STRATEGIC = 'NON_STRATEGIC',
-  GOODS = 'GOODS',
-  SERVICES = 'SERVICES',
-  BOTH = 'BOTH',
-  CONSULTING = 'CONSULTING',
-  UTILITIES = 'UTILITIES',
-  RENT = 'RENT',
-  INSURANCE = 'INSURANCE',
-  LOGISTICS = 'LOGISTICS',
-  TECHNOLOGY = 'TECHNOLOGY',
-  MARKETING = 'MARKETING',
-  LEGAL = 'LEGAL',
-  FINANCIAL = 'FINANCIAL',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { SupplierCategory as SupplierCategory } from "@prisma/client";

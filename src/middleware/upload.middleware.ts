@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import multer, { MulterError, FileFilterCallback } from 'multer';
-import { AppError } from '@/lib/errors';
-import { logger } from '@/lib/logger';
+import { Request, Response, NextFunction } from "express";
+import multer, { MulterError, FileFilterCallback } from "multer";
+import { AppError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 
 // Maximum file size: 50MB
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -9,22 +9,22 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024;
 // Allowed MIME types
 const ALLOWED_MIME_TYPES = [
   // Documents
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   // Images
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/tiff',
-  'image/tif',
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/tiff",
+  "image/tif",
   // Archives
-  'application/zip',
-  'application/x-zip-compressed',
+  "application/zip",
+  "application/x-zip-compressed",
 ];
 
 // Configure storage - use memory for processing, disk for large files
@@ -34,7 +34,7 @@ const storage = multer.memoryStorage();
 const fileFilter = (
   _req: Request,
   file: Express.Multer.File,
-  callback: FileFilterCallback
+  callback: FileFilterCallback,
 ) => {
   if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     callback(null, true);
@@ -42,9 +42,9 @@ const fileFilter = (
     callback(
       new AppError(
         `Invalid file type: ${file.mimetype}. Allowed types: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, WEBP, TIFF`,
-        'INVALID_FILE_TYPE',
-        400
-      )
+        "INVALID_FILE_TYPE",
+        400,
+      ),
     );
   }
 };
@@ -76,7 +76,9 @@ export function uploadMultiple(fieldName: string, maxCount: number = 10) {
 /**
  * Middleware for mixed file uploads (multiple fields)
  */
-export function uploadFields(fields: Array<{ name: string; maxCount?: number }>) {
+export function uploadFields(
+  fields: Array<{ name: string; maxCount?: number }>,
+) {
   return upload.fields(fields);
 }
 
@@ -87,46 +89,46 @@ export function handleMulterError(
   error: Error,
   _req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   if (error instanceof MulterError) {
-    logger.error({ error }, 'Multer error occurred');
+    logger.error({ error }, "Multer error occurred");
 
     switch (error.code) {
-      case 'LIMIT_FILE_SIZE':
+      case "LIMIT_FILE_SIZE":
         return next(
           new AppError(
             `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`,
-            'FILE_TOO_LARGE',
-            413
-          )
+            "FILE_TOO_LARGE",
+            413,
+          ),
         );
 
-      case 'LIMIT_FILE_COUNT':
+      case "LIMIT_FILE_COUNT":
         return next(
           new AppError(
-            'Too many files. Maximum 10 files allowed',
-            'TOO_MANY_FILES',
-            400
-          )
+            "Too many files. Maximum 10 files allowed",
+            "TOO_MANY_FILES",
+            400,
+          ),
         );
 
-      case 'LIMIT_UNEXPECTED_FILE':
+      case "LIMIT_UNEXPECTED_FILE":
         return next(
           new AppError(
-            'Unexpected field name in file upload',
-            'UNEXPECTED_FIELD',
-            400
-          )
+            "Unexpected field name in file upload",
+            "UNEXPECTED_FIELD",
+            400,
+          ),
         );
 
       default:
         return next(
           new AppError(
             `File upload error: ${error.message}`,
-            'UPLOAD_ERROR',
-            400
-          )
+            "UPLOAD_ERROR",
+            400,
+          ),
         );
     }
   }
@@ -137,26 +139,29 @@ export function handleMulterError(
 /**
  * Validate file before processing
  */
-export function validateFile(
-  req: Request,
-  _res: Response,
-  next: NextFunction
-) {
-  if (!req.file && (!req.files || (Array.isArray(req.files) && req.files.length === 0))) {
-    return next(new AppError('No file uploaded', 'NO_FILE', 400));
+export function validateFile(req: Request, _res: Response, next: NextFunction) {
+  if (
+    !req.file &&
+    (!req.files || (Array.isArray(req.files) && req.files.length === 0))
+  ) {
+    return next(new AppError("No file uploaded", "NO_FILE", 400));
   }
 
   // Validate file size
-  const files = req.file ? [req.file] : Array.isArray(req.files) ? req.files : [];
+  const files = req.file
+    ? [req.file]
+    : Array.isArray(req.files)
+      ? req.files
+      : [];
 
   for (const file of files) {
     if (file.size > MAX_FILE_SIZE) {
       return next(
         new AppError(
           `File "${file.originalname}" is too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`,
-          'FILE_TOO_LARGE',
-          413
-        )
+          "FILE_TOO_LARGE",
+          413,
+        ),
       );
     }
 
@@ -164,9 +169,9 @@ export function validateFile(
       return next(
         new AppError(
           `File "${file.originalname}" has invalid type: ${file.mimetype}`,
-          'INVALID_FILE_TYPE',
-          400
-        )
+          "INVALID_FILE_TYPE",
+          400,
+        ),
       );
     }
   }

@@ -2,24 +2,30 @@
 // Date Utilities - Africa/Johannesburg Timezone
 // ============================================================================
 
-const DEFAULT_TIMEZONE = 'Africa/Johannesburg';
+const DEFAULT_TIMEZONE = "Africa/Johannesburg";
 
 /**
  * Format a date according to specified format
  */
-export function formatDate(date: Date | string, format: string = 'YYYY-MM-DD'): string {
+export function formatDate(
+  date: Date | string,
+  format: string = "YYYY-MM-DD",
+): string {
   const d = new Date(date);
-  
+
   const tokens: Record<string, string> = {
-    'YYYY': d.getFullYear().toString(),
-    'MM': String(d.getMonth() + 1).padStart(2, '0'),
-    'DD': String(d.getDate()).padStart(2, '0'),
-    'HH': String(d.getHours()).padStart(2, '0'),
-    'mm': String(d.getMinutes()).padStart(2, '0'),
-    'ss': String(d.getSeconds()).padStart(2, '0'),
+    YYYY: d.getFullYear().toString(),
+    MM: String(d.getMonth() + 1).padStart(2, "0"),
+    DD: String(d.getDate()).padStart(2, "0"),
+    HH: String(d.getHours()).padStart(2, "0"),
+    mm: String(d.getMinutes()).padStart(2, "0"),
+    ss: String(d.getSeconds()).padStart(2, "0"),
   };
-  
-  return format.replace(/YYYY|MM|DD|HH|mm|ss/g, match => tokens[match] || match);
+
+  return format.replace(
+    /YYYY|MM|DD|HH|mm|ss/g,
+    (match) => tokens[match] || match,
+  );
 }
 
 /**
@@ -42,14 +48,14 @@ export function getCurrentDate(): Date {
 export function addBusinessDays(date: Date, days: number): Date {
   const result = new Date(date);
   let addedDays = 0;
-  
+
   while (addedDays < days) {
     result.setDate(result.getDate() + 1);
     if (isBusinessDay(result)) {
       addedDays++;
     }
   }
-  
+
   return result;
 }
 
@@ -104,14 +110,14 @@ export function daysBetween(startDate: Date, endDate: Date): number {
 export function businessDaysBetween(startDate: Date, endDate: Date): number {
   let count = 0;
   const current = new Date(startDate);
-  
+
   while (current <= endDate) {
     if (isBusinessDay(current)) {
       count++;
     }
     current.setDate(current.getDate() + 1);
   }
-  
+
   return count;
 }
 
@@ -146,10 +152,10 @@ export function isToday(date: Date): boolean {
  */
 export function formatDisplayDate(date: Date | string): string {
   const d = new Date(date);
-  return d.toLocaleDateString('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
+  return d.toLocaleDateString("en-ZA", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
   });
 }
 
@@ -158,12 +164,12 @@ export function formatDisplayDate(date: Date | string): string {
  */
 export function formatDisplayDateTime(date: Date | string): string {
   const d = new Date(date);
-  return d.toLocaleDateString('en-ZA', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+  return d.toLocaleDateString("en-ZA", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -173,13 +179,13 @@ export function formatDisplayDateTime(date: Date | string): string {
 export function getFinancialYearStart(date: Date, month: number = 3): Date {
   const result = new Date(date);
   const currentMonth = result.getMonth();
-  
+
   if (currentMonth < month) {
     result.setFullYear(result.getFullYear() - 1);
   }
   result.setMonth(month, 1);
   result.setHours(0, 0, 0, 0);
-  
+
   return result;
 }
 

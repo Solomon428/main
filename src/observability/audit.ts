@@ -2,10 +2,10 @@
 // Audit Logging Service
 // ============================================================================
 
-import { prisma } from '../lib/prisma';
-import { AuditAction } from '../domain/enums/AuditAction';
-import { EntityType } from '../domain/enums/EntityType';
-import { LogSeverity } from '../domain/enums/LogSeverity';
+import { prisma } from "../lib/prisma";
+import { AuditAction } from "../domain/enums/AuditAction";
+import { EntityType } from "../domain/enums/EntityType";
+import { LogSeverity } from "../domain/enums/LogSeverity";
 
 interface AuditEventData {
   userId?: string;
@@ -44,7 +44,9 @@ export async function logAuditEvent(data: AuditEventData): Promise<void> {
         oldValue: data.oldValue || null,
         newValue: data.newValue || null,
         diff: calculateDiff(data.oldValue, data.newValue),
-        changesSummary: data.changesSummary || generateChangesSummary(data.oldValue, data.newValue),
+        changesSummary:
+          data.changesSummary ||
+          generateChangesSummary(data.oldValue, data.newValue),
         ipAddress: data.ipAddress,
         userAgent: data.userAgent,
         deviceInfo: data.deviceInfo,
@@ -59,7 +61,7 @@ export async function logAuditEvent(data: AuditEventData): Promise<void> {
     });
   } catch (error) {
     // Fail silently but log to console
-    console.error('Failed to write audit log:', error);
+    console.error("Failed to write audit log:", error);
   }
 }
 
@@ -68,14 +70,17 @@ export async function logAuditEvent(data: AuditEventData): Promise<void> {
  */
 function calculateDiff(
   oldValue?: Record<string, unknown>,
-  newValue?: Record<string, unknown>
+  newValue?: Record<string, unknown>,
 ): Record<string, { old: unknown; new: unknown }> | null {
   if (!oldValue || !newValue) return null;
-  
+
   const diff: Record<string, { old: unknown; new: unknown }> = {};
-  
+
   // Check for changed values
-  for (const key of new Set([...Object.keys(oldValue), ...Object.keys(newValue)])) {
+  for (const key of new Set([
+    ...Object.keys(oldValue),
+    ...Object.keys(newValue),
+  ])) {
     if (JSON.stringify(oldValue[key]) !== JSON.stringify(newValue[key])) {
       diff[key] = {
         old: oldValue[key],
@@ -83,7 +88,7 @@ function calculateDiff(
       };
     }
   }
-  
+
   return Object.keys(diff).length > 0 ? diff : null;
 }
 
@@ -92,26 +97,26 @@ function calculateDiff(
  */
 function generateChangesSummary(
   oldValue?: Record<string, unknown>,
-  newValue?: Record<string, unknown>
+  newValue?: Record<string, unknown>,
 ): string | null {
   if (!oldValue || !newValue) return null;
-  
+
   const changes: string[] = [];
-  
+
   for (const key of Object.keys(newValue)) {
     if (JSON.stringify(oldValue[key]) !== JSON.stringify(newValue[key])) {
       changes.push(`${key} changed`);
     }
   }
-  
-  return changes.length > 0 ? changes.join(', ') : null;
+
+  return changes.length > 0 ? changes.join(", ") : null;
 }
 
 /**
  * Calculate retention date (7 years default for compliance)
  */
 function calculateRetentionDate(): Date {
-  const days = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS || '2555');
+  const days = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS || "2555");
   const date = new Date();
   date.setDate(date.getDate() + days);
   return date;
@@ -125,7 +130,10 @@ export async function logCreate(
   entityType: EntityType,
   entityId: string,
   newValue: Record<string, unknown>,
-  meta?: Omit<AuditEventData, 'userId' | 'action' | 'entityType' | 'entityId' | 'newValue'>
+  meta?: Omit<
+    AuditEventData,
+    "userId" | "action" | "entityType" | "entityId" | "newValue"
+  >,
 ): Promise<void> {
   await logAuditEvent({
     userId,
@@ -147,7 +155,10 @@ export async function logUpdate(
   entityId: string,
   oldValue: Record<string, unknown>,
   newValue: Record<string, unknown>,
-  meta?: Omit<AuditEventData, 'userId' | 'action' | 'entityType' | 'entityId' | 'oldValue' | 'newValue'>
+  meta?: Omit<
+    AuditEventData,
+    "userId" | "action" | "entityType" | "entityId" | "oldValue" | "newValue"
+  >,
 ): Promise<void> {
   await logAuditEvent({
     userId,
@@ -168,7 +179,10 @@ export async function logDelete(
   entityType: EntityType,
   entityId: string,
   oldValue: Record<string, unknown>,
-  meta?: Omit<AuditEventData, 'userId' | 'action' | 'entityType' | 'entityId' | 'oldValue'>
+  meta?: Omit<
+    AuditEventData,
+    "userId" | "action" | "entityType" | "entityId" | "oldValue"
+  >,
 ): Promise<void> {
   await logAuditEvent({
     userId,
@@ -188,7 +202,7 @@ export async function logView(
   userId: string,
   entityType: EntityType,
   entityId: string,
-  meta?: Omit<AuditEventData, 'userId' | 'action' | 'entityType' | 'entityId'>
+  meta?: Omit<AuditEventData, "userId" | "action" | "entityType" | "entityId">,
 ): Promise<void> {
   await logAuditEvent({
     userId,
@@ -207,14 +221,14 @@ export async function logApproval(
   entityId: string,
   approved: boolean,
   notes?: string,
-  meta?: Omit<AuditEventData, 'userId' | 'action' | 'entityType' | 'entityId'>
+  meta?: Omit<AuditEventData, "userId" | "action" | "entityType" | "entityId">,
 ): Promise<void> {
   await logAuditEvent({
     userId,
     action: approved ? AuditAction.APPROVE : AuditAction.REJECT,
     entityType: EntityType.INVOICE,
     entityId,
-    changesSummary: notes || (approved ? 'Approved' : 'Rejected'),
+    changesSummary: notes || (approved ? "Approved" : "Rejected"),
     ...meta,
   });
 }

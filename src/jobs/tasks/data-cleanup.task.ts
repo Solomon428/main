@@ -1,15 +1,15 @@
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { info } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { info } from "../../observability/logger";
 
 /**
  * Cleanup old data and temporary files
  */
 export async function runTask(
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
-  info('Starting data cleanup task', { taskId: task.id });
+  info("Starting data cleanup task", { taskId: task.id });
 
   const now = new Date();
 
@@ -20,7 +20,9 @@ export async function runTask(
       expires: { lt: sessionCutoff },
     },
   });
-  info(`Deleted ${deletedSessions.count} expired sessions`, { taskId: task.id });
+  info(`Deleted ${deletedSessions.count} expired sessions`, {
+    taskId: task.id,
+  });
 
   if (signal.aborted) return;
 
@@ -36,14 +38,18 @@ export async function runTask(
   if (signal.aborted) return;
 
   // Cleanup old notifications
-  const notificationCutoff = new Date(now.getTime() - 1 * 365 * 24 * 60 * 60 * 1000); // 1 year
+  const notificationCutoff = new Date(
+    now.getTime() - 1 * 365 * 24 * 60 * 60 * 1000,
+  ); // 1 year
   const deletedNotifications = await prisma.notification.deleteMany({
     where: {
       createdAt: { lt: notificationCutoff },
-      status: { in: ['READ', 'ARCHIVED'] },
+      status: { in: ["READ", "ARCHIVED"] },
     },
   });
-  info(`Deleted ${deletedNotifications.count} old notifications`, { taskId: task.id });
+  info(`Deleted ${deletedNotifications.count} old notifications`, {
+    taskId: task.id,
+  });
 
   if (signal.aborted) return;
 
@@ -70,5 +76,5 @@ export async function runTask(
   });
   info(`Deleted ${deletedTokens.count} expired tokens`, { taskId: task.id });
 
-  info('Data cleanup task completed', { taskId: task.id });
+  info("Data cleanup task completed", { taskId: task.id });
 }

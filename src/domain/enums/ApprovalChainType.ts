@@ -1,8 +1,6 @@
-export enum ApprovalChainType {
-  SEQUENTIAL = 'SEQUENTIAL',
-  PARALLEL = 'PARALLEL',
-  HYBRID = 'HYBRID',
-  CONDITIONAL = 'CONDITIONAL',
-  HIERARCHICAL = 'HIERARCHICAL',
-  ADAPTIVE = 'ADAPTIVE',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { ApprovalChainType as ApprovalChainType } from "@prisma/client";

@@ -2,17 +2,17 @@
 // Integrations Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export async function listIntegrations() {
   return prisma.integration.findMany({
     include: {
       syncLogs: {
-        orderBy: { startedAt: 'desc' },
+        orderBy: { startedAt: "desc" },
         take: 5,
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 }
 
@@ -21,7 +21,7 @@ export async function getIntegration(id: string) {
     where: { id },
     include: {
       syncLogs: {
-        orderBy: { startedAt: 'desc' },
+        orderBy: { startedAt: "desc" },
       },
     },
   });
@@ -31,7 +31,7 @@ export async function createIntegration(data: any) {
   return prisma.integration.create({
     data: {
       ...data,
-      status: 'PENDING',
+      status: "PENDING",
       createdAt: new Date(),
     },
   });
@@ -57,7 +57,7 @@ export async function triggerSync(integrationId: string) {
   const integration = await prisma.integration.update({
     where: { id: integrationId },
     data: {
-      status: 'SYNCING',
+      status: "SYNCING",
       lastSyncAt: new Date(),
     },
   });
@@ -66,9 +66,9 @@ export async function triggerSync(integrationId: string) {
   await prisma.integrationSyncLog.create({
     data: {
       integrationId,
-      syncType: 'BIDIRECTIONAL',
-      status: 'PENDING',
-      triggeredBy: 'USER',
+      syncType: "BIDIRECTIONAL",
+      status: "PENDING",
+      triggeredBy: "USER",
       startedAt: new Date(),
     },
   });
@@ -85,7 +85,7 @@ export async function logSync(data: any) {
 export async function getSyncStatus(integrationId: string) {
   const logs = await prisma.integrationSyncLog.findMany({
     where: { integrationId },
-    orderBy: { startedAt: 'desc' },
+    orderBy: { startedAt: "desc" },
     take: 10,
   });
 
@@ -99,6 +99,6 @@ export async function getSyncStatus(integrationId: string) {
 export async function listSyncLogs(integrationId: string) {
   return prisma.integrationSyncLog.findMany({
     where: { integrationId },
-    orderBy: { startedAt: 'desc' },
+    orderBy: { startedAt: "desc" },
   });
 }

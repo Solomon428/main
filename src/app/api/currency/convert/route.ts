@@ -2,9 +2,9 @@
  * Currency Conversion API Route
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { CurrencyService } from '@/services/currency-service';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { CurrencyService } from "@/services/currency-service";
+import { z } from "zod";
 
 const convertSchema = z.object({
   amount: z.number().positive(),
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const result = await CurrencyService.convert(
       amount,
       from as never,
-      to as never
+      to as never,
     );
 
     return NextResponse.json({
@@ -30,15 +30,15 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request', details: error.errors },
-        { status: 400 }
+        { success: false, error: "Invalid request", details: error.errors },
+        { status: 400 },
       );
     }
 
-    console.error('Currency conversion error:', error);
+    console.error("Currency conversion error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to convert currency' },
-      { status: 500 }
+      { success: false, error: "Failed to convert currency" },
+      { status: 500 },
     );
   }
 }

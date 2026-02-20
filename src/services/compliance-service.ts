@@ -1,1 +1,1 @@
-export * from './compliance-service.impl.ts';
+export * from "./compliance-service.impl.ts";

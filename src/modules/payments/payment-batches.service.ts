@@ -2,9 +2,9 @@
 // Payment Batches Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { PaymentStatus } from '../../domain/enums/PaymentStatus';
-import { Currency } from '../../domain/enums/Currency';
+import { prisma } from "../../db/prisma";
+import { PaymentStatus } from "../../domain/enums/PaymentStatus";
+import { Currency } from "../../domain/enums/Currency";
 
 export interface CreatePaymentBatchInput {
   organizationId: string;
@@ -31,25 +31,31 @@ export interface UpdatePaymentBatchInput {
  */
 function generateBatchNumber(): string {
   const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  const random = Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, "0");
   return `BATCH-${timestamp}-${random}`;
 }
 
 /**
  * List all payment batches for an organization
  */
-export async function listPaymentBatches(organizationId: string, options?: {
-  status?: PaymentStatus;
-  isRecurring?: boolean;
-  startDate?: Date;
-  endDate?: Date;
-  page?: number;
-  limit?: number;
-}) {
+export async function listPaymentBatches(
+  organizationId: string,
+  options?: {
+    status?: PaymentStatus;
+    isRecurring?: boolean;
+    startDate?: Date;
+    endDate?: Date;
+    page?: number;
+    limit?: number;
+  },
+) {
   const where: any = { organizationId };
 
   if (options?.status) where.status = options.status;
-  if (options?.isRecurring !== undefined) where.isRecurring = options.isRecurring;
+  if (options?.isRecurring !== undefined)
+    where.isRecurring = options.isRecurring;
 
   if (options?.startDate || options?.endDate) {
     where.paymentDate = {};
@@ -90,7 +96,7 @@ export async function listPaymentBatches(organizationId: string, options?: {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
@@ -167,7 +173,10 @@ export async function createPaymentBatch(data: CreatePaymentBatchInput) {
 /**
  * Update an existing payment batch
  */
-export async function updatePaymentBatch(id: string, data: UpdatePaymentBatchInput) {
+export async function updatePaymentBatch(
+  id: string,
+  data: UpdatePaymentBatchInput,
+) {
   return prisma.paymentBatch.update({
     where: { id },
     data: {
@@ -184,18 +193,21 @@ export async function updatePaymentBatch(id: string, data: UpdatePaymentBatchInp
 /**
  * Add payments to a batch
  */
-export async function addPaymentsToBatch(batchId: string, paymentIds: string[]) {
+export async function addPaymentsToBatch(
+  batchId: string,
+  paymentIds: string[],
+) {
   const batch = await prisma.paymentBatch.findUnique({
     where: { id: batchId },
     include: { payments: true },
   });
 
   if (!batch) {
-    throw new Error('Payment batch not found');
+    throw new Error("Payment batch not found");
   }
 
   if (batch.status !== PaymentStatus.PENDING) {
-    throw new Error('Cannot add payments to a non-pending batch');
+    throw new Error("Cannot add payments to a non-pending batch");
   }
 
   // Update payments to link them to the batch
@@ -217,7 +229,7 @@ export async function addPaymentsToBatch(batchId: string, paymentIds: string[]) 
   if (updatedBatch) {
     const totalAmount = updatedBatch.payments.reduce(
       (sum, payment) => sum + Number(payment.amount),
-      0
+      0,
     );
 
     await prisma.paymentBatch.update({
@@ -235,17 +247,20 @@ export async function addPaymentsToBatch(batchId: string, paymentIds: string[]) 
 /**
  * Remove payments from a batch
  */
-export async function removePaymentsFromBatch(batchId: string, paymentIds: string[]) {
+export async function removePaymentsFromBatch(
+  batchId: string,
+  paymentIds: string[],
+) {
   const batch = await prisma.paymentBatch.findUnique({
     where: { id: batchId },
   });
 
   if (!batch) {
-    throw new Error('Payment batch not found');
+    throw new Error("Payment batch not found");
   }
 
   if (batch.status !== PaymentStatus.PENDING) {
-    throw new Error('Cannot remove payments from a non-pending batch');
+    throw new Error("Cannot remove payments from a non-pending batch");
   }
 
   // Unlink payments from batch
@@ -268,7 +283,7 @@ export async function removePaymentsFromBatch(batchId: string, paymentIds: strin
   if (updatedBatch) {
     const totalAmount = updatedBatch.payments.reduce(
       (sum, payment) => sum + Number(payment.amount),
-      0
+      0,
     );
 
     await prisma.paymentBatch.update({
@@ -289,7 +304,7 @@ export async function removePaymentsFromBatch(batchId: string, paymentIds: strin
 export async function processPaymentBatch(
   id: string,
   processedBy: string,
-  options?: { processImmediately?: boolean }
+  options?: { processImmediately?: boolean },
 ) {
   const batch = await prisma.paymentBatch.findUnique({
     where: { id },
@@ -297,11 +312,11 @@ export async function processPaymentBatch(
   });
 
   if (!batch) {
-    throw new Error('Payment batch not found');
+    throw new Error("Payment batch not found");
   }
 
   if (batch.status !== PaymentStatus.PENDING) {
-    throw new Error('Batch is not in pending status');
+    throw new Error("Batch is not in pending status");
   }
 
   const now = new Date();
@@ -356,11 +371,11 @@ export async function cancelPaymentBatch(id: string, reason?: string) {
   });
 
   if (!batch) {
-    throw new Error('Payment batch not found');
+    throw new Error("Payment batch not found");
   }
 
   if (batch.status === PaymentStatus.PAID) {
-    throw new Error('Cannot cancel a paid batch');
+    throw new Error("Cannot cancel a paid batch");
   }
 
   // Unlink all payments from batch
@@ -376,7 +391,9 @@ export async function cancelPaymentBatch(id: string, reason?: string) {
     where: { id },
     data: {
       status: PaymentStatus.CANCELLED,
-      notes: reason ? `${batch.notes || ''} | Cancelled: ${reason}` : batch.notes,
+      notes: reason
+        ? `${batch.notes || ""} | Cancelled: ${reason}`
+        : batch.notes,
     },
   });
 }
@@ -390,11 +407,14 @@ export async function deletePaymentBatch(id: string) {
   });
 
   if (!batch) {
-    throw new Error('Payment batch not found');
+    throw new Error("Payment batch not found");
   }
 
-  if (batch.status === PaymentStatus.PROCESSING || batch.status === PaymentStatus.PAID) {
-    throw new Error('Cannot delete a processing or paid batch');
+  if (
+    batch.status === PaymentStatus.PROCESSING ||
+    batch.status === PaymentStatus.PAID
+  ) {
+    throw new Error("Cannot delete a processing or paid batch");
   }
 
   // Unlink all payments
@@ -412,11 +432,23 @@ export async function deletePaymentBatch(id: string) {
  * Get batch statistics
  */
 export async function getPaymentBatchStats(organizationId: string) {
-  const [totalBatches, pendingBatches, processingBatches, completedBatches, totalAmount] = await Promise.all([
+  const [
+    totalBatches,
+    pendingBatches,
+    processingBatches,
+    completedBatches,
+    totalAmount,
+  ] = await Promise.all([
     prisma.paymentBatch.count({ where: { organizationId } }),
-    prisma.paymentBatch.count({ where: { organizationId, status: PaymentStatus.PENDING } }),
-    prisma.paymentBatch.count({ where: { organizationId, status: PaymentStatus.PROCESSING } }),
-    prisma.paymentBatch.count({ where: { organizationId, status: PaymentStatus.PAID } }),
+    prisma.paymentBatch.count({
+      where: { organizationId, status: PaymentStatus.PENDING },
+    }),
+    prisma.paymentBatch.count({
+      where: { organizationId, status: PaymentStatus.PROCESSING },
+    }),
+    prisma.paymentBatch.count({
+      where: { organizationId, status: PaymentStatus.PAID },
+    }),
     prisma.paymentBatch.aggregate({
       where: { organizationId },
       _sum: { totalAmount: true },
@@ -435,7 +467,10 @@ export async function getPaymentBatchStats(organizationId: string) {
 /**
  * Get upcoming scheduled batches
  */
-export async function getUpcomingBatches(organizationId: string, days: number = 7) {
+export async function getUpcomingBatches(
+  organizationId: string,
+  days: number = 7,
+) {
   const now = new Date();
   const futureDate = new Date();
   futureDate.setDate(now.getDate() + days);
@@ -458,6 +493,6 @@ export async function getUpcomingBatches(organizationId: string, days: number = 
         },
       },
     },
-    orderBy: { paymentDate: 'asc' },
+    orderBy: { paymentDate: "asc" },
   });
 }

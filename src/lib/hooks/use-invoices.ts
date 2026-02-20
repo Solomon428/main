@@ -56,7 +56,10 @@ export function useInvoices(options: UseInvoicesOptions = {}) {
       }
       return { success: false, error: data.error };
     } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : "An error occurred" };
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "An error occurred",
+      };
     }
   };
 

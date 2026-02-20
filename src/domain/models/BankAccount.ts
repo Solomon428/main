@@ -1,5 +1,5 @@
-import { BankAccountType } from '../enums/BankAccountType';
-import { Currency } from '../enums/Currency';
+import { BankAccountType } from "../enums/BankAccountType";
+import { Currency } from "../enums/Currency";
 
 export interface BankAccount {
   id: string;

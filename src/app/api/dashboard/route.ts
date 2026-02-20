@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/db/prisma";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -16,24 +16,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       prisma.invoices.count(),
       prisma.invoices.count({
         where: {
-          status: { in: ['PENDING_EXTRACTION', 'PENDING_APPROVAL', 'UNDER_REVIEW'] },
+          status: {
+            in: ["PENDING_EXTRACTION", "PENDING_APPROVAL", "UNDER_REVIEW"],
+          },
         },
       }),
       prisma.invoices.count({
-        where: { status: 'APPROVED' },
+        where: { status: "APPROVED" },
       }),
       prisma.invoices.count({
-        where: { status: 'PAID' },
+        where: { status: "PAID" },
       }),
       prisma.invoices.count({
         where: {
-          status: { notIn: ['PAID', 'CANCELLED'] },
+          status: { notIn: ["PAID", "CANCELLED"] },
           dueDate: { lt: new Date() },
         },
       }),
       prisma.suppliers.count(),
       prisma.invoices.findMany({
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: 5,
         select: {
           id: true,
@@ -51,9 +53,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       select: { totalAmount: true, status: true },
     });
 
-    const totalAmount = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+    const totalAmount = invoices.reduce(
+      (sum, inv) => sum + (inv.totalAmount || 0),
+      0,
+    );
     const pendingAmount = invoices
-      .filter(inv => ['PENDING_EXTRACTION', 'PENDING_APPROVAL'].includes(inv.status))
+      .filter((inv) =>
+        ["PENDING_EXTRACTION", "PENDING_APPROVAL"].includes(inv.status),
+      )
       .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
 
     return NextResponse.json({
@@ -73,10 +80,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
+    console.error("Error fetching dashboard data:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch dashboard data' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch dashboard data" },
+      { status: 500 },
     );
   }
 }

@@ -1,23 +1,23 @@
-import type { PSM, OEM } from 'tesseract.js';
-import type { OcrConfig } from './types';
+import type { PSM, OEM } from "tesseract.js";
+import type { OcrConfig } from "./types";
 
 export const DEFAULT_OCR_CONFIG: Partial<OcrConfig> = {
-  provider: 'tesseract',
-  language: 'eng',
+  provider: "tesseract",
+  language: "eng",
   pageSegmentationMode: 3 as unknown as PSM, // PSM.AUTO
   ocrEngineMode: 3 as unknown as OEM, // OEM.DEFAULT
   confidenceThreshold: 70,
   maxFileSize: 50 * 1024 * 1024, // 50MB
   allowedMimeTypes: [
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'image/tiff',
-    'image/bmp',
-    'image/webp'
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/tiff",
+    "image/bmp",
+    "image/webp",
   ],
   timeout: 300000, // 5 minutes
-  retryAttempts: 3
+  retryAttempts: 3,
 };
 
 export const TIMEOUTS = {
@@ -51,14 +51,14 @@ export const IMAGE_CONSTRAINTS = {
 } as const;
 
 export const ALLOWED_EXTENSIONS = [
-  '.pdf',
-  '.jpg',
-  '.jpeg',
-  '.png',
-  '.tiff',
-  '.tif',
-  '.bmp',
-  '.webp'
+  ".pdf",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".tiff",
+  ".tif",
+  ".bmp",
+  ".webp",
 ] as const;
 
 export const PREPROCESSING_DEFAULTS = {
@@ -70,7 +70,8 @@ export const PREPROCESSING_DEFAULTS = {
   DENSITY_MIN: 200,
 } as const;
 
-export const TESSERACT_WHITELIST = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,$-/:()€£¥% \'"';
+export const TESSERACT_WHITELIST =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,$-/:()€£¥% '\"";
 
 export const TEMP_FILE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -84,10 +85,10 @@ export const INVOICE_PATTERNS = {
 } as const;
 
 export const METRIC_NAMES = {
-  SERVICE_INITIALIZED: 'ocr.service.initialized',
-  ACTIVE_PROCESSES: 'ocr.active.processes',
-  EXTRACTIONS_COMPLETED: 'ocr.extractions.completed',
-  EXTRACTIONS_FAILED: 'ocr.extractions.failed',
-  PROCESSING_TIME: 'ocr.processing.time',
-  CONFIDENCE_SCORE: 'ocr.confidence.score',
+  SERVICE_INITIALIZED: "ocr.service.initialized",
+  ACTIVE_PROCESSES: "ocr.active.processes",
+  EXTRACTIONS_COMPLETED: "ocr.extractions.completed",
+  EXTRACTIONS_FAILED: "ocr.extractions.failed",
+  PROCESSING_TIME: "ocr.processing.time",
+  CONFIDENCE_SCORE: "ocr.confidence.score",
 } as const;

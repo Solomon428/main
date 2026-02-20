@@ -2,9 +2,9 @@
 // Tokens Service - Verification and Password Reset Tokens
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { generateId, generateSecureToken } from '../../utils/ids';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../db/prisma";
+import { generateId, generateSecureToken } from "../../utils/ids";
+import { info, error } from "../../observability/logger";
 
 interface GenerateVerificationTokenInput {
   identifier: string;
@@ -20,7 +20,7 @@ interface GeneratePasswordResetTokenInput {
  * Generate a new verification token
  */
 export async function generateVerificationToken(
-  input: GenerateVerificationTokenInput
+  input: GenerateVerificationTokenInput,
 ): Promise<{ token: string; expires: Date }> {
   const expiresInHours = input.expiresInHours || 24;
   const expires = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
@@ -41,16 +41,16 @@ export async function generateVerificationToken(
       },
     });
 
-    info('Verification token generated', { 
+    info("Verification token generated", {
       identifier: input.identifier,
-      expiresInHours 
+      expiresInHours,
     });
 
     return { token, expires };
   } catch (err) {
-    error('Failed to generate verification token', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      identifier: input.identifier 
+    error("Failed to generate verification token", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      identifier: input.identifier,
     });
     throw err;
   }
@@ -60,8 +60,8 @@ export async function generateVerificationToken(
  * Validate a verification token
  */
 export async function validateVerificationToken(
-  identifier: string, 
-  token: string
+  identifier: string,
+  token: string,
 ): Promise<boolean> {
   try {
     const verificationToken = await prisma.verificationToken.findUnique({
@@ -98,10 +98,10 @@ export async function validateVerificationToken(
 
     return true;
   } catch (err) {
-    error('Failed to validate verification token', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
+    error("Failed to validate verification token", {
+      error: err instanceof Error ? err.message : "Unknown error",
       identifier,
-      token 
+      token,
     });
     return false;
   }
@@ -111,9 +111,9 @@ export async function validateVerificationToken(
  * Mark verification token as used
  */
 export async function markVerificationTokenAsUsed(
-  identifier: string, 
+  identifier: string,
   token: string,
-  usedByIp?: string
+  usedByIp?: string,
 ): Promise<boolean> {
   try {
     await prisma.verificationToken.update({
@@ -129,14 +129,14 @@ export async function markVerificationTokenAsUsed(
       },
     });
 
-    info('Verification token marked as used', { identifier, token });
+    info("Verification token marked as used", { identifier, token });
 
     return true;
   } catch (err) {
-    error('Failed to mark verification token as used', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
+    error("Failed to mark verification token as used", {
+      error: err instanceof Error ? err.message : "Unknown error",
       identifier,
-      token 
+      token,
     });
     return false;
   }
@@ -146,7 +146,7 @@ export async function markVerificationTokenAsUsed(
  * Generate a password reset token
  */
 export async function generatePasswordResetToken(
-  input: GeneratePasswordResetTokenInput
+  input: GeneratePasswordResetTokenInput,
 ): Promise<{ token: string; expires: Date } | null> {
   const expiresInHours = input.expiresInHours || 1; // Shorter expiry for password reset
   const expires = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
@@ -180,16 +180,16 @@ export async function generatePasswordResetToken(
       },
     });
 
-    info('Password reset token generated', { 
+    info("Password reset token generated", {
       email: input.email,
-      expiresInHours 
+      expiresInHours,
     });
 
     return { token, expires };
   } catch (err) {
-    error('Failed to generate password reset token', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      email: input.email 
+    error("Failed to generate password reset token", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      email: input.email,
     });
     throw err;
   }
@@ -198,7 +198,9 @@ export async function generatePasswordResetToken(
 /**
  * Validate a password reset token
  */
-export async function validatePasswordResetToken(token: string): Promise<string | null> {
+export async function validatePasswordResetToken(
+  token: string,
+): Promise<string | null> {
   try {
     const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },
@@ -224,9 +226,9 @@ export async function validatePasswordResetToken(token: string): Promise<string 
 
     return resetToken.email;
   } catch (err) {
-    error('Failed to validate password reset token', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      token 
+    error("Failed to validate password reset token", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      token,
     });
     return null;
   }
@@ -237,7 +239,7 @@ export async function validatePasswordResetToken(token: string): Promise<string 
  */
 export async function markPasswordResetTokenAsUsed(
   token: string,
-  ipAddress?: string
+  ipAddress?: string,
 ): Promise<boolean> {
   try {
     await prisma.passwordResetToken.update({
@@ -249,13 +251,13 @@ export async function markPasswordResetTokenAsUsed(
       },
     });
 
-    info('Password reset token marked as used', { token });
+    info("Password reset token marked as used", { token });
 
     return true;
   } catch (err) {
-    error('Failed to mark password reset token as used', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      token 
+    error("Failed to mark password reset token as used", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      token,
     });
     return false;
   }
@@ -264,7 +266,10 @@ export async function markPasswordResetTokenAsUsed(
 /**
  * Clean up expired tokens
  */
-export async function cleanupExpiredTokens(): Promise<{ verificationTokens: number; passwordResetTokens: number }> {
+export async function cleanupExpiredTokens(): Promise<{
+  verificationTokens: number;
+  passwordResetTokens: number;
+}> {
   try {
     const now = new Date();
 
@@ -282,7 +287,7 @@ export async function cleanupExpiredTokens(): Promise<{ verificationTokens: numb
       },
     });
 
-    info('Cleaned up expired tokens', {
+    info("Cleaned up expired tokens", {
       verificationTokens: verificationResult.count,
       passwordResetTokens: passwordResetResult.count,
     });
@@ -292,8 +297,8 @@ export async function cleanupExpiredTokens(): Promise<{ verificationTokens: numb
       passwordResetTokens: passwordResetResult.count,
     };
   } catch (err) {
-    error('Failed to cleanup expired tokens', { 
-      error: err instanceof Error ? err.message : 'Unknown error'
+    error("Failed to cleanup expired tokens", {
+      error: err instanceof Error ? err.message : "Unknown error",
     });
     throw err;
   }

@@ -1,26 +1,26 @@
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { PaymentStatus } from '../../domain/enums/PaymentStatus';
-import { InvoiceStatus } from '../../domain/enums/InvoiceStatus';
-import { sendNotification } from '../../modules/notifications/notifications.service';
-import { NotificationType } from '../../domain/enums/NotificationType';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { PaymentStatus } from "../../domain/enums/PaymentStatus";
+import { InvoiceStatus } from "../../domain/enums/InvoiceStatus";
+import { sendNotification } from "../../modules/notifications/notifications.service";
+import { NotificationType } from "../../domain/enums/NotificationType";
+import { info, error } from "../../observability/logger";
 
 /**
  * Process scheduled payments
  */
 export async function runTask(
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
-  info('Starting payment processing task', { taskId: task.id });
+  info("Starting payment processing task", { taskId: task.id });
 
   // Get approved invoices ready for payment
   const pendingPayments = await prisma.invoices.findMany({
     where: {
       status: InvoiceStatus.APPROVED,
       readyForPayment: true,
-      paymentStatus: { in: ['UNPAID', 'PARTIALLY_PAID'] },
+      paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID"] },
       dueDate: { lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
     },
     include: {
@@ -30,11 +30,13 @@ export async function runTask(
     take: 100,
   });
 
-  info(`Found ${pendingPayments.length} invoices ready for payment`, { taskId: task.id });
+  info(`Found ${pendingPayments.length} invoices ready for payment`, {
+    taskId: task.id,
+  });
 
   for (const invoice of pendingPayments) {
     if (signal.aborted) {
-      info('Payment processing task aborted', { taskId: task.id });
+      info("Payment processing task aborted", { taskId: task.id });
       return;
     }
 
@@ -49,7 +51,7 @@ export async function runTask(
           paymentDate: new Date(),
           amount: invoice.amountDue,
           currency: invoice.currency,
-          paymentMethod: invoice.paymentMethod || 'BANK_TRANSFER',
+          paymentMethod: invoice.paymentMethod || "BANK_TRANSFER",
           status: PaymentStatus.PENDING,
         },
       });
@@ -67,7 +69,7 @@ export async function runTask(
       const users = await prisma.user.findMany({
         where: {
           organizations: { some: { id: invoice.organizationId } },
-          role: { in: ['FINANCE_MANAGER', 'ORG_ADMIN'] },
+          role: { in: ["FINANCE_MANAGER", "ORG_ADMIN"] },
         },
       });
 
@@ -75,21 +77,20 @@ export async function runTask(
         await sendNotification({
           userId: user.id,
           type: NotificationType.PAYMENT_SCHEDULED,
-          title: 'Payment Scheduled',
+          title: "Payment Scheduled",
           message: `Payment of ${invoice.amountDue} ${invoice.currency} scheduled for invoice ${invoice.invoiceNumber}`,
-          priority: 'MEDIUM',
-          entityType: 'PAYMENT',
+          priority: "MEDIUM",
+          entityType: "PAYMENT",
           entityId: payment.id,
         });
       }
-
     } catch (err) {
       error(`Failed to process payment for invoice ${invoice.id}`, {
         taskId: task.id,
-        error: err instanceof Error ? err.message : 'Unknown error',
+        error: err instanceof Error ? err.message : "Unknown error",
       });
     }
   }
 
-  info('Payment processing task completed', { taskId: task.id });
+  info("Payment processing task completed", { taskId: task.id });
 }

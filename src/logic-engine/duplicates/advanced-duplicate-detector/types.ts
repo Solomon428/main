@@ -1,7 +1,7 @@
 /**
  * CREDITORFLOW EMS - ADVANCED DUPLICATE DETECTION TYPES
  * Version: 3.9.2
- * 
+ *
  * Type definitions and interfaces for the duplicate detection engine
  */
 
@@ -14,8 +14,8 @@ import {
   DuplicatePattern,
   DuplicateEvidence,
   DuplicateEvidenceType,
-  DuplicateEvidenceSource
-} from '@/types/index';
+  DuplicateEvidenceSource,
+} from "@/types/index";
 
 export interface DuplicateCheckContext {
   businessUnit?: string;
@@ -81,8 +81,19 @@ export interface FuzzyMatch {
   candidateSupplierName: string;
   candidateTotalAmount: number;
   candidateInvoiceDate: Date;
-  matchType: 'INVOICE_NUMBER' | 'SUPPLIER_NAME' | 'TOTAL_AMOUNT' | 'INVOICE_DATE' | 'PO_NUMBER';
-  algorithm: 'LEVENSHTEIN' | 'JARO_WINKLER' | 'SOUNDEX' | 'METAPHONE' | 'COSINE' | 'TFIDF';
+  matchType:
+    | "INVOICE_NUMBER"
+    | "SUPPLIER_NAME"
+    | "TOTAL_AMOUNT"
+    | "INVOICE_DATE"
+    | "PO_NUMBER";
+  algorithm:
+    | "LEVENSHTEIN"
+    | "JARO_WINKLER"
+    | "SOUNDEX"
+    | "METAPHONE"
+    | "COSINE"
+    | "TFIDF";
   confidence: number;
   similarityScore: number;
   matchDetails: Record<string, any>;
@@ -130,7 +141,7 @@ export interface LineItemMatch {
   candidateSupplierName: string;
   matchedLineItems: MatchedLineItem[];
   confidence: number;
-  matchType: 'EXACT' | 'FUZZY' | 'SEMANTIC';
+  matchType: "EXACT" | "FUZZY" | "SEMANTIC";
 }
 
 export interface MatchedLineItem {
@@ -139,20 +150,24 @@ export interface MatchedLineItem {
   quantity: number;
   unitPrice: number;
   matchConfidence: number;
-  matchType: 'EXACT' | 'FUZZY' | 'SEMANTIC';
+  matchType: "EXACT" | "FUZZY" | "SEMANTIC";
 }
 
 export interface ContextualAnalysisResult {
   falsePositiveProbability: number;
   contextualFactors: ContextualFactor[];
   confidenceAdjustment: number;
-  recommendation: 'PROCEED' | 'PROCEED_WITH_CAUTION' | 'MANUAL_REVIEW_REQUIRED' | 'BLOCK';
+  recommendation:
+    | "PROCEED"
+    | "PROCEED_WITH_CAUTION"
+    | "MANUAL_REVIEW_REQUIRED"
+    | "BLOCK";
 }
 
 export interface ContextualFactor {
   factorType: string;
   factorDescription: string;
-  factorImpact: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+  factorImpact: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
   confidence: number;
   evidence: string;
 }
@@ -180,23 +195,37 @@ export interface PotentialDuplicate {
   totalAmount: number;
   invoiceDate: Date;
   similarityScore: number;
-  matchType: 'EXACT' | 'FUZZY' | 'TEMPORAL' | 'SUPPLIER_CLUSTER' | 'LINE_ITEM' | 'CROSS_SUPPLIER' | 'PO_REFERENCE' | 'PARTIAL';
+  matchType:
+    | "EXACT"
+    | "FUZZY"
+    | "TEMPORAL"
+    | "SUPPLIER_CLUSTER"
+    | "LINE_ITEM"
+    | "CROSS_SUPPLIER"
+    | "PO_REFERENCE"
+    | "PARTIAL";
   evidence: DuplicateEvidence[];
   requiresInvestigation: boolean;
   investigationPriority: InvestigationPriority;
 }
 
-export type InvestigationPriority = 'IMMEDIATE' | 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW' | 'MONITOR';
+export type InvestigationPriority =
+  | "IMMEDIATE"
+  | "URGENT"
+  | "HIGH"
+  | "MEDIUM"
+  | "LOW"
+  | "MONITOR";
 
 export class DuplicateDetectionException extends Error {
   constructor(
     public code: string,
     message: string,
     public checkId: string,
-    public metadata?: Record<string, any>
+    public metadata?: Record<string, any>,
   ) {
     super(message);
-    this.name = 'DuplicateDetectionException';
+    this.name = "DuplicateDetectionException";
   }
 }
 
@@ -209,5 +238,5 @@ export {
   DuplicatePattern,
   DuplicateEvidence,
   DuplicateEvidenceType,
-  DuplicateEvidenceSource
+  DuplicateEvidenceSource,
 };

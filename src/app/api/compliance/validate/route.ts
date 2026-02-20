@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../lib/prisma';
-import { InvoiceComplianceChecker } from '@/logic-engine/compliance/invoice-compliance-checker';
-import { VATValidator } from '@/logic-engine/compliance/vat-validator';
-import { authMiddleware } from '@/lib/middleware/auth';
-import { AuditLogger } from '@/lib/utils/audit-logger';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "../../../../lib/prisma";
+import { InvoiceComplianceChecker } from "@/logic-engine/compliance/invoice-compliance-checker";
+import { VATValidator } from "@/logic-engine/compliance/vat-validator";
+import { authMiddleware } from "@/lib/middleware/auth";
+import { AuditLogger } from "@/lib/utils/audit-logger";
 
 export async function POST(request: NextRequest) {
   const authResponse = await authMiddleware(request);
@@ -17,12 +17,12 @@ export async function POST(request: NextRequest) {
 
     if (!invoiceId) {
       return NextResponse.json(
-        { success: false, error: 'Invoice ID is required' },
-        { status: 400 }
+        { success: false, error: "Invoice ID is required" },
+        { status: 400 },
       );
     }
 
-    const userId = request.headers.get('x-user-id') || 'system';
+    const userId = request.headers.get("x-user-id") || "system";
 
     // Get invoice with related data
     const invoice = await prisma.invoices.findUnique({
@@ -35,20 +35,20 @@ export async function POST(request: NextRequest) {
 
     if (!invoice) {
       return NextResponse.json(
-        { success: false, error: 'Invoice not found' },
-        { status: 404 }
+        { success: false, error: "Invoice not found" },
+        { status: 404 },
       );
     }
 
     let results: any = {};
 
     switch (type) {
-      case 'full':
+      case "full":
         // Run full compliance check
         results = await InvoiceComplianceChecker.validateInvoice(invoice);
         break;
 
-      case 'vat':
+      case "vat":
         // Validate VAT compliance
         const vatResult = await VATValidator.validateVATCompliance(invoice);
         results = {
@@ -59,36 +59,38 @@ export async function POST(request: NextRequest) {
         };
         break;
 
-      case 'supplier':
+      case "supplier":
         // Validate supplier compliance
-        const supplier = invoice.supplierId ? await prisma.suppliers.findUnique({
-          where: { id: invoice.supplierId }
-        }) : null;
+        const supplier = invoice.supplierId
+          ? await prisma.suppliers.findUnique({
+              where: { id: invoice.supplierId },
+            })
+          : null;
         if (supplier) {
           results = await InvoiceComplianceChecker.validateSupplierCompliance(
             invoice,
-            supplier
+            supplier,
           );
         } else {
           results = {
             compliant: false,
-            errors: ['No supplier associated with this invoice'],
+            errors: ["No supplier associated with this invoice"],
           };
         }
         break;
 
-      case 'approval':
+      case "approval":
         // Validate approval authority
         results = await InvoiceComplianceChecker.validateApprovalAuthority(
           invoice,
-          invoice.approvals
+          invoice.approvals,
         );
         break;
 
       default:
         return NextResponse.json(
-          { success: false, error: 'Invalid validation type' },
-          { status: 400 }
+          { success: false, error: "Invalid validation type" },
+          { status: 400 },
         );
     }
 
@@ -105,11 +107,11 @@ export async function POST(request: NextRequest) {
 
     // Log compliance check
     await AuditLogger.log({
-      action: 'COMPLIANCE_VIOLATION',
-      entityType: 'INVOICE',
+      action: "COMPLIANCE_VIOLATION",
+      entityType: "INVOICE",
       entityId: invoiceId,
       entityDescription: `Compliance validation: ${type}`,
-      severity: isCompliant ? 'INFO' : 'WARNING',
+      severity: isCompliant ? "INFO" : "WARNING",
       userId,
       metadata: { type, results },
     });
@@ -119,10 +121,10 @@ export async function POST(request: NextRequest) {
       data: results,
     });
   } catch (error) {
-    console.error('Error validating compliance:', error);
+    console.error("Error validating compliance:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to validate compliance' },
-      { status: 500 }
+      { success: false, error: "Failed to validate compliance" },
+      { status: 500 },
     );
   }
 }
@@ -135,12 +137,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const invoiceId = searchParams.get('invoiceId');
+    const invoiceId = searchParams.get("invoiceId");
 
     if (!invoiceId) {
       return NextResponse.json(
-        { success: false, error: 'Invoice ID is required' },
-        { status: 400 }
+        { success: false, error: "Invoice ID is required" },
+        { status: 400 },
       );
     }
 
@@ -158,8 +160,8 @@ export async function GET(request: NextRequest) {
 
     if (!invoice) {
       return NextResponse.json(
-        { success: false, error: 'Invoice not found' },
-        { status: 404 }
+        { success: false, error: "Invoice not found" },
+        { status: 404 },
       );
     }
 
@@ -177,10 +179,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching compliance status:', error);
+    console.error("Error fetching compliance status:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch compliance status' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch compliance status" },
+      { status: 500 },
     );
   }
 }

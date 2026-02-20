@@ -2,17 +2,17 @@
  * Supplier Analytics API Route
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { SupplierAnalyticsService } from '@/services/supplier-analytics-service';
+import { NextRequest, NextResponse } from "next/server";
+import { SupplierAnalyticsService } from "@/services/supplier-analytics-service";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const supplierId = searchParams.get('supplierId');
-    const category = searchParams.get('category');
-    const startDateStr = searchParams.get('startDate');
-    const endDateStr = searchParams.get('endDate');
-    const action = searchParams.get('action') || 'performance';
+    const supplierId = searchParams.get("supplierId");
+    const category = searchParams.get("category");
+    const startDateStr = searchParams.get("startDate");
+    const endDateStr = searchParams.get("endDate");
+    const action = searchParams.get("action") || "performance";
 
     const startDate = startDateStr
       ? new Date(startDateStr)
@@ -22,56 +22,56 @@ export async function GET(req: NextRequest) {
     let data;
 
     switch (action) {
-      case 'performance':
+      case "performance":
         if (!supplierId) {
           return NextResponse.json(
-            { success: false, error: 'supplierId required for performance' },
-            { status: 400 }
+            { success: false, error: "supplierId required for performance" },
+            { status: 400 },
           );
         }
         data = await SupplierAnalyticsService.getSupplierPerformance(
           supplierId,
           startDate,
-          endDate
+          endDate,
         );
         break;
 
-      case 'compare':
+      case "compare":
         if (!category) {
           return NextResponse.json(
-            { success: false, error: 'category required for comparison' },
-            { status: 400 }
+            { success: false, error: "category required for comparison" },
+            { status: 400 },
           );
         }
         data = await SupplierAnalyticsService.compareSuppliers(category);
         break;
 
-      case 'spending':
+      case "spending":
         if (!supplierId) {
           return NextResponse.json(
-            { success: false, error: 'supplierId required for spending' },
-            { status: 400 }
+            { success: false, error: "supplierId required for spending" },
+            { status: 400 },
           );
         }
-        const months = parseInt(searchParams.get('months') || '12');
+        const months = parseInt(searchParams.get("months") || "12");
         data = await SupplierAnalyticsService.getSpendingPatterns(
           supplierId,
-          months
+          months,
         );
         break;
 
-      case 'risk':
+      case "risk":
         data = await SupplierAnalyticsService.getRiskReport();
         break;
 
-      case 'consolidation':
+      case "consolidation":
         data = await SupplierAnalyticsService.getConsolidationOpportunities();
         break;
 
       default:
         return NextResponse.json(
-          { success: false, error: 'Invalid action' },
-          { status: 400 }
+          { success: false, error: "Invalid action" },
+          { status: 400 },
         );
     }
 
@@ -80,10 +80,10 @@ export async function GET(req: NextRequest) {
       data,
     });
   } catch (error) {
-    console.error('Supplier analytics error:', error);
+    console.error("Supplier analytics error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to get supplier analytics' },
-      { status: 500 }
+      { success: false, error: "Failed to get supplier analytics" },
+      { status: 500 },
     );
   }
 }

@@ -3,21 +3,21 @@
  * Redis-based job queue using Bull
  */
 
-import Queue, { Job, QueueOptions, JobOptions } from 'bull';
-import { auditLogger } from '@/lib/utils/audit-logger';
-import { EntityType, LogSeverity } from '@/types';
+import Queue, { Job, QueueOptions, JobOptions } from "bull";
+import { auditLogger } from "@/lib/utils/audit-logger";
+import { EntityType, LogSeverity } from "@/types";
 
 export enum JobType {
-  PROCESS_PDF = 'process_pdf',
-  OCR_EXTRACTION = 'ocr_extraction',
-  COMPLIANCE_CHECK = 'compliance_check',
-  APPROVAL_WORKFLOW = 'approval_workflow',
-  NOTIFICATION = 'notification',
-  REPORT_GENERATION = 'report_generation',
-  SUPPLIER_RISK_SCORING = 'supplier_risk_scoring',
-  DATA_CLEANUP = 'data_cleanup',
-  INVOICE_ARCHIVAL = 'invoice_archival',
-  AUDIT_LOG_SYNC = 'audit_log_sync',
+  PROCESS_PDF = "process_pdf",
+  OCR_EXTRACTION = "ocr_extraction",
+  COMPLIANCE_CHECK = "compliance_check",
+  APPROVAL_WORKFLOW = "approval_workflow",
+  NOTIFICATION = "notification",
+  REPORT_GENERATION = "report_generation",
+  SUPPLIER_RISK_SCORING = "supplier_risk_scoring",
+  DATA_CLEANUP = "data_cleanup",
+  INVOICE_ARCHIVAL = "invoice_archival",
+  AUDIT_LOG_SYNC = "audit_log_sync",
 }
 
 export interface JobData {
@@ -56,7 +56,7 @@ export enum JobPriority {
 export interface RetryConfig {
   attempts: number;
   backoff: {
-    type: 'exponential' | 'fixed';
+    type: "exponential" | "fixed";
     delay: number;
   };
 }
@@ -80,8 +80,8 @@ export class JobQueue {
   private initializeQueues(): void {
     const queueOptions: QueueOptions = {
       redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        host: process.env.REDIS_HOST || "localhost",
+        port: parseInt(process.env.REDIS_PORT || "6379"),
         password: process.env.REDIS_PASSWORD,
         db: 0,
       },
@@ -90,7 +90,7 @@ export class JobQueue {
         removeOnFail: 50,
         attempts: 3,
         backoff: {
-          type: 'exponential',
+          type: "exponential",
           delay: 1000,
         },
       },
@@ -98,20 +98,20 @@ export class JobQueue {
 
     Object.values(JobType).forEach((jobType) => {
       const queue = new Queue(jobType, queueOptions);
-      
-      queue.on('completed', (job: Job, result: any) => {
+
+      queue.on("completed", (job: Job, result: any) => {
         this.handleJobCompleted(job, result);
       });
 
-      queue.on('failed', (job: Job, error: Error) => {
+      queue.on("failed", (job: Job, error: Error) => {
         this.handleJobFailed(job, error);
       });
 
-      queue.on('stalled', (job: Job) => {
+      queue.on("stalled", (job: Job) => {
         this.handleJobStalled(job);
       });
 
-      queue.on('progress', (job: Job, progress: number) => {
+      queue.on("progress", (job: Job, progress: number) => {
         this.handleJobProgress(job, progress);
       });
 
@@ -131,7 +131,7 @@ export class JobQueue {
       priority: jobData.priority || JobPriority.MEDIUM,
       attempts: jobData.retryConfig?.attempts || 3,
       backoff: jobData.retryConfig?.backoff || {
-        type: 'exponential',
+        type: "exponential",
         delay: 1000,
       },
       delay: 0,
@@ -148,9 +148,9 @@ export class JobQueue {
 
     try {
       const job = await queue.add(jobData, jobOptions);
-      
+
       await auditLogger.log({
-        action: 'CREATE',
+        action: "CREATE",
         entityType: EntityType.SYSTEM,
         entityId: job.id,
         entityDescription: `Job created: ${jobData.type}`,
@@ -174,7 +174,7 @@ export class JobQueue {
 
   async addBulkJobs(jobs: JobData[]): Promise<Job[]> {
     const results: Job[] = [];
-    
+
     for (const jobData of jobs) {
       try {
         const job = await this.addJob(jobData);
@@ -183,7 +183,7 @@ export class JobQueue {
         console.error(`Failed to add bulk job ${jobData.type}:`, error);
       }
     }
-    
+
     return results;
   }
 
@@ -257,15 +257,18 @@ export class JobQueue {
     };
   }
 
-  async cleanupOldJobs(jobType: JobType, daysToKeep: number = 7): Promise<void> {
+  async cleanupOldJobs(
+    jobType: JobType,
+    daysToKeep: number = 7,
+  ): Promise<void> {
     const queue = this.queues.get(jobType);
     if (!queue) throw new Error(`No queue found for job type: ${jobType}`);
 
-    const cutoff = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
-    await queue.clean(cutoff, 1000, 'completed');
-    
-    const failedCutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    await queue.clean(failedCutoff, 100, 'failed');
+    const cutoff = Date.now() - daysToKeep * 24 * 60 * 60 * 1000;
+    await queue.clean(cutoff, 1000, "completed");
+
+    const failedCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    await queue.clean(failedCutoff, 100, "failed");
   }
 
   async pauseQueue(jobType: JobType): Promise<void> {
@@ -287,12 +290,11 @@ export class JobQueue {
   }
 
   private async handleJobCompleted(job: Job, result: any): Promise<void> {
-    const processingTime = job.processedOn && job.finishedOn 
-      ? job.finishedOn - job.processedOn 
-      : 0;
+    const processingTime =
+      job.processedOn && job.finishedOn ? job.finishedOn - job.processedOn : 0;
 
     await auditLogger.log({
-      action: 'UPDATE',
+      action: "UPDATE",
       entityType: EntityType.SYSTEM,
       entityId: job.id,
       entityDescription: `Job completed: ${job.data.type}`,
@@ -311,7 +313,7 @@ export class JobQueue {
 
   private async handleJobFailed(job: Job, error: Error): Promise<void> {
     await auditLogger.log({
-      action: 'UPDATE',
+      action: "UPDATE",
       entityType: EntityType.SYSTEM,
       entityId: job.id,
       entityDescription: `Job failed: ${job.data.type}`,
@@ -330,7 +332,7 @@ export class JobQueue {
 
   private async handleJobStalled(job: Job): Promise<void> {
     await auditLogger.log({
-      action: 'UPDATE',
+      action: "UPDATE",
       entityType: EntityType.SYSTEM,
       entityId: job.id,
       entityDescription: `Job stalled: ${job.data.type}`,
@@ -345,7 +347,7 @@ export class JobQueue {
   private async handleJobProgress(job: Job, progress: number): Promise<void> {
     if (progress % 25 === 0 || progress === 100) {
       await auditLogger.log({
-        action: 'UPDATE',
+        action: "UPDATE",
         entityType: EntityType.SYSTEM,
         entityId: job.id,
         entityDescription: `Job progress: ${job.data.type}`,
@@ -378,7 +380,7 @@ export class JobQueue {
   }
 
   async shutdown(): Promise<void> {
-    console.log('🛑 Shutting down job queues...');
+    console.log("🛑 Shutting down job queues...");
     for (const [, queue] of this.queues) {
       await queue.close();
     }

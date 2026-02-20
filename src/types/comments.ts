@@ -3,8 +3,8 @@
  * CreditorFlow Enterprise Invoice Management System
  */
 
-export type CommentEntityType = 'INVOICE' | 'SUPPLIER' | 'APPROVAL' | 'PAYMENT';
-export type CommentType = 'PUBLIC' | 'INTERNAL' | 'SYSTEM';
+export type CommentEntityType = "INVOICE" | "SUPPLIER" | "APPROVAL" | "PAYMENT";
+export type CommentType = "PUBLIC" | "INTERNAL" | "SYSTEM";
 
 export interface CommentAttachment {
   id: string;
@@ -85,7 +85,7 @@ export interface CommentListResult {
 
 export interface ActivityItem {
   id: string;
-  type: 'comment' | 'mention' | 'reply' | 'reaction';
+  type: "comment" | "mention" | "reply" | "reaction";
   entityType: CommentEntityType;
   entityId: string;
   entityLabel: string;

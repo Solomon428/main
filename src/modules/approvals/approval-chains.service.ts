@@ -2,9 +2,9 @@
 // Approval Chains Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { ApprovalChainType } from '../../domain/enums/ApprovalChainType';
-import { Currency } from '../../domain/enums/Currency';
+import { prisma } from "../../db/prisma";
+import { ApprovalChainType } from "../../domain/enums/ApprovalChainType";
+import { Currency } from "../../domain/enums/Currency";
 
 export interface ApprovalLevel {
   level: number;
@@ -48,12 +48,15 @@ export interface UpdateApprovalChainInput extends Partial<CreateApprovalChainInp
 /**
  * List all approval chains for an organization
  */
-export async function listApprovalChains(organizationId: string, options?: {
-  isActive?: boolean;
-  department?: string;
-  page?: number;
-  limit?: number;
-}) {
+export async function listApprovalChains(
+  organizationId: string,
+  options?: {
+    isActive?: boolean;
+    department?: string;
+    page?: number;
+    limit?: number;
+  },
+) {
   const where: any = { organizationId };
 
   if (options?.isActive !== undefined) {
@@ -74,7 +77,7 @@ export async function listApprovalChains(organizationId: string, options?: {
       include: {
         approvals: {
           take: 5,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
         },
         User: {
           select: {
@@ -84,7 +87,7 @@ export async function listApprovalChains(organizationId: string, options?: {
           },
         },
       },
-      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
       skip,
       take: limit,
     }),
@@ -126,7 +129,7 @@ export async function getApprovalChain(id: string) {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       },
       delegatedApprovals: {
         where: { isActive: true },
@@ -186,7 +189,10 @@ export async function createApprovalChain(data: CreateApprovalChainInput) {
 /**
  * Update an existing approval chain
  */
-export async function updateApprovalChain(id: string, data: UpdateApprovalChainInput) {
+export async function updateApprovalChain(
+  id: string,
+  data: UpdateApprovalChainInput,
+) {
   return prisma.approvalChain.update({
     where: { id },
     data: {
@@ -204,12 +210,12 @@ export async function deleteApprovalChain(id: string) {
   const activeApprovals = await prisma.approval.count({
     where: {
       approvalChainId: id,
-      status: { in: ['PENDING', 'IN_PROGRESS'] },
+      status: { in: ["PENDING", "IN_PROGRESS"] },
     },
   });
 
   if (activeApprovals > 0) {
-    throw new Error('Cannot delete approval chain with active approvals');
+    throw new Error("Cannot delete approval chain with active approvals");
   }
 
   return prisma.approvalChain.delete({
@@ -240,33 +246,24 @@ export async function findMatchingApprovalChain(
     department?: string;
     category?: string;
     currency?: Currency;
-  }
+  },
 ) {
   const chains = await prisma.approvalChain.findMany({
     where: {
       organizationId,
       isActive: true,
       minAmount: { lte: criteria.amount },
-      OR: [
-        { maxAmount: null },
-        { maxAmount: { gte: criteria.amount } },
-      ],
+      OR: [{ maxAmount: null }, { maxAmount: { gte: criteria.amount } }],
       AND: [
         {
-          OR: [
-            { department: null },
-            { department: criteria.department },
-          ],
+          OR: [{ department: null }, { department: criteria.department }],
         },
         {
-          OR: [
-            { category: null },
-            { category: criteria.category },
-          ],
+          OR: [{ category: null }, { category: criteria.category }],
         },
       ],
     },
-    orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
   });
 
   return chains[0] || null;
@@ -275,17 +272,14 @@ export async function findMatchingApprovalChain(
 /**
  * Add a level to an approval chain
  */
-export async function addApprovalLevel(
-  chainId: string,
-  level: ApprovalLevel
-) {
+export async function addApprovalLevel(chainId: string, level: ApprovalLevel) {
   const chain = await prisma.approvalChain.findUnique({
     where: { id: chainId },
     select: { levels: true },
   });
 
   if (!chain) {
-    throw new Error('Approval chain not found');
+    throw new Error("Approval chain not found");
   }
 
   const currentLevels = chain.levels as ApprovalLevel[];
@@ -303,14 +297,17 @@ export async function addApprovalLevel(
 /**
  * Remove a level from an approval chain
  */
-export async function removeApprovalLevel(chainId: string, levelNumber: number) {
+export async function removeApprovalLevel(
+  chainId: string,
+  levelNumber: number,
+) {
   const chain = await prisma.approvalChain.findUnique({
     where: { id: chainId },
     select: { levels: true },
   });
 
   if (!chain) {
-    throw new Error('Approval chain not found');
+    throw new Error("Approval chain not found");
   }
 
   const currentLevels = chain.levels as ApprovalLevel[];
@@ -335,20 +332,23 @@ export async function getApprovalChainStats(chainId: string) {
       select: { id: true, name: true },
     }),
     prisma.approval.groupBy({
-      by: ['status'],
+      by: ["status"],
       where: { approvalChainId: chainId },
       _count: { status: true },
     }),
   ]);
 
   if (!chain) {
-    throw new Error('Approval chain not found');
+    throw new Error("Approval chain not found");
   }
 
-  const statusCounts = stats.reduce((acc, stat) => {
-    acc[stat.status] = stat._count.status;
-    return acc;
-  }, {} as Record<string, number>);
+  const statusCounts = stats.reduce(
+    (acc, stat) => {
+      acc[stat.status] = stat._count.status;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   return {
     chainId: chain.id,
@@ -367,7 +367,7 @@ export async function cloneApprovalChain(chainId: string, newName: string) {
   });
 
   if (!chain) {
-    throw new Error('Approval chain not found');
+    throw new Error("Approval chain not found");
   }
 
   const { id, createdAt, updatedAt, deletedAt, ...chainData } = chain;

@@ -1,9 +1,9 @@
-import sharp from 'sharp';
-import { PDFDocument, type PDFPage } from 'pdf-lib';
-import fs from 'fs';
-import path from 'path';
-import { OcrProcessingError } from './errors';
-import { IMAGE_CONSTRAINTS, PREPROCESSING_DEFAULTS } from './constants';
+import sharp from "sharp";
+import { PDFDocument, type PDFPage } from "pdf-lib";
+import fs from "fs";
+import path from "path";
+import { OcrProcessingError } from "./errors";
+import { IMAGE_CONSTRAINTS, PREPROCESSING_DEFAULTS } from "./constants";
 
 export interface PreprocessingOptions {
   grayscale?: boolean;
@@ -25,7 +25,7 @@ export class ImagePreprocessor {
   async preprocessImage(
     imageBuffer: Buffer,
     mimeType: string,
-    options: PreprocessingOptions = {}
+    options: PreprocessingOptions = {},
   ): Promise<Buffer> {
     const opts = {
       grayscale: PREPROCESSING_DEFAULTS.GRAYSCALE,
@@ -35,7 +35,7 @@ export class ImagePreprocessor {
       sharpen: PREPROCESSING_DEFAULTS.SHARPEN,
       maxDimension: IMAGE_CONSTRAINTS.MAX_DIMENSION,
       targetDpi: IMAGE_CONSTRAINTS.TARGET_DPI,
-      ...options
+      ...options,
     };
 
     try {
@@ -57,21 +57,24 @@ export class ImagePreprocessor {
 
       // Set DPI metadata
       image = image.withMetadata({
-        density: Math.max(metadata.density || IMAGE_CONSTRAINTS.MIN_DPI, opts.targetDpi)
+        density: Math.max(
+          metadata.density || IMAGE_CONSTRAINTS.MIN_DPI,
+          opts.targetDpi,
+        ),
       });
 
       // Resize if too large
       if (metadata.width && metadata.width > opts.maxDimension) {
         image = image.resize(opts.maxDimension, null, {
-          fit: 'inside',
-          withoutEnlargement: true
+          fit: "inside",
+          withoutEnlargement: true,
         });
       }
 
       if (metadata.height && metadata.height > opts.maxDimension) {
         image = image.resize(null, opts.maxDimension, {
-          fit: 'inside',
-          withoutEnlargement: true
+          fit: "inside",
+          withoutEnlargement: true,
         });
       }
 
@@ -79,10 +82,10 @@ export class ImagePreprocessor {
       return processedBuffer;
     } catch (error) {
       throw new OcrProcessingError(
-        'Failed to preprocess image',
-        'PREPROCESSING_FAILED',
+        "Failed to preprocess image",
+        "PREPROCESSING_FAILED",
         { mimeType },
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }
@@ -90,7 +93,7 @@ export class ImagePreprocessor {
   async convertPdfPageToImage(
     page: PDFPage,
     pageIndex: number,
-    pdfDoc: PDFDocument
+    pdfDoc: PDFDocument,
   ): Promise<Buffer> {
     try {
       // Create a temporary single-page PDF
@@ -101,7 +104,7 @@ export class ImagePreprocessor {
       const tempPdfBytes = await tempPdf.save();
       const tempPdfPath = path.join(
         this.tempDir,
-        `page_${pageIndex}_${Date.now()}.pdf`
+        `page_${pageIndex}_${Date.now()}.pdf`,
       );
 
       fs.writeFileSync(tempPdfPath, tempPdfBytes);
@@ -109,7 +112,7 @@ export class ImagePreprocessor {
       try {
         // Convert PDF to image using sharp
         const image = await sharp(tempPdfPath, {
-          density: IMAGE_CONSTRAINTS.TARGET_DPI
+          density: IMAGE_CONSTRAINTS.TARGET_DPI,
         })
           .png()
           .toBuffer();
@@ -125,10 +128,10 @@ export class ImagePreprocessor {
       }
     } catch (error) {
       throw new OcrProcessingError(
-        'Failed to convert PDF page to image',
-        'PDF_CONVERSION_FAILED',
+        "Failed to convert PDF page to image",
+        "PDF_CONVERSION_FAILED",
         { pageIndex },
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }
@@ -148,10 +151,10 @@ export class ImagePreprocessor {
       return images;
     } catch (error) {
       throw new OcrProcessingError(
-        'Failed to convert PDF pages',
-        'PDF_CONVERSION_FAILED',
+        "Failed to convert PDF pages",
+        "PDF_CONVERSION_FAILED",
         {},
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }

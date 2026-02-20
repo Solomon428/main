@@ -2,7 +2,7 @@
 // Organizations Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export async function listOrganizations() {
   return prisma.organization.findMany({
@@ -23,7 +23,7 @@ export async function listOrganizations() {
         },
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 }
 

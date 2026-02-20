@@ -1,6 +1,6 @@
-import nodemailer from 'nodemailer';
-import { auditLogger } from './audit-logger';
-import { LogSeverity, EntityType } from '@/types';
+import nodemailer from "nodemailer";
+import { auditLogger } from "./audit-logger";
+import { LogSeverity, EntityType } from "@/types";
 
 interface EmailAttachment {
   filename: string;
@@ -40,13 +40,15 @@ export class SMTPClient {
 
   static initialize(): boolean {
     const host = process.env.SMTP_HOST;
-    const port = parseInt(process.env.SMTP_PORT || '587');
+    const port = parseInt(process.env.SMTP_PORT || "587");
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
-    const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+    const secure = process.env.SMTP_SECURE === "true" || port === 465;
 
     if (!host || !user || !pass) {
-      console.warn('[SMTPClient] SMTP not configured. Emails will be logged only.');
+      console.warn(
+        "[SMTPClient] SMTP not configured. Emails will be logged only.",
+      );
       return false;
     }
 
@@ -58,7 +60,7 @@ export class SMTPClient {
       pool: true,
       maxConnections: 5,
       rateDelta: 1000,
-      rateLimit: 5
+      rateLimit: 5,
     };
 
     try {
@@ -66,7 +68,7 @@ export class SMTPClient {
       console.log(`[SMTPClient] Initialized with host: ${host}:${port}`);
       return true;
     } catch (error) {
-      console.error('[SMTPClient] Failed to initialize:', error);
+      console.error("[SMTPClient] Failed to initialize:", error);
       return false;
     }
   }
@@ -79,21 +81,24 @@ export class SMTPClient {
       await this.transporter.verify();
       return true;
     } catch (error) {
-      console.error('[SMTPClient] Connection verification failed:', error);
+      console.error("[SMTPClient] Connection verification failed:", error);
       return false;
     }
   }
 
-  static async sendEmail(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  static async sendEmail(
+    options: EmailOptions,
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     if (!this.transporter && !this.initialize()) {
-      console.log('[SMTPClient] Email (not sent - SMTP not configured):', {
+      console.log("[SMTPClient] Email (not sent - SMTP not configured):", {
         to: options.to,
-        subject: options.subject
+        subject: options.subject,
       });
-      return { success: false, error: 'SMTP not configured' };
+      return { success: false, error: "SMTP not configured" };
     }
 
-    const defaultFrom = process.env.SMTP_FROM || `CreditorFlow <${process.env.SMTP_USER}>`;
+    const defaultFrom =
+      process.env.SMTP_FROM || `CreditorFlow <${process.env.SMTP_USER}>`;
 
     try {
       const result = await this.transporter!.sendMail({
@@ -105,38 +110,39 @@ export class SMTPClient {
         text: options.text,
         html: options.html,
         attachments: options.attachments,
-        replyTo: options.replyTo
+        replyTo: options.replyTo,
       });
 
       await auditLogger.log({
-        action: 'SYSTEM_ALERT',
+        action: "SYSTEM_ALERT",
         entityType: EntityType.SYSTEM,
-        entityId: 'EMAIL_SENT',
+        entityId: "EMAIL_SENT",
         entityDescription: `Email sent: ${options.subject}`,
         severity: LogSeverity.INFO,
         metadata: {
-          to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+          to: Array.isArray(options.to) ? options.to.join(", ") : options.to,
           subject: options.subject,
-          messageId: result.messageId
-        }
+          messageId: result.messageId,
+        },
       });
 
       return { success: true, messageId: result.messageId };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[SMTPClient] Failed to send email:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("[SMTPClient] Failed to send email:", error);
 
       await auditLogger.log({
-        action: 'SYSTEM_ALERT',
+        action: "SYSTEM_ALERT",
         entityType: EntityType.SYSTEM,
-        entityId: 'EMAIL_FAILED',
+        entityId: "EMAIL_FAILED",
         entityDescription: `Email failed: ${errorMessage}`,
         severity: LogSeverity.ERROR,
         metadata: {
-          to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+          to: Array.isArray(options.to) ? options.to.join(", ") : options.to,
           subject: options.subject,
-          error: errorMessage
-        }
+          error: errorMessage,
+        },
       });
 
       return { success: false, error: errorMessage };
@@ -145,15 +151,20 @@ export class SMTPClient {
 
   static async sendBulkEmails(
     recipients: string[],
-    options: Omit<EmailOptions, 'to'>
-  ): Promise<{ success: boolean; sent: number; failed: number; errors: string[] }> {
+    options: Omit<EmailOptions, "to">,
+  ): Promise<{
+    success: boolean;
+    sent: number;
+    failed: number;
+    errors: string[];
+  }> {
     const results = { sent: 0, failed: 0, errors: [] as string[] };
 
     const batchSize = 10;
     for (let i = 0; i < recipients.length; i += batchSize) {
       const batch = recipients.slice(i, i + batchSize);
-      const batchPromises = batch.map(recipient =>
-        this.sendEmail({ ...options, to: recipient })
+      const batchPromises = batch.map((recipient) =>
+        this.sendEmail({ ...options, to: recipient }),
       );
 
       const batchResults = await Promise.all(batchPromises);
@@ -167,7 +178,7 @@ export class SMTPClient {
       });
 
       if (i + batchSize < recipients.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -175,7 +186,7 @@ export class SMTPClient {
       success: results.failed === 0,
       sent: results.sent,
       failed: results.failed,
-      errors: results.errors
+      errors: results.errors,
     };
   }
 

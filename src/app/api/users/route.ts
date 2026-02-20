@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
-import { authMiddleware } from '@/lib/middleware/auth';
-import { AuditLogger } from '@/lib/utils/audit-logger';
-import bcrypt from 'bcryptjs';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/db/prisma";
+import { authMiddleware } from "@/lib/middleware/auth";
+import { AuditLogger } from "@/lib/utils/audit-logger";
+import bcrypt from "bcryptjs";
 
 export async function GET(request: NextRequest) {
   const authResponse = await authMiddleware(request);
@@ -12,12 +12,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const role = searchParams.get('role');
-    const department = searchParams.get('department');
-    const isActive = searchParams.get('isActive');
-    const search = searchParams.get('search');
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const role = searchParams.get("role");
+    const department = searchParams.get("department");
+    const isActive = searchParams.get("isActive");
+    const search = searchParams.get("search");
 
     const skip = (page - 1) * limit;
 
@@ -33,14 +33,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (isActive !== null && isActive !== undefined) {
-      where.isActive = isActive === 'true';
+      where.isActive = isActive === "true";
     }
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { employeeId: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { employeeId: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           updatedAt: true,
         },
-        orderBy: { name: 'asc' },
+        orderBy: { name: "asc" },
         skip,
         take: limit,
       }),
@@ -91,10 +91,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error("Error fetching users:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch users' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch users" },
+      { status: 500 },
     );
   }
 }
@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
     // Validation
     if (!employeeId || !email || !name || !role || !department || !password) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
+        { success: false, error: "Missing required fields" },
+        { status: 400 },
       );
     }
 
@@ -141,8 +141,11 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { success: false, error: 'User with this email or employee ID already exists' },
-        { status: 409 }
+        {
+          success: false,
+          error: "User with this email or employee ID already exists",
+        },
+        { status: 409 },
       );
     }
 
@@ -154,7 +157,7 @@ export async function POST(request: NextRequest) {
         employeeId,
         email,
         name,
-        title: title || '',
+        title: title || "",
         role,
         department,
         passwordHash,
@@ -186,13 +189,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const userId = request.headers.get('x-user-id') || 'system';
+    const userId = request.headers.get("x-user-id") || "system";
     await AuditLogger.log({
-      action: 'CREATE',
-      entityType: 'USER',
+      action: "CREATE",
+      entityType: "USER",
       entityId: user.id,
       entityDescription: `User ${user.name} created`,
-      severity: 'INFO',
+      severity: "INFO",
       userId,
     });
 
@@ -201,10 +204,10 @@ export async function POST(request: NextRequest) {
       data: user,
     });
   } catch (error) {
-    console.error('Error creating user:', error);
+    console.error("Error creating user:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create user' },
-      { status: 500 }
+      { success: false, error: "Failed to create user" },
+      { status: 500 },
     );
   }
 }

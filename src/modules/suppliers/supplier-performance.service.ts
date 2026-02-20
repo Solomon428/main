@@ -2,9 +2,9 @@
 // Supplier Performance Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
-import { generateId } from '../../utils/ids';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../db/prisma";
+import { generateId } from "../../utils/ids";
+import { info, error } from "../../observability/logger";
 
 interface PerformanceMetrics {
   onTimeDeliveryRate: number;
@@ -26,7 +26,7 @@ interface CalculatePerformanceInput {
  * Calculate performance metrics for a supplier
  */
 export async function calculatePerformanceScore(
-  input: CalculatePerformanceInput
+  input: CalculatePerformanceInput,
 ): Promise<PerformanceMetrics> {
   try {
     // Get invoices for the period
@@ -41,14 +41,18 @@ export async function calculatePerformanceScore(
     });
 
     const totalInvoices = invoices.length;
-    const totalAmount = invoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
+    const totalAmount = invoices.reduce(
+      (sum, inv) => sum + Number(inv.totalAmount),
+      0,
+    );
 
     // Calculate on-time delivery rate
-    const onTimeDeliveries = invoices.filter(inv => {
+    const onTimeDeliveries = invoices.filter((inv) => {
       if (!inv.dueDate || !inv.paidAt) return false;
       return new Date(inv.paidAt) <= new Date(inv.dueDate);
     }).length;
-    const onTimeDeliveryRate = totalInvoices > 0 ? (onTimeDeliveries / totalInvoices) * 100 : 0;
+    const onTimeDeliveryRate =
+      totalInvoices > 0 ? (onTimeDeliveries / totalInvoices) * 100 : 0;
 
     // Get compliance checks for quality score
     const complianceChecks = await prisma.complianceCheck.findMany({
@@ -61,17 +65,26 @@ export async function calculatePerformanceScore(
       },
     });
 
-    const passedChecks = complianceChecks.filter(check => check.status === 'COMPLIANT').length;
-    const qualityScore = complianceChecks.length > 0 
-      ? (passedChecks / complianceChecks.length) * 100 
-      : 0;
+    const passedChecks = complianceChecks.filter(
+      (check) => check.status === "COMPLIANT",
+    ).length;
+    const qualityScore =
+      complianceChecks.length > 0
+        ? (passedChecks / complianceChecks.length) * 100
+        : 0;
 
     // Calculate invoice accuracy (invoices without compliance issues)
-    const accurateInvoices = invoices.filter(inv => {
-      const issues = complianceChecks.filter(check => check.invoiceId === inv.id);
-      return issues.length === 0 || issues.every(issue => issue.status === 'COMPLIANT');
+    const accurateInvoices = invoices.filter((inv) => {
+      const issues = complianceChecks.filter(
+        (check) => check.invoiceId === inv.id,
+      );
+      return (
+        issues.length === 0 ||
+        issues.every((issue) => issue.status === "COMPLIANT")
+      );
     }).length;
-    const invoiceAccuracyRate = totalInvoices > 0 ? (accurateInvoices / totalInvoices) * 100 : 0;
+    const invoiceAccuracyRate =
+      totalInvoices > 0 ? (accurateInvoices / totalInvoices) * 100 : 0;
 
     // Get approval metrics for response time
     const approvals = await prisma.approval.findMany({
@@ -87,18 +100,26 @@ export async function calculatePerformanceScore(
       },
     });
 
-    const avgResponseTime = approvals.length > 0
-      ? approvals.reduce((sum, app) => {
-          const responseTime = app.actionedAt && app.assignedAt
-            ? new Date(app.actionedAt).getTime() - new Date(app.assignedAt).getTime()
-            : 0;
-          return sum + responseTime;
-        }, 0) / approvals.length / (1000 * 60 * 60) // Convert to hours
-      : 0;
+    const avgResponseTime =
+      approvals.length > 0
+        ? approvals.reduce((sum, app) => {
+            const responseTime =
+              app.actionedAt && app.assignedAt
+                ? new Date(app.actionedAt).getTime() -
+                  new Date(app.assignedAt).getTime()
+                : 0;
+            return sum + responseTime;
+          }, 0) /
+          approvals.length /
+          (1000 * 60 * 60) // Convert to hours
+        : 0;
 
     // Calculate dispute rate
-    const disputedInvoices = invoices.filter(inv => inv.status === 'DISPUTED').length;
-    const disputeRate = totalInvoices > 0 ? (disputedInvoices / totalInvoices) * 100 : 0;
+    const disputedInvoices = invoices.filter(
+      (inv) => inv.status === "DISPUTED",
+    ).length;
+    const disputeRate =
+      totalInvoices > 0 ? (disputedInvoices / totalInvoices) * 100 : 0;
 
     const metrics: PerformanceMetrics = {
       onTimeDeliveryRate: Math.round(onTimeDeliveryRate * 100) / 100,
@@ -112,9 +133,9 @@ export async function calculatePerformanceScore(
 
     return metrics;
   } catch (err) {
-    error('Failed to calculate performance score', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierId: input.supplierId 
+    error("Failed to calculate performance score", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierId: input.supplierId,
     });
     throw err;
   }
@@ -125,7 +146,7 @@ export async function calculatePerformanceScore(
  */
 export async function updatePerformanceMetrics(
   supplierId: string,
-  metrics: PerformanceMetrics
+  metrics: PerformanceMetrics,
 ): Promise<void> {
   try {
     await prisma.supplierPerformance.upsert({
@@ -159,11 +180,11 @@ export async function updatePerformanceMetrics(
       },
     });
 
-    info('Performance metrics updated', { supplierId });
+    info("Performance metrics updated", { supplierId });
   } catch (err) {
-    error('Failed to update performance metrics', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierId 
+    error("Failed to update performance metrics", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierId,
     });
     throw err;
   }
@@ -190,9 +211,9 @@ export async function getPerformanceReport(supplierId: string) {
 
     return performance;
   } catch (err) {
-    error('Failed to get performance report', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierId 
+    error("Failed to get performance report", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierId,
     });
     throw err;
   }
@@ -219,15 +240,15 @@ export async function getPerformanceComparison(supplierIds: string[]) {
         },
       },
       orderBy: {
-        qualityScore: 'desc',
+        qualityScore: "desc",
       },
     });
 
     return performances;
   } catch (err) {
-    error('Failed to get performance comparison', { 
-      error: err instanceof Error ? err.message : 'Unknown error',
-      supplierIds 
+    error("Failed to get performance comparison", {
+      error: err instanceof Error ? err.message : "Unknown error",
+      supplierIds,
     });
     throw err;
   }
@@ -246,12 +267,15 @@ export function calculateOverallRating(metrics: PerformanceMetrics): number {
   };
 
   // Normalize response time (lower is better, max 72 hours)
-  const responseTimeScore = Math.max(0, 100 - (metrics.responseTimeHours / 72) * 100);
-  
+  const responseTimeScore = Math.max(
+    0,
+    100 - (metrics.responseTimeHours / 72) * 100,
+  );
+
   // Normalize dispute rate (lower is better)
   const disputeScore = Math.max(0, 100 - metrics.disputeRate);
 
-  const weightedScore = 
+  const weightedScore =
     metrics.onTimeDeliveryRate * weights.onTimeDelivery +
     metrics.qualityScore * weights.quality +
     metrics.invoiceAccuracyRate * weights.accuracy +
@@ -260,7 +284,7 @@ export function calculateOverallRating(metrics: PerformanceMetrics): number {
 
   // Convert to 1-5 scale
   const rating = (weightedScore / 100) * 5;
-  
+
   return Math.round(rating * 10) / 10;
 }
 

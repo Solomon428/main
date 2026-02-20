@@ -1,12 +1,6 @@
-export enum Currency {
-  ZAR = 'ZAR',
-  USD = 'USD',
-  EUR = 'EUR',
-  GBP = 'GBP',
-  AED = 'AED',
-  CNY = 'CNY',
-  AUD = 'AUD',
-  CAD = 'CAD',
-  JPY = 'JPY',
-  INR = 'INR',
-}
+/**
+ * Re-exports Prisma-generated enum from @prisma/client.
+ * Original local definition replaced to eliminate dual-enum type incompatibility.
+ * All string values are identical to the previous local definition.
+ */
+export { Currency as Currency } from "@prisma/client";

@@ -1,6 +1,6 @@
-import { prisma } from '@/lib/database/client';
-import { SMTPClient } from '@/lib/utils/smtp-client';
-import { EmailTemplates } from '@/lib/utils/email-templates';
+import { prisma } from "@/lib/database/client";
+import { SMTPClient } from "@/lib/utils/smtp-client";
+import { EmailTemplates } from "@/lib/utils/email-templates";
 import {
   Invoice,
   User,
@@ -10,9 +10,9 @@ import {
   LogSeverity,
   InvoiceStatus,
   Supplier,
-} from '@prisma/client';
-import { PriorityLevel } from '@/types';
-import { auditLogger } from '@/lib/utils/audit-logger';
+} from "@prisma/client";
+import { PriorityLevel } from "@/types";
+import { auditLogger } from "@/lib/utils/audit-logger";
 
 // Helper type for invoice with relations
 type InvoiceWithDetails = Invoice & { supplier: Supplier | null };
@@ -45,13 +45,13 @@ interface EnhancedNotificationData {
   entityId?: string;
   sendEmail?: boolean;
   emailTemplate?:
-    | 'approvalRequired'
-    | 'invoiceApproved'
-    | 'invoiceRejected'
-    | 'slaBreach'
-    | 'fraudAlert'
-    | 'paymentReminder'
-    | 'dailySummary';
+    | "approvalRequired"
+    | "invoiceApproved"
+    | "invoiceRejected"
+    | "slaBreach"
+    | "fraudAlert"
+    | "paymentReminder"
+    | "dailySummary";
   templateData?: NotificationTemplateData;
 }
 
@@ -79,7 +79,7 @@ export class EnhancedNotificationService {
           type: data.type,
           title: data.title,
           message: data.message,
-          priority: data.priority || 'MEDIUM',
+          priority: data.priority || "MEDIUM",
           invoiceId: invoiceId,
           // Removed: entityType, entityId, deliveryMethod (not in schema)
         },
@@ -98,7 +98,7 @@ export class EnhancedNotificationService {
           const emailResult = await this.sendEmailNotification(
             data.emailTemplate,
             user.email,
-            data.templateData
+            data.templateData,
           );
           emailSent = emailResult.success;
 
@@ -109,12 +109,12 @@ export class EnhancedNotificationService {
       return { success: true, inAppId: inAppNotification.id, emailSent };
     } catch (error) {
       console.error(
-        '[EnhancedNotificationService] Failed to send notification:',
-        error
+        "[EnhancedNotificationService] Failed to send notification:",
+        error,
       );
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -125,15 +125,15 @@ export class EnhancedNotificationService {
   private static async sendEmailNotification(
     template: string,
     to: string,
-    data: NotificationTemplateData | undefined
+    data: NotificationTemplateData | undefined,
   ): Promise<{ success: boolean; error?: string }> {
-    if (!data) return { success: false, error: 'No template data provided' };
+    if (!data) return { success: false, error: "No template data provided" };
 
     try {
       let emailContent;
 
       switch (template) {
-        case 'approvalRequired': {
+        case "approvalRequired": {
           const d = data as {
             invoice: InvoiceWithDetails;
             approver: User;
@@ -142,11 +142,11 @@ export class EnhancedNotificationService {
           emailContent = EmailTemplates.approvalRequired(
             d.invoice,
             d.approver,
-            d.approval
+            d.approval,
           );
           break;
         }
-        case 'invoiceApproved': {
+        case "invoiceApproved": {
           const d = data as {
             invoice: InvoiceWithDetails;
             user: User;
@@ -155,11 +155,11 @@ export class EnhancedNotificationService {
           emailContent = EmailTemplates.invoiceApproved(
             d.invoice,
             d.user,
-            d.approver
+            d.approver,
           );
           break;
         }
-        case 'invoiceRejected': {
+        case "invoiceRejected": {
           const d = data as {
             invoice: InvoiceWithDetails;
             user: User;
@@ -176,11 +176,11 @@ export class EnhancedNotificationService {
             d.invoice,
             d.user,
             d.approver,
-            d.reason
+            d.reason,
           );
           break;
         }
-        case 'slaBreach': {
+        case "slaBreach": {
           const d = data as {
             invoice: InvoiceWithDetails & { currentApprover: User | null };
             manager: User;
@@ -188,7 +188,7 @@ export class EnhancedNotificationService {
           emailContent = EmailTemplates.slaBreach(d.invoice, d.manager);
           break;
         }
-        case 'fraudAlert': {
+        case "fraudAlert": {
           const d = data as {
             invoice: InvoiceWithDetails;
             user: User;
@@ -197,11 +197,11 @@ export class EnhancedNotificationService {
           emailContent = EmailTemplates.fraudAlert(
             d.invoice,
             d.user,
-            d.fraudScore
+            d.fraudScore,
           );
           break;
         }
-        case 'paymentReminder': {
+        case "paymentReminder": {
           const d = data as {
             invoice: InvoiceWithDetails;
             daysUntilDue: number;
@@ -209,10 +209,10 @@ export class EnhancedNotificationService {
           // Assuming paymentReminder exists in EmailTemplates
           emailContent = (EmailTemplates as any).paymentReminder
             ? (EmailTemplates as any).paymentReminder(d.invoice, d.daysUntilDue)
-            : { subject: 'Payment Reminder', html: '', text: '' };
+            : { subject: "Payment Reminder", html: "", text: "" };
           break;
         }
-        case 'dailySummary': {
+        case "dailySummary": {
           const d = data as {
             user: User;
             stats: {
@@ -226,11 +226,11 @@ export class EnhancedNotificationService {
           // Assuming dailySummary exists
           emailContent = (EmailTemplates as any).dailySummary
             ? (EmailTemplates as any).dailySummary(d.user, d.stats)
-            : { subject: 'Daily Summary', html: '', text: '' };
+            : { subject: "Daily Summary", html: "", text: "" };
           break;
         }
         default:
-          return { success: false, error: 'Unknown email template' };
+          return { success: false, error: "Unknown email template" };
       }
 
       const result = await SMTPClient.sendEmail({
@@ -243,12 +243,12 @@ export class EnhancedNotificationService {
       return result;
     } catch (error) {
       console.error(
-        '[EnhancedNotificationService] Failed to send email:',
-        error
+        "[EnhancedNotificationService] Failed to send email:",
+        error,
       );
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -259,7 +259,7 @@ export class EnhancedNotificationService {
   static async sendApprovalNotificationWithEmail(
     userId: string,
     invoiceId: string,
-    approvalId: string
+    approvalId: string,
   ): Promise<{ success: boolean; inAppId?: string; emailSent?: boolean }> {
     const [user, invoice, approval] = await Promise.all([
       prisma.User.findUnique({ where: { id: userId } }),
@@ -276,19 +276,18 @@ export class EnhancedNotificationService {
 
     // Fix: Invoice doesn't have isUrgent. Use priority.
     const isHighPriority =
-      invoice.priority === 'HIGH' ||
-      invoice.priority === 'CRITICAL';
+      invoice.priority === "HIGH" || invoice.priority === "CRITICAL";
 
     return this.sendNotification({
       userId,
       type: NotificationType.APPROVAL_REQUIRED,
-      title: 'Approval Required',
+      title: "Approval Required",
       message: `Invoice ${invoice.invoiceNumber} from ${invoice.supplier?.name} for R${Number(invoice.totalAmount).toLocaleString()} requires your approval.`,
-      priority: isHighPriority ? 'HIGH' : 'MEDIUM',
+      priority: isHighPriority ? "HIGH" : "MEDIUM",
       entityType: EntityType.INVOICE,
       entityId: invoiceId,
       sendEmail: true,
-      emailTemplate: 'approvalRequired',
+      emailTemplate: "approvalRequired",
       templateData: { invoice, approver: user, approval },
     });
   }
@@ -298,7 +297,7 @@ export class EnhancedNotificationService {
    */
   static async sendInvoiceApprovedNotification(
     invoiceId: string,
-    approverId: string
+    approverId: string,
   ): Promise<{ success: boolean }> {
     const [invoice, approver] = await Promise.all([
       prisma.invoices.findUnique({
@@ -342,7 +341,7 @@ export class EnhancedNotificationService {
    * Send SLA breach notification to manager and assignee
    */
   static async sendSLABreachNotification(
-    invoiceId: string
+    invoiceId: string,
   ): Promise<{ success: boolean; notificationsSent: number }> {
     const invoice = await prisma.invoices.findUnique({
       where: { id: invoiceId },
@@ -360,13 +359,13 @@ export class EnhancedNotificationService {
       await this.sendNotification({
         userId: invoice.currentApprover.id,
         type: NotificationType.SLA_BREACH,
-        title: 'SLA Breach Alert',
+        title: "SLA Breach Alert",
         message: `Invoice ${invoice.invoiceNumber} has breached SLA. Immediate action required.`,
-        priority: 'CRITICAL',
+        priority: "CRITICAL",
         entityType: EntityType.INVOICE,
         entityId: invoiceId,
         sendEmail: true,
-        emailTemplate: 'slaBreach',
+        emailTemplate: "slaBreach",
         templateData: { invoice, manager: invoice.currentApprover },
       });
       notificationsSent++;
@@ -375,7 +374,7 @@ export class EnhancedNotificationService {
     // Notify branch managers
     const managers = await prisma.User.findMany({
       where: {
-        role: { in: ['BRANCH_MANAGER', 'FINANCIAL_MANAGER'] },
+        role: { in: ["BRANCH_MANAGER", "FINANCIAL_MANAGER"] },
         isActive: true,
       },
     });
@@ -384,13 +383,13 @@ export class EnhancedNotificationService {
       await this.sendNotification({
         userId: manager.id,
         type: NotificationType.SLA_BREACH,
-        title: 'SLA Breach Alert - Team',
-        message: `Invoice ${invoice.invoiceNumber} assigned to ${invoice.currentApprover?.name || 'Unassigned'} has breached SLA.`,
-        priority: 'HIGH',
+        title: "SLA Breach Alert - Team",
+        message: `Invoice ${invoice.invoiceNumber} assigned to ${invoice.currentApprover?.name || "Unassigned"} has breached SLA.`,
+        priority: "HIGH",
         entityType: EntityType.INVOICE,
         entityId: invoiceId,
         sendEmail: true,
-        emailTemplate: 'slaBreach',
+        emailTemplate: "slaBreach",
         templateData: { invoice, manager },
       });
       notificationsSent++;
@@ -404,7 +403,7 @@ export class EnhancedNotificationService {
    */
   static async sendFraudAlertNotification(
     invoiceId: string,
-    fraudScore: number
+    fraudScore: number,
   ): Promise<{ success: boolean }> {
     const invoice = await prisma.invoices.findUnique({
       where: { id: invoiceId },
@@ -418,7 +417,7 @@ export class EnhancedNotificationService {
     // Notify financial managers
     const managers = await prisma.User.findMany({
       where: {
-        role: { in: ['FINANCIAL_MANAGER', 'GROUP_FINANCIAL_MANAGER'] },
+        role: { in: ["FINANCIAL_MANAGER", "GROUP_FINANCIAL_MANAGER"] },
         isActive: true,
       },
     });
@@ -427,13 +426,13 @@ export class EnhancedNotificationService {
       await this.sendNotification({
         userId: manager.id,
         type: NotificationType.FRAUD_ALERT,
-        title: 'Fraud Alert',
+        title: "Fraud Alert",
         message: `High fraud score (${fraudScore}) detected for invoice ${invoice.invoiceNumber} from ${invoice.supplier?.name}. Review required.`,
-        priority: 'CRITICAL',
+        priority: "CRITICAL",
         entityType: EntityType.INVOICE,
         entityId: invoiceId,
         sendEmail: true,
-        emailTemplate: 'fraudAlert',
+        emailTemplate: "fraudAlert",
         templateData: { invoice, user: manager, fraudScore },
       });
     }
@@ -474,17 +473,14 @@ export class EnhancedNotificationService {
 
     for (const invoice of invoices) {
       const daysUntilDue = Math.ceil(
-        (invoice.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        (invoice.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
       );
 
       // Get relevant users (financial managers)
       const users = await prisma.User.findMany({
         where: {
           role: {
-            in: [
-              'FINANCIAL_MANAGER',
-              'GROUP_FINANCIAL_MANAGER',
-            ],
+            in: ["FINANCIAL_MANAGER", "GROUP_FINANCIAL_MANAGER"],
           },
           isActive: true,
         },
@@ -497,13 +493,13 @@ export class EnhancedNotificationService {
             daysUntilDue < 0
               ? NotificationType.PAYMENT_OVERDUE
               : NotificationType.PAYMENT_DUE_SOON,
-          title: daysUntilDue < 0 ? 'Payment Overdue' : 'Payment Due Soon',
-          message: `Invoice ${invoice.invoiceNumber} from ${invoice.supplier?.name} is ${daysUntilDue < 0 ? 'overdue' : `due in ${daysUntilDue} days`}.`,
-          priority: daysUntilDue < 0 ? 'HIGH' : 'MEDIUM',
+          title: daysUntilDue < 0 ? "Payment Overdue" : "Payment Due Soon",
+          message: `Invoice ${invoice.invoiceNumber} from ${invoice.supplier?.name} is ${daysUntilDue < 0 ? "overdue" : `due in ${daysUntilDue} days`}.`,
+          priority: daysUntilDue < 0 ? "HIGH" : "MEDIUM",
           entityType: EntityType.INVOICE,
           entityId: invoice.id,
           sendEmail: true,
-          emailTemplate: 'paymentReminder',
+          emailTemplate: "paymentReminder",
           templateData: { invoice, daysUntilDue },
         });
 
@@ -514,9 +510,9 @@ export class EnhancedNotificationService {
     }
 
     await auditLogger.log({
-      action: 'SYSTEM_ALERT',
+      action: "SYSTEM_ALERT",
       entityType: EntityType.SYSTEM,
-      entityId: 'PAYMENT_REMINDERS',
+      entityId: "PAYMENT_REMINDERS",
       entityDescription: `Payment reminders sent: ${remindersSent}`,
       severity: LogSeverity.INFO,
       metadata: { remindersSent },
@@ -552,27 +548,27 @@ export class EnhancedNotificationService {
             prisma.approval.count({
               where: {
                 approverId: user.id,
-                status: { in: ['PENDING', 'DELEGATED'] }, // Fix: IN_REVIEW not in ApprovalStatus enum (PENDING, APPROVED, REJECTED, CANCELLED, DELEGATED, ESCALATED, EXPIRED)
+                status: { in: ["PENDING", "DELEGATED"] }, // Fix: IN_REVIEW not in ApprovalStatus enum (PENDING, APPROVED, REJECTED, CANCELLED, DELEGATED, ESCALATED, EXPIRED)
               },
             }),
             prisma.approval.count({
               where: {
                 approverId: user.id,
-                status: 'APPROVED',
+                status: "APPROVED",
                 actionDate: { gte: today }, // Fix: decisionDate -> actionDate
               },
             }),
             prisma.approval.count({
               where: {
                 approverId: user.id,
-                status: 'REJECTED',
+                status: "REJECTED",
                 actionDate: { gte: today }, // Fix: decisionDate -> actionDate
               },
             }),
             prisma.approval.count({
               where: {
                 approverId: user.id,
-                status: 'PENDING',
+                status: "PENDING",
                 isWithinSLA: false,
               },
             }),
@@ -595,11 +591,11 @@ export class EnhancedNotificationService {
         const result = await this.sendNotification({
           userId: user.id,
           type: NotificationType.MONTHLY_REPORT,
-          title: 'Daily Summary',
-          message: `Your daily activity summary for ${new Date().toLocaleDateString('en-ZA')}.`,
-          priority: 'LOW',
+          title: "Daily Summary",
+          message: `Your daily activity summary for ${new Date().toLocaleDateString("en-ZA")}.`,
+          priority: "LOW",
           sendEmail: true,
-          emailTemplate: 'dailySummary',
+          emailTemplate: "dailySummary",
           templateData: { user: fullUser, stats },
         });
 
@@ -609,7 +605,7 @@ export class EnhancedNotificationService {
       } catch (error) {
         console.error(
           `[EnhancedNotificationService] Failed to send daily summary to ${user.email}:`,
-          error
+          error,
         );
       }
     }
@@ -621,27 +617,27 @@ export class EnhancedNotificationService {
    * Test SMTP configuration
    */
   static async testSMTPConfig(
-    testEmail: string
+    testEmail: string,
   ): Promise<{ success: boolean; message: string }> {
     const isConnected = await SMTPClient.verifyConnection();
 
     if (!isConnected) {
       return {
         success: false,
-        message: 'SMTP connection failed. Please check your configuration.',
+        message: "SMTP connection failed. Please check your configuration.",
       };
     }
 
     const result = await SMTPClient.sendEmail({
       to: testEmail,
-      subject: 'CreditorFlow - SMTP Test',
+      subject: "CreditorFlow - SMTP Test",
       html: `
         <h2>SMTP Test Successful</h2>
         <p>This is a test email from CreditorFlow Invoice Management System.</p>
         <p>If you're receiving this, your SMTP configuration is working correctly.</p>
         <p>Sent at: ${new Date().toISOString()}</p>
       `,
-      text: 'SMTP Test Successful. This is a test email from CreditorFlow.',
+      text: "SMTP Test Successful. This is a test email from CreditorFlow.",
     });
 
     if (result.success) {

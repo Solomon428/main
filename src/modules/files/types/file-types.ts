@@ -1,12 +1,12 @@
-import { FileAttachment, User, Organization } from '@prisma/client';
-import { EntityType } from '@/domain/enums';
+import { FileAttachment, User, Organization } from "@prisma/client";
+import { EntityType } from "@/domain/enums";
 
 /**
  * Extended file attachment with relations
  */
 export interface FileAttachmentWithRelations extends FileAttachment {
-  uploadedBy?: Pick<User, 'id' | 'name' | 'email'>;
-  organization?: Pick<Organization, 'id' | 'name'>;
+  uploadedBy?: Pick<User, "id" | "name" | "email">;
+  organization?: Pick<Organization, "id" | "name">;
 }
 
 /**
@@ -32,7 +32,7 @@ export interface FileUploadOptions {
   entityId?: string;
   autoProcess?: boolean;
   language?: string;
-  extractionMode?: 'standard' | 'aggressive';
+  extractionMode?: "standard" | "aggressive";
 }
 
 /**
@@ -66,7 +66,7 @@ export interface BulkUploadResult {
  * OCR progress update
  */
 export interface OcrProgressUpdate {
-  type: 'status' | 'progress' | 'complete' | 'error';
+  type: "status" | "progress" | "complete" | "error";
   fileId: string;
   processingStatus?: string;
   progress?: number;

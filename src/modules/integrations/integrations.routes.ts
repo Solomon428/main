@@ -2,86 +2,89 @@
 // Integrations Routes
 // ============================================================================
 
-import { Router } from 'express';
-import * as integrationsService from './integrations.service';
-import * as webhooksService from './webhooks.service';
+import { Router } from "express";
+import * as integrationsService from "./integrations.service";
+import * as webhooksService from "./webhooks.service";
 
 const router = Router();
 
 // Integration routes
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const integrations = await integrationsService.listIntegrations();
     res.json(integrations);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch integrations' });
+    res.status(500).json({ error: "Failed to fetch integrations" });
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const integration = await integrationsService.getIntegration(req.params.id);
     if (!integration) {
-      return res.status(404).json({ error: 'Integration not found' });
+      return res.status(404).json({ error: "Integration not found" });
     }
     res.json(integration);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch integration' });
+    res.status(500).json({ error: "Failed to fetch integration" });
   }
 });
 
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const integration = await integrationsService.createIntegration(req.body);
     res.status(201).json(integration);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create integration' });
+    res.status(500).json({ error: "Failed to create integration" });
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
-    const integration = await integrationsService.updateIntegration(req.params.id, req.body);
+    const integration = await integrationsService.updateIntegration(
+      req.params.id,
+      req.body,
+    );
     res.json(integration);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update integration' });
+    res.status(500).json({ error: "Failed to update integration" });
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     await integrationsService.deleteIntegration(req.params.id);
     res.status(204).send();
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete integration' });
+    res.status(500).json({ error: "Failed to delete integration" });
   }
 });
 
-router.post('/:id/sync', async (req, res) => {
+router.post("/:id/sync", async (req, res) => {
   try {
     const result = await integrationsService.triggerSync(req.params.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to trigger sync' });
+    res.status(500).json({ error: "Failed to trigger sync" });
   }
 });
 
 // Webhook routes
-router.get('/webhooks', async (req, res) => {
+router.get("/webhooks", async (req, res) => {
   try {
     const webhooks = await webhooksService.listWebhooks();
     res.json(webhooks);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch webhooks' });
+    res.status(500).json({ error: "Failed to fetch webhooks" });
   }
 });
 
-router.post('/webhooks', async (req, res) => {
+router.post("/webhooks", async (req, res) => {
   try {
     const webhook = await webhooksService.createWebhook(req.body);
     res.status(201).json(webhook);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create webhook' });
+    res.status(500).json({ error: "Failed to create webhook" });
   }
 });
 

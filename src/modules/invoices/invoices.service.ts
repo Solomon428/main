@@ -2,7 +2,7 @@
 // Invoices Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export async function listInvoices() {
   return prisma.invoices.findMany({
@@ -12,7 +12,7 @@ export async function listInvoices() {
       approvals: true,
       payments: true,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 }
 
@@ -32,7 +32,7 @@ export async function getInvoice(id: string) {
         include: {
           user: true,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       },
       attachments: true,
     },
@@ -41,13 +41,15 @@ export async function getInvoice(id: string) {
 
 export async function createInvoice(data: any) {
   const { lineItems, ...invoiceData } = data;
-  
+
   return prisma.invoices.create({
     data: {
       ...invoiceData,
-      lineItems: lineItems ? {
-        create: lineItems,
-      } : undefined,
+      lineItems: lineItems
+        ? {
+            create: lineItems,
+          }
+        : undefined,
     },
     include: {
       lineItems: true,
@@ -74,8 +76,8 @@ export async function approveInvoice(id: string, data: any) {
   return prisma.invoices.update({
     where: { id },
     data: {
-      status: 'APPROVED',
-      approvalStatus: 'APPROVED',
+      status: "APPROVED",
+      approvalStatus: "APPROVED",
       approvedDate: new Date(),
       fullyApproved: true,
       updatedAt: new Date(),
@@ -87,8 +89,8 @@ export async function rejectInvoice(id: string, data: any) {
   return prisma.invoices.update({
     where: { id },
     data: {
-      status: 'REJECTED',
-      approvalStatus: 'REJECTED',
+      status: "REJECTED",
+      approvalStatus: "REJECTED",
       rejectionReason: data.reason,
       updatedAt: new Date(),
     },

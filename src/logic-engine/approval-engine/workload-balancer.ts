@@ -5,8 +5,8 @@
 // Tracks workload metrics and redistributes tasks when needed.
 // ============================================================================
 
-import { prisma } from '@/lib/database/client';
-import { ApprovalStatus } from '@/types';
+import { prisma } from "@/lib/database/client";
+import { ApprovalStatus } from "@/types";
 
 export interface WorkloadMetrics {
   userId: string;
@@ -83,14 +83,15 @@ export class WorkloadBalancer {
       let totalProcessingTime = 0;
       for (const approval of completedApprovals) {
         if (approval.assignedDate && approval.decisionDate) {
-          totalProcessingTime += 
+          totalProcessingTime +=
             approval.decisionDate.getTime() - approval.assignedDate.getTime();
         }
       }
 
-      const averageProcessingTime = completedApprovals.length > 0
-        ? totalProcessingTime / completedApprovals.length / (1000 * 60 * 60) // Hours
-        : 0;
+      const averageProcessingTime =
+        completedApprovals.length > 0
+          ? totalProcessingTime / completedApprovals.length / (1000 * 60 * 60) // Hours
+          : 0;
 
       const maxWorkload = user.maxWorkload || this.DEFAULT_MAX_WORKLOAD;
       const utilizationPercentage = (pendingApprovals / maxWorkload) * 100;
@@ -106,7 +107,9 @@ export class WorkloadBalancer {
       });
     }
 
-    return metrics.sort((a, b) => b.utilizationPercentage - a.utilizationPercentage);
+    return metrics.sort(
+      (a, b) => b.utilizationPercentage - a.utilizationPercentage,
+    );
   }
 
   /**
@@ -114,8 +117,10 @@ export class WorkloadBalancer {
    */
   static async findUsersWithCapacity(
     role?: string,
-    limit: number = 5
-  ): Promise<Array<{ userId: string; name: string; availableCapacity: number }>> {
+    limit: number = 5,
+  ): Promise<
+    Array<{ userId: string; name: string; availableCapacity: number }>
+  > {
     const whereClause: any = {
       isActive: true,
     };
@@ -127,15 +132,16 @@ export class WorkloadBalancer {
     const users = await prisma.users.findMany({
       where: whereClause,
       orderBy: {
-        currentWorkload: 'asc',
+        currentWorkload: "asc",
       },
       take: limit,
     });
 
-    return users.map(user => ({
+    return users.map((user) => ({
       userId: user.id,
       name: user.name,
-      availableCapacity: (user.maxWorkload || this.DEFAULT_MAX_WORKLOAD) - user.currentWorkload,
+      availableCapacity:
+        (user.maxWorkload || this.DEFAULT_MAX_WORKLOAD) - user.currentWorkload,
     }));
   }
 
@@ -144,22 +150,22 @@ export class WorkloadBalancer {
    */
   static async redistributeWorkload(): Promise<RedistributionResult> {
     const metrics = await this.getAllWorkloadMetrics();
-    
+
     // Find overloaded users
     const overloadedUsers = metrics.filter(
-      m => m.utilizationPercentage > this.HIGH_UTILIZATION_THRESHOLD
+      (m) => m.utilizationPercentage > this.HIGH_UTILIZATION_THRESHOLD,
     );
 
     // Find underutilized users
     const underutilizedUsers = metrics.filter(
-      m => m.utilizationPercentage < 50
+      (m) => m.utilizationPercentage < 50,
     );
 
     if (overloadedUsers.length === 0) {
       return {
         success: true,
         movedCount: 0,
-        message: 'No workload redistribution needed',
+        message: "No workload redistribution needed",
       };
     }
 
@@ -167,7 +173,7 @@ export class WorkloadBalancer {
       return {
         success: false,
         movedCount: 0,
-        message: 'No available users to redistribute workload',
+        message: "No available users to redistribute workload",
       };
     }
 
@@ -181,7 +187,7 @@ export class WorkloadBalancer {
           status: ApprovalStatus.PENDING,
         },
         orderBy: {
-          assignedDate: 'asc',
+          assignedDate: "asc",
         },
       });
 
@@ -191,7 +197,7 @@ export class WorkloadBalancer {
 
       for (let i = 0; i < Math.min(toMove, pendingApprovals.length); i++) {
         const approval = pendingApprovals[i];
-        
+
         // Find a user with the same role who has capacity
         const originalApprover = await prisma.users.findUnique({
           where: { id: overloaded.userId },
@@ -200,7 +206,7 @@ export class WorkloadBalancer {
         if (!originalApprover) continue;
 
         const alternativeUsers = underutilizedUsers.filter(
-          u => u.userId !== overloaded.userId && u.availableCapacity > 0
+          (u) => u.userId !== overloaded.userId && u.availableCapacity > 0,
         );
 
         if (alternativeUsers.length === 0) break;
@@ -214,7 +220,7 @@ export class WorkloadBalancer {
             approverId: newAssignee.userId,
             isDelegated: true,
             delegatedToId: newAssignee.userId,
-            delegationReason: 'Workload redistribution',
+            delegationReason: "Workload redistribution",
           },
         });
 
@@ -239,17 +245,19 @@ export class WorkloadBalancer {
   /**
    * Get workload alerts for users nearing capacity
    */
-  static async getWorkloadAlerts(): Promise<Array<{
-    userId: string;
-    name: string;
-    severity: 'LOW' | 'MEDIUM' | 'HIGH';
-    message: string;
-  }>> {
+  static async getWorkloadAlerts(): Promise<
+    Array<{
+      userId: string;
+      name: string;
+      severity: "LOW" | "MEDIUM" | "HIGH";
+      message: string;
+    }>
+  > {
     const metrics = await this.getAllWorkloadMetrics();
     const alerts: Array<{
       userId: string;
       name: string;
-      severity: 'LOW' | 'MEDIUM' | 'HIGH';
+      severity: "LOW" | "MEDIUM" | "HIGH";
       message: string;
     }> = [];
 
@@ -258,14 +266,14 @@ export class WorkloadBalancer {
         alerts.push({
           userId: metric.userId,
           name: metric.name,
-          severity: 'HIGH',
+          severity: "HIGH",
           message: `${metric.name} is at maximum capacity (${metric.utilizationPercentage.toFixed(1)}%)`,
         });
       } else if (metric.utilizationPercentage >= 80) {
         alerts.push({
           userId: metric.userId,
           name: metric.name,
-          severity: 'MEDIUM',
+          severity: "MEDIUM",
           message: `${metric.name} is nearing capacity (${metric.utilizationPercentage.toFixed(1)}%)`,
         });
       }

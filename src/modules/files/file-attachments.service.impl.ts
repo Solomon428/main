@@ -1,12 +1,12 @@
-import { prisma } from '../../lib/prisma';
-import { generateId, generateShortId } from '../../utils/ids';
-import { logAuditEvent } from '../../observability/audit';
-import { AuditAction } from '../../domain/enums/AuditAction';
-import { EntityType } from '../../domain/enums/EntityType';
-import { StorageProvider } from '../../domain/enums/StorageProvider';
-import { Currency } from '../../domain/enums/Currency';
-import crypto from 'crypto';
-import path from 'path';
+import { prisma } from "../../lib/prisma";
+import { generateId, generateShortId } from "../../utils/ids";
+import { logAuditEvent } from "../../observability/audit";
+import { AuditAction } from "../../domain/enums/AuditAction";
+import { EntityType } from "../../domain/enums/EntityType";
+import { StorageProvider } from "../../domain/enums/StorageProvider";
+import { Currency } from "../../domain/enums/Currency";
+import crypto from "crypto";
+import path from "path";
 
 export interface UploadFileInput {
   fileName: string;
@@ -33,14 +33,17 @@ export interface FileUploadResult {
 export async function uploadFile(
   organizationId: string,
   uploaderId: string,
-  data: UploadFileInput
+  data: UploadFileInput,
 ): Promise<FileUploadResult> {
   // Calculate checksum
-  const checksum = crypto.createHash('sha256').update(data.content).digest('hex');
+  const checksum = crypto
+    .createHash("sha256")
+    .update(data.content)
+    .digest("hex");
 
   // Generate storage path
   const date = new Date();
-  const yearMonth = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+  const yearMonth = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, "0")}`;
   const uniqueId = generateShortId();
   const storagePath = `organizations/${organizationId}/${data.entityType.toLowerCase()}/${data.entityId}/${yearMonth}/${uniqueId}-${data.fileName}`;
 
@@ -51,8 +54,15 @@ export async function uploadFile(
   let thumbnailUrl: string | undefined;
   let previewUrl: string | undefined;
 
-  if (data.fileType.startsWith('image/') || data.fileType === 'application/pdf') {
-    thumbnailUrl = await generateThumbnail(data.content, storagePath, data.fileType);
+  if (
+    data.fileType.startsWith("image/") ||
+    data.fileType === "application/pdf"
+  ) {
+    thumbnailUrl = await generateThumbnail(
+      data.content,
+      storagePath,
+      data.fileType,
+    );
     previewUrl = url; // For now, use same URL for preview
   }
 
@@ -81,7 +91,7 @@ export async function uploadFile(
       url,
       thumbnailUrl,
       previewUrl,
-      processingStatus: 'COMPLETED',
+      processingStatus: "COMPLETED",
       retentionDays: data.retentionDays,
       deleteAfter,
       metadata: data.metadata || {},
@@ -113,25 +123,25 @@ export async function uploadFile(
 async function storeFile(
   content: Buffer,
   storagePath: string,
-  provider?: StorageProvider
+  provider?: StorageProvider,
 ): Promise<string> {
   // In production, implement actual storage logic
   // For now, return a mock URL
   const providerName = (provider || StorageProvider.LOCAL).toLowerCase();
-  
-  if (providerName === 'local') {
+
+  if (providerName === "local") {
     // Save to local uploads directory
-    const fs = await import('fs');
-    const uploadDir = process.env.UPLOAD_DIR || './uploads';
+    const fs = await import("fs");
+    const uploadDir = process.env.UPLOAD_DIR || "./uploads";
     const fullPath = path.join(uploadDir, storagePath);
-    
+
     // Ensure directory exists
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, content);
-    
+
     return `/api/files/${storagePath}`;
   }
-  
+
   // For cloud providers, return mock URL
   return `https://${providerName}.example.com/${storagePath}`;
 }
@@ -139,29 +149,31 @@ async function storeFile(
 async function generateThumbnail(
   content: Buffer,
   storagePath: string,
-  fileType: string
+  fileType: string,
 ): Promise<string | undefined> {
   // In production, use ImageMagick, Sharp, or similar for image processing
   // For now, return undefined
-  console.log(`[THUMBNAIL] Would generate thumbnail for ${storagePath} (${fileType})`);
+  console.log(
+    `[THUMBNAIL] Would generate thumbnail for ${storagePath} (${fileType})`,
+  );
   return undefined;
 }
 
 // Download file
 export async function downloadFile(
   fileId: string,
-  userId: string
+  userId: string,
 ): Promise<{ content: Buffer; fileName: string; fileType: string }> {
   const file = await prisma.fileAttachment.findUnique({
     where: { id: fileId },
   });
 
   if (!file) {
-    throw new Error('File not found');
+    throw new Error("File not found");
   }
 
   if (file.deletedAt) {
-    throw new Error('File has been deleted');
+    throw new Error("File has been deleted");
   }
 
   // Record access
@@ -194,18 +206,18 @@ export async function downloadFile(
 
 async function retrieveFile(
   storagePath: string,
-  provider: StorageProvider
+  provider: StorageProvider,
 ): Promise<Buffer> {
   // In production, implement actual retrieval logic
   const providerName = provider.toLowerCase();
-  
-  if (providerName === 'local') {
-    const fs = await import('fs');
-    const uploadDir = process.env.UPLOAD_DIR || './uploads';
+
+  if (providerName === "local") {
+    const fs = await import("fs");
+    const uploadDir = process.env.UPLOAD_DIR || "./uploads";
     const fullPath = path.join(uploadDir, storagePath);
     return fs.readFileSync(fullPath);
   }
-  
+
   // For cloud providers, would use their SDK
   throw new Error(`Retrieval from ${provider} not implemented`);
 }
@@ -231,7 +243,7 @@ export async function listFiles(
     page?: number;
     limit?: number;
     includeDeleted?: boolean;
-  }
+  },
 ) {
   const page = options?.page || 1;
   const limit = options?.limit || 20;
@@ -255,7 +267,7 @@ export async function listFiles(
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         uploader: {
           select: { id: true, name: true, email: true },
@@ -283,14 +295,14 @@ export async function updateFile(
     metadata?: Record<string, unknown>;
     retentionDays?: number;
   },
-  updatedBy?: string
+  updatedBy?: string,
 ) {
   const file = await prisma.fileAttachment.findUnique({
     where: { id: fileId },
   });
 
   if (!file) {
-    throw new Error('File not found');
+    throw new Error("File not found");
   }
 
   // Calculate new delete after date if retention changed
@@ -347,13 +359,16 @@ export async function deleteFile(fileId: string, deletedBy?: string) {
 }
 
 // Hard delete file (permanent deletion)
-export async function permanentlyDeleteFile(fileId: string, deletedBy?: string) {
+export async function permanentlyDeleteFile(
+  fileId: string,
+  deletedBy?: string,
+) {
   const file = await prisma.fileAttachment.findUnique({
     where: { id: fileId },
   });
 
   if (!file) {
-    throw new Error('File not found');
+    throw new Error("File not found");
   }
 
   // Delete from storage first
@@ -378,21 +393,21 @@ export async function permanentlyDeleteFile(fileId: string, deletedBy?: string) 
 
 async function deleteFromStorage(
   storagePath: string,
-  provider: StorageProvider
+  provider: StorageProvider,
 ): Promise<void> {
   const providerName = provider.toLowerCase();
-  
-  if (providerName === 'local') {
-    const fs = await import('fs');
-    const uploadDir = process.env.UPLOAD_DIR || './uploads';
+
+  if (providerName === "local") {
+    const fs = await import("fs");
+    const uploadDir = process.env.UPLOAD_DIR || "./uploads";
     const fullPath = path.join(uploadDir, storagePath);
-    
+
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
     }
     return;
   }
-  
+
   // For cloud providers, would use their SDK
   console.log(`[DELETE] Would delete from ${provider}: ${storagePath}`);
 }
@@ -432,8 +447,11 @@ export async function verifyFileIntegrity(fileId: string): Promise<boolean> {
 
   try {
     const content = await retrieveFile(file.storagePath, file.storageProvider);
-    const currentChecksum = crypto.createHash('sha256').update(content).digest('hex');
-    
+    const currentChecksum = crypto
+      .createHash("sha256")
+      .update(content)
+      .digest("hex");
+
     return currentChecksum === file.checksum;
   } catch {
     return false;
@@ -444,7 +462,7 @@ export async function verifyFileIntegrity(fileId: string): Promise<boolean> {
 export async function bulkDeleteFiles(
   fileIds: string[],
   deletedBy?: string,
-  permanent = false
+  permanent = false,
 ) {
   const results = [];
 
@@ -458,7 +476,7 @@ export async function bulkDeleteFiles(
       results.push({
         fileId,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -478,18 +496,21 @@ export async function copyFile(
   fileId: string,
   targetEntityType: EntityType,
   targetEntityId: string,
-  copiedBy: string
+  copiedBy: string,
 ): Promise<FileUploadResult> {
   const sourceFile = await prisma.fileAttachment.findUnique({
     where: { id: fileId },
   });
 
   if (!sourceFile || sourceFile.deletedAt) {
-    throw new Error('Source file not found');
+    throw new Error("Source file not found");
   }
 
   // Retrieve source content
-  const content = await retrieveFile(sourceFile.storagePath, sourceFile.storageProvider);
+  const content = await retrieveFile(
+    sourceFile.storagePath,
+    sourceFile.storageProvider,
+  );
 
   // Upload as new file
   return uploadFile(sourceFile.organizationId, copiedBy, {
@@ -514,7 +535,7 @@ export async function copyFile(
 // Get storage statistics
 export async function getStorageStatistics(organizationId: string) {
   const stats = await prisma.fileAttachment.groupBy({
-    by: ['fileType'],
+    by: ["fileType"],
     where: {
       organizationId,
       deletedAt: null,
@@ -548,7 +569,7 @@ export async function getStorageStatistics(organizationId: string) {
 // Cleanup expired files
 export async function cleanupExpiredFiles() {
   const now = new Date();
-  
+
   const expiredFiles = await prisma.fileAttachment.findMany({
     where: {
       deleteAfter: { lt: now },
@@ -559,13 +580,13 @@ export async function cleanupExpiredFiles() {
   const results = [];
   for (const file of expiredFiles) {
     try {
-      await permanentlyDeleteFile(file.id, 'system');
+      await permanentlyDeleteFile(file.id, "system");
       results.push({ fileId: file.id, success: true });
     } catch (error) {
       results.push({
         fileId: file.id,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
@@ -584,9 +605,9 @@ export async function cleanupExpiredFiles() {
 // PDF Processing and OCR Integration Methods
 // ============================================================================
 
-import { OcrService } from './ocr/ocr.service';
-import { ExtractionService } from './ocr/extraction.service';
-import { InvoiceService } from '../invoices/invoices.service';
+import { OcrService } from "./ocr/ocr.service";
+import { ExtractionService } from "./ocr/extraction.service";
+import { InvoiceService } from "../invoices/invoices.service";
 
 export interface InvoiceUploadInput {
   file: Buffer;
@@ -597,14 +618,14 @@ export interface InvoiceUploadInput {
   uploadedById: string;
   supplierId?: string;
   autoProcess?: boolean;
-  extractionMethod?: 'ocr' | 'manual' | 'hybrid';
+  extractionMethod?: "ocr" | "manual" | "hybrid";
 }
 
 export interface InvoiceUploadResult {
   fileAttachmentId: string;
   extractionId?: string;
   invoiceId?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
   extractedData?: any;
   confidence?: number;
   message: string;
@@ -613,7 +634,14 @@ export interface InvoiceUploadResult {
 }
 
 export interface ProcessingProgress {
-  stage: 'uploading' | 'ocr' | 'extracting' | 'validating' | 'creating' | 'completed' | 'failed';
+  stage:
+    | "uploading"
+    | "ocr"
+    | "extracting"
+    | "validating"
+    | "creating"
+    | "completed"
+    | "failed";
   progress: number;
   message: string;
   details?: Record<string, any>;
@@ -622,7 +650,7 @@ export interface ProcessingProgress {
 // Upload and process invoice file with OCR
 export async function uploadAndProcessInvoice(
   input: InvoiceUploadInput,
-  progressCallback?: (progress: ProcessingProgress) => void
+  progressCallback?: (progress: ProcessingProgress) => void,
 ): Promise<InvoiceUploadResult> {
   const startTime = Date.now();
   const warnings: string[] = [];
@@ -631,44 +659,51 @@ export async function uploadAndProcessInvoice(
   try {
     // Update progress
     progressCallback?.({
-      stage: 'uploading',
+      stage: "uploading",
       progress: 10,
-      message: 'Uploading file to storage',
+      message: "Uploading file to storage",
     });
 
     // Validate file
     validateInvoiceFile(input.file, input.mimeType, input.size);
 
     // Generate file metadata
-    const fileExtension = path.extname(input.originalName).toLowerCase().slice(1);
+    const fileExtension = path
+      .extname(input.originalName)
+      .toLowerCase()
+      .slice(1);
     const fileName = `${generateShortId()}-${input.originalName}`;
     const fileType = input.mimeType;
 
     // Upload file first
-    const uploadResult = await uploadFile(input.organizationId, input.uploadedById, {
-      fileName,
-      originalName: input.originalName,
-      fileType,
-      fileExtension,
-      fileSize: input.size,
-      content: input.file,
-      entityType: EntityType.INVOICE,
-      entityId: 'pending', // Will be updated after invoice creation
-      storageProvider: StorageProvider.S3,
-      metadata: {
-        uploadedFor: 'invoice_processing',
-        extractionMethod: input.extractionMethod || 'ocr',
-        uploadTimestamp: new Date().toISOString(),
+    const uploadResult = await uploadFile(
+      input.organizationId,
+      input.uploadedById,
+      {
+        fileName,
+        originalName: input.originalName,
+        fileType,
+        fileExtension,
+        fileSize: input.size,
+        content: input.file,
+        entityType: EntityType.INVOICE,
+        entityId: "pending", // Will be updated after invoice creation
+        storageProvider: StorageProvider.S3,
+        metadata: {
+          uploadedFor: "invoice_processing",
+          extractionMethod: input.extractionMethod || "ocr",
+          uploadTimestamp: new Date().toISOString(),
+        },
+        retentionDays: 2555, // 7 years for compliance
       },
-      retentionDays: 2555, // 7 years for compliance
-    });
+    );
 
     // If auto-process is disabled, return pending status
     if (input.autoProcess === false) {
       return {
         fileAttachmentId: uploadResult.id,
-        status: 'pending',
-        message: 'File uploaded successfully. OCR processing pending.',
+        status: "pending",
+        message: "File uploaded successfully. OCR processing pending.",
         warnings,
         errors,
       };
@@ -676,14 +711,14 @@ export async function uploadAndProcessInvoice(
 
     // Process with OCR
     progressCallback?.({
-      stage: 'ocr',
+      stage: "ocr",
       progress: 30,
-      message: 'Running OCR to extract text from document',
+      message: "Running OCR to extract text from document",
     });
 
     const ocrService = new OcrService({
-      provider: 'tesseract',
-      language: 'eng',
+      provider: "tesseract",
+      language: "eng",
       confidenceThreshold: 70,
     });
 
@@ -696,44 +731,49 @@ export async function uploadAndProcessInvoice(
       undefined,
       (ocrProgress) => {
         progressCallback?.({
-          stage: 'ocr',
+          stage: "ocr",
           progress: 30 + Math.floor(ocrProgress.progress * 0.3),
           message: ocrProgress.message,
           details: ocrProgress.details,
         });
-      }
+      },
     );
 
     await ocrService.shutdown();
 
     if (!ocrResult.success || !ocrResult.text) {
-      errors.push('OCR extraction failed or produced no text');
+      errors.push("OCR extraction failed or produced no text");
       return {
         fileAttachmentId: uploadResult.id,
-        status: 'failed',
-        message: 'OCR extraction failed',
+        status: "failed",
+        message: "OCR extraction failed",
         warnings,
         errors,
       };
     }
 
     // Validate OCR quality
-    const validation = await ocrService.validateExtractionQuality(ocrResult.text, [
-      /invoice/i,
-      /total.*\d+[\.,]\d{2}/i,
-      /date.*\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/i,
-    ]);
+    const validation = await ocrService.validateExtractionQuality(
+      ocrResult.text,
+      [
+        /invoice/i,
+        /total.*\d+[\.,]\d{2}/i,
+        /date.*\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/i,
+      ],
+    );
 
     if (!validation.isValid) {
       warnings.push(...validation.suggestions);
-      warnings.push('OCR extraction quality is low - manual review recommended');
+      warnings.push(
+        "OCR extraction quality is low - manual review recommended",
+      );
     }
 
     // Extract invoice data
     progressCallback?.({
-      stage: 'extracting',
+      stage: "extracting",
       progress: 60,
-      message: 'Parsing extracted text for invoice data',
+      message: "Parsing extracted text for invoice data",
     });
 
     const extractionService = new ExtractionService({
@@ -747,12 +787,12 @@ export async function uploadAndProcessInvoice(
       input.organizationId,
       (extractProgress) => {
         progressCallback?.({
-          stage: 'extracting',
+          stage: "extracting",
           progress: 60 + Math.floor(extractProgress.progress * 0.1),
           message: extractProgress.message,
           details: extractProgress.details,
         });
-      }
+      },
     );
 
     // Save extraction result
@@ -760,19 +800,21 @@ export async function uploadAndProcessInvoice(
       extractionResult,
       uploadResult.id,
       input.uploadedById,
-      input.organizationId
+      input.organizationId,
     );
 
     // Validate extraction
     progressCallback?.({
-      stage: 'validating',
+      stage: "validating",
       progress: 75,
-      message: 'Validating extracted invoice data',
+      message: "Validating extracted invoice data",
     });
 
     if (!extractionResult.success) {
-      warnings.push('Invoice extraction validation failed');
-      warnings.push(...extractionResult.validation.issues.map(i => i.message));
+      warnings.push("Invoice extraction validation failed");
+      warnings.push(
+        ...extractionResult.validation.issues.map((i) => i.message),
+      );
     }
 
     // Create invoice if extraction was successful enough
@@ -780,35 +822,40 @@ export async function uploadAndProcessInvoice(
 
     if (extractionResult.success && extractionResult.data.confidence >= 60) {
       progressCallback?.({
-        stage: 'creating',
+        stage: "creating",
         progress: 85,
-        message: 'Creating invoice from extracted data',
+        message: "Creating invoice from extracted data",
       });
 
       try {
         const invoiceService = new InvoiceService();
         const invoiceData = {
           organizationId: input.organizationId,
-          supplierId: input.supplierId || extractionResult.data.supplierVatNumber || '',
-          invoiceNumber: extractionResult.data.invoiceNumber || `AUTO-${generateShortId()}`,
+          supplierId:
+            input.supplierId || extractionResult.data.supplierVatNumber || "",
+          invoiceNumber:
+            extractionResult.data.invoiceNumber || `AUTO-${generateShortId()}`,
           referenceNumber: extractionResult.data.referenceNumber,
           invoiceDate: extractionResult.data.issueDate || new Date(),
-          dueDate: extractionResult.data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          dueDate:
+            extractionResult.data.dueDate ||
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           currency: extractionResult.data.currency || Currency.ZAR,
-          totalAmount: extractionResult.data.totalAmount?.toString() || '0',
-          subtotalExclVAT: extractionResult.data.subtotalAmount?.toString() || '0',
-          vatAmount: extractionResult.data.taxAmount?.toString() || '0',
+          totalAmount: extractionResult.data.totalAmount?.toString() || "0",
+          subtotalExclVAT:
+            extractionResult.data.subtotalAmount?.toString() || "0",
+          vatAmount: extractionResult.data.taxAmount?.toString() || "0",
           notes: extractionResult.data.notes,
           lineItems: extractionResult.data.lineItems.map((item, index) => ({
             lineNumber: index + 1,
             description: item.description,
             quantity: item.quantity.toString(),
             unitPrice: item.unitPrice.toString(),
-            vatRate: item.taxRate?.toString() || '15',
+            vatRate: item.taxRate?.toString() || "15",
             totalAmount: item.totalAmount.toString(),
           })),
           createdById: input.uploadedById,
-          source: 'OCR',
+          source: "OCR",
         };
 
         const invoiceResult = await invoiceService.createInvoice(invoiceData);
@@ -819,26 +866,31 @@ export async function uploadAndProcessInvoice(
           where: { id: uploadResult.id },
           data: {
             entityId: invoiceId,
-            processingStatus: 'COMPLETED',
+            processingStatus: "COMPLETED",
           },
         });
-
       } catch (invoiceError) {
-        errors.push(`Failed to create invoice: ${invoiceError instanceof Error ? invoiceError.message : 'Unknown error'}`);
-        warnings.push('Invoice extraction completed but invoice creation failed - manual review required');
+        errors.push(
+          `Failed to create invoice: ${invoiceError instanceof Error ? invoiceError.message : "Unknown error"}`,
+        );
+        warnings.push(
+          "Invoice extraction completed but invoice creation failed - manual review required",
+        );
       }
     } else {
-      warnings.push(`Extraction confidence too low (${extractionResult.data.confidence.toFixed(1)}%) - manual review required`);
+      warnings.push(
+        `Extraction confidence too low (${extractionResult.data.confidence.toFixed(1)}%) - manual review required`,
+      );
     }
 
     const processingTime = Date.now() - startTime;
 
     progressCallback?.({
-      stage: 'completed',
+      stage: "completed",
       progress: 100,
-      message: invoiceId 
-        ? 'Invoice processed and created successfully'
-        : 'File processed but invoice creation requires manual review',
+      message: invoiceId
+        ? "Invoice processed and created successfully"
+        : "File processed but invoice creation requires manual review",
       details: {
         extractionId,
         invoiceId,
@@ -851,29 +903,29 @@ export async function uploadAndProcessInvoice(
       fileAttachmentId: uploadResult.id,
       extractionId,
       invoiceId,
-      status: invoiceId ? 'completed' : 'failed',
+      status: invoiceId ? "completed" : "failed",
       extractedData: extractionResult.data,
       confidence: extractionResult.data.confidence,
-      message: invoiceId 
-        ? 'Invoice processed and created successfully'
-        : 'File processed but invoice creation requires manual review',
+      message: invoiceId
+        ? "Invoice processed and created successfully"
+        : "File processed but invoice creation requires manual review",
       warnings,
       errors,
     };
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     errors.push(errorMessage);
 
     progressCallback?.({
-      stage: 'failed',
+      stage: "failed",
       progress: 100,
       message: `Processing failed: ${errorMessage}`,
     });
 
     return {
-      fileAttachmentId: '',
-      status: 'failed',
+      fileAttachmentId: "",
+      status: "failed",
       message: `Processing failed: ${errorMessage}`,
       warnings,
       errors,
@@ -882,35 +934,52 @@ export async function uploadAndProcessInvoice(
 }
 
 // Validate invoice file
-function validateInvoiceFile(file: Buffer, mimeType: string, size: number): void {
+function validateInvoiceFile(
+  file: Buffer,
+  mimeType: string,
+  size: number,
+): void {
   const maxSize = 50 * 1024 * 1024; // 50MB
   const allowedTypes = [
-    'application/pdf',
-    'image/jpeg',
-    'image/png',
-    'image/tiff',
-    'image/bmp',
-    'image/webp',
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/tiff",
+    "image/bmp",
+    "image/webp",
   ];
-  const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'tiff', 'tif', 'bmp', 'webp'];
+  const allowedExtensions = [
+    "pdf",
+    "jpg",
+    "jpeg",
+    "png",
+    "tiff",
+    "tif",
+    "bmp",
+    "webp",
+  ];
 
   if (size > maxSize) {
     throw new Error(`File size ${size} bytes exceeds maximum ${maxSize} bytes`);
   }
 
   if (!allowedTypes.includes(mimeType.toLowerCase())) {
-    throw new Error(`File type ${mimeType} is not supported. Allowed types: ${allowedTypes.join(', ')}`);
+    throw new Error(
+      `File type ${mimeType} is not supported. Allowed types: ${allowedTypes.join(", ")}`,
+    );
   }
 
   if (!Buffer.isBuffer(file) || file.length === 0) {
-    throw new Error('File buffer is empty or invalid');
+    throw new Error("File buffer is empty or invalid");
   }
 
   // Basic magic number check for PDF
-  if (mimeType === 'application/pdf') {
+  if (mimeType === "application/pdf") {
     const header = file.slice(0, 5).toString();
-    if (!header.startsWith('%PDF-')) {
-      throw new Error('File does not appear to be a valid PDF (missing PDF header)');
+    if (!header.startsWith("%PDF-")) {
+      throw new Error(
+        "File does not appear to be a valid PDF (missing PDF header)",
+      );
     }
   }
 }
@@ -924,14 +993,14 @@ export async function getFileWithOcrText(fileId: string) {
         select: { id: true, name: true, email: true },
       },
       invoiceExtraction: {
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: 1,
       },
     },
   });
 
   if (!file) {
-    throw new Error('File not found');
+    throw new Error("File not found");
   }
 
   return file;
@@ -942,20 +1011,20 @@ export async function retryOcrProcessing(
   fileId: string,
   userId: string,
   options?: {
-    extractionMethod?: 'ocr' | 'manual' | 'hybrid';
+    extractionMethod?: "ocr" | "manual" | "hybrid";
     progressCallback?: (progress: ProcessingProgress) => void;
-  }
+  },
 ): Promise<InvoiceUploadResult> {
   const file = await prisma.fileAttachment.findUnique({
     where: { id: fileId },
   });
 
   if (!file) {
-    throw new Error('File not found');
+    throw new Error("File not found");
   }
 
   if (file.deletedAt) {
-    throw new Error('File has been deleted');
+    throw new Error("File has been deleted");
   }
 
   // Download file content
@@ -971,9 +1040,9 @@ export async function retryOcrProcessing(
       organizationId: file.organizationId,
       uploadedById: userId,
       autoProcess: true,
-      extractionMethod: options?.extractionMethod || 'ocr',
+      extractionMethod: options?.extractionMethod || "ocr",
     },
-    options?.progressCallback
+    options?.progressCallback,
   );
 }
 
@@ -983,7 +1052,7 @@ export async function getProcessingQueueStatus(organizationId: string) {
     where: {
       organizationId,
       entityType: EntityType.INVOICE,
-      processingStatus: 'PENDING',
+      processingStatus: "PENDING",
       deletedAt: null,
     },
   });
@@ -992,7 +1061,7 @@ export async function getProcessingQueueStatus(organizationId: string) {
     where: {
       organizationId,
       entityType: EntityType.INVOICE,
-      processingStatus: 'PROCESSING',
+      processingStatus: "PROCESSING",
       deletedAt: null,
     },
   });
@@ -1001,7 +1070,7 @@ export async function getProcessingQueueStatus(organizationId: string) {
     where: {
       organizationId,
       entityType: EntityType.INVOICE,
-      processingStatus: 'COMPLETED',
+      processingStatus: "COMPLETED",
       deletedAt: null,
     },
   });
@@ -1010,14 +1079,14 @@ export async function getProcessingQueueStatus(organizationId: string) {
     where: {
       organizationId,
       entityType: EntityType.INVOICE,
-      processingStatus: 'FAILED',
+      processingStatus: "FAILED",
       deletedAt: null,
     },
   });
 
   const recentExtractions = await prisma.invoiceExtraction.findMany({
     where: { organizationId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: 10,
     select: {
       id: true,
@@ -1048,7 +1117,7 @@ export async function getProcessingQueueStatus(organizationId: string) {
 export async function bulkReprocessFailed(
   organizationId: string,
   userId: string,
-  fileIds?: string[]
+  fileIds?: string[],
 ): Promise<{
   results: Array<{ fileId: string; success: boolean; message: string }>;
   summary: { total: number; success: number; failed: number };
@@ -1056,7 +1125,7 @@ export async function bulkReprocessFailed(
   const where: any = {
     organizationId,
     entityType: EntityType.INVOICE,
-    processingStatus: 'FAILED',
+    processingStatus: "FAILED",
     deletedAt: null,
   };
 
@@ -1076,14 +1145,14 @@ export async function bulkReprocessFailed(
       const result = await retryOcrProcessing(file.id, userId);
       results.push({
         fileId: file.id,
-        success: result.status === 'completed',
+        success: result.status === "completed",
         message: result.message,
       });
     } catch (error) {
       results.push({
         fileId: file.id,
         success: false,
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }

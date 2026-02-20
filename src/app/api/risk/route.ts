@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
-import { FraudScorer } from '@/logic-engine/risk/fraud-scorer';
-import { AnomalyDetector } from '@/logic-engine/risk/anomaly-detector';
-import { authMiddleware } from '@/lib/middleware/auth';
-import { RiskLevel } from '@/types';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/db/prisma";
+import { FraudScorer } from "@/logic-engine/risk/fraud-scorer";
+import { AnomalyDetector } from "@/logic-engine/risk/anomaly-detector";
+import { authMiddleware } from "@/lib/middleware/auth";
+import { RiskLevel } from "@/types";
 
 export async function GET(request: NextRequest) {
   const authResponse = await authMiddleware(request);
@@ -13,26 +13,26 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'overview';
+    const type = searchParams.get("type") || "overview";
 
     switch (type) {
-      case 'overview':
+      case "overview":
         return getRiskOverview();
-      case 'high-risk-invoices':
+      case "high-risk-invoices":
         return getHighRiskInvoices();
-      case 'anomalies':
+      case "anomalies":
         return getAnomalies();
       default:
         return NextResponse.json(
-          { success: false, error: 'Invalid type parameter' },
-          { status: 400 }
+          { success: false, error: "Invalid type parameter" },
+          { status: 400 },
         );
     }
   } catch (error) {
-    console.error('Error fetching risk data:', error);
+    console.error("Error fetching risk data:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch risk data' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch risk data" },
+      { status: 500 },
     );
   }
 }
@@ -46,13 +46,13 @@ async function getRiskOverview() {
     totalInvoicesAnalyzed,
   ] = await Promise.all([
     prisma.invoices.count({
-      where: { riskLevel: 'HIGH' },
+      where: { riskLevel: "HIGH" },
     }),
     prisma.invoices.count({
-      where: { riskLevel: 'MEDIUM' },
+      where: { riskLevel: "MEDIUM" },
     }),
     prisma.suppliers.count({
-      where: { riskLevel: 'CRITICAL' },
+      where: { riskLevel: "CRITICAL" },
     }),
     prisma.invoices.count({
       where: {
@@ -81,10 +81,12 @@ async function getRiskOverview() {
         averageFraudScore: averageFraudScore._avg.fraudScore || 0,
       },
       riskDistribution: {
-        low: await prisma.invoices.count({ where: { riskLevel: 'LOW' } }),
+        low: await prisma.invoices.count({ where: { riskLevel: "LOW" } }),
         medium: mediumRiskInvoices,
         high: highRiskInvoices,
-        critical: await prisma.invoices.count({ where: { riskLevel: 'CRITICAL' } }),
+        critical: await prisma.invoices.count({
+          where: { riskLevel: "CRITICAL" },
+        }),
       },
     },
   });
@@ -94,14 +96,14 @@ async function getHighRiskInvoices() {
   const invoices = await prisma.invoices.findMany({
     where: {
       OR: [
-        { riskLevel: { in: ['HIGH', 'CRITICAL'] } },
+        { riskLevel: { in: ["HIGH", "CRITICAL"] } },
         { fraudScore: { gte: 60 } },
       ],
     },
     include: {
       lineItems: true,
     },
-    orderBy: { fraudScore: 'desc' },
+    orderBy: { fraudScore: "desc" },
     take: 50,
   });
 
@@ -129,32 +131,34 @@ async function getAnomalies() {
     if (invoice.supplierId) {
       const amountAnomaly = await AnomalyDetector.detectAmountOutliers(
         invoice.supplierId,
-        invoice.totalAmount
+        invoice.totalAmount,
       );
       if (amountAnomaly.isAnomaly) {
         anomalies.push({
-          type: 'AMOUNT_OUTLIER',
+          type: "AMOUNT_OUTLIER",
           invoice,
           details: amountAnomaly,
         });
       }
 
       const frequencyAnomaly = await AnomalyDetector.detectFrequencyAnomaly(
-        invoice.supplierId
+        invoice.supplierId,
       );
       if (frequencyAnomaly.isAnomaly) {
         anomalies.push({
-          type: 'FREQUENCY_ANOMALY',
+          type: "FREQUENCY_ANOMALY",
           invoice,
           details: frequencyAnomaly,
         });
       }
     }
 
-    const timeAnomaly = AnomalyDetector.detectTimeAnomalies(invoice.invoiceDate);
+    const timeAnomaly = AnomalyDetector.detectTimeAnomalies(
+      invoice.invoiceDate,
+    );
     if (timeAnomaly.isAnomaly) {
       anomalies.push({
-        type: 'TIME_ANOMALY',
+        type: "TIME_ANOMALY",
         invoice,
         details: timeAnomaly,
       });
@@ -180,14 +184,14 @@ export async function POST(request: NextRequest) {
 
     if (!invoiceId) {
       return NextResponse.json(
-        { success: false, error: 'Invoice ID required' },
-        { status: 400 }
+        { success: false, error: "Invoice ID required" },
+        { status: 400 },
       );
     }
 
-    const userId = request.headers.get('x-user-id') || 'system';
+    const userId = request.headers.get("x-user-id") || "system";
 
-    if (action === 'score') {
+    if (action === "score") {
       // Get invoice with related data
       const invoice = await prisma.invoices.findUnique({
         where: { id: invoiceId },
@@ -198,8 +202,8 @@ export async function POST(request: NextRequest) {
 
       if (!invoice) {
         return NextResponse.json(
-          { success: false, error: 'Invoice not found' },
-          { status: 404 }
+          { success: false, error: "Invoice not found" },
+          { status: 404 },
         );
       }
 
@@ -212,7 +216,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (action === 'analyze') {
+    if (action === "analyze") {
       // Run full anomaly analysis
       const analysis = await AnomalyDetector.runFullAnalysis(invoiceId);
 
@@ -223,14 +227,14 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: 'Invalid action' },
-      { status: 400 }
+      { success: false, error: "Invalid action" },
+      { status: 400 },
     );
   } catch (error) {
-    console.error('Error processing risk analysis:', error);
+    console.error("Error processing risk analysis:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to process risk analysis' },
-      { status: 500 }
+      { success: false, error: "Failed to process risk analysis" },
+      { status: 500 },
     );
   }
 }

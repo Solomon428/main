@@ -1,4 +1,4 @@
-import { SyncStatus } from '../enums/SyncStatus';
+import { SyncStatus } from "../enums/SyncStatus";
 
 export interface IntegrationSyncLog {
   id: string;

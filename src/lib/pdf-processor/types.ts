@@ -3,37 +3,37 @@
  * Local type definitions for the PDF processing module
  */
 
-export type ExtractionMethod = 
-  | 'native' 
-  | 'native-pdf'
-  | 'ocr' 
-  | 'ocr-tesseract'
-  | 'ocr-azure'
-  | 'ocr-google'
-  | 'ocr-amazon'
-  | 'ocr-ollama'
-  | 'hybrid' 
-  | 'auto';
+export type ExtractionMethod =
+  | "native"
+  | "native-pdf"
+  | "ocr"
+  | "ocr-tesseract"
+  | "ocr-azure"
+  | "ocr-google"
+  | "ocr-amazon"
+  | "ocr-ollama"
+  | "hybrid"
+  | "auto";
 
 export const ExtractionMethod = {
-  NATIVE_PDF: 'native-pdf' as ExtractionMethod,
-  OCR_TESSERACT: 'ocr-tesseract' as ExtractionMethod,
-  OCR_AZURE: 'ocr-azure' as ExtractionMethod,
-  OCR_GOOGLE: 'ocr-google' as ExtractionMethod,
-  OCR_AMAZON: 'ocr-amazon' as ExtractionMethod,
-  OCR_OLLAMA: 'ocr-ollama' as ExtractionMethod,
+  NATIVE_PDF: "native-pdf" as ExtractionMethod,
+  OCR_TESSERACT: "ocr-tesseract" as ExtractionMethod,
+  OCR_AZURE: "ocr-azure" as ExtractionMethod,
+  OCR_GOOGLE: "ocr-google" as ExtractionMethod,
+  OCR_AMAZON: "ocr-amazon" as ExtractionMethod,
+  OCR_OLLAMA: "ocr-ollama" as ExtractionMethod,
 };
 
 export enum DocumentType {
-  TAX_INVOICE = 'TAX_INVOICE',
-  STANDARD_INVOICE = 'STANDARD_INVOICE',
-  PROFORMA_INVOICE = 'PROFORMA_INVOICE',
-  CREDIT_NOTE = 'CREDIT_NOTE',
-  DEBIT_NOTE = 'DEBIT_NOTE',
-  QUOTE = 'QUOTE',
-  RECEIPT = 'RECEIPT',
-  STATEMENT = 'STATEMENT',
-  UNKNOWN = 'UNKNOWN',
+  TAX_INVOICE = "TAX_INVOICE",
+  STANDARD_INVOICE = "STANDARD_INVOICE",
+  PROFORMA_INVOICE = "PROFORMA_INVOICE",
+  CREDIT_NOTE = "CREDIT_NOTE",
+  DEBIT_NOTE = "DEBIT_NOTE",
+  QUOTE = "QUOTE",
+  RECEIPT = "RECEIPT",
+  STATEMENT = "STATEMENT",
+  UNKNOWN = "UNKNOWN",
 }
 
 export interface TextExtractionMetrics {
@@ -146,7 +146,7 @@ export interface ValidationError {
   field: string;
   errorCode: string;
   errorMessage: string;
-  severity: 'CRITICAL' | 'ERROR' | 'WARNING';
+  severity: "CRITICAL" | "ERROR" | "WARNING";
   timestamp: Date;
 }
 
@@ -154,7 +154,7 @@ export interface ValidationWarning {
   field: string;
   warningCode: string;
   warningMessage: string;
-  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  severity: "HIGH" | "MEDIUM" | "LOW";
   timestamp: Date;
 }
 
@@ -184,14 +184,14 @@ export interface CrossValidationResult {
 export interface ProcessingFlag {
   flagType: string;
   flagMessage: string;
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   timestamp: Date;
 }
 
 export interface ProcessingWarning {
   warningCode: string;
   warningMessage: string;
-  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   timestamp: Date;
   metadata?: Record<string, any>;
 }
@@ -199,7 +199,7 @@ export interface ProcessingWarning {
 export interface ProcessingError {
   errorCode: string;
   errorMessage: string;
-  severity: 'CRITICAL' | 'ERROR' | 'WARNING';
+  severity: "CRITICAL" | "ERROR" | "WARNING";
   timestamp: Date;
   stackTrace?: string;
   metadata?: Record<string, any>;
@@ -209,7 +209,7 @@ export interface ProcessingSuggestion {
   suggestionCode: string;
   suggestionMessage: string;
   suggestionType: string;
-  impact: 'HIGH' | 'MEDIUM' | 'LOW';
+  impact: "HIGH" | "MEDIUM" | "LOW";
   timestamp: Date;
 }
 
@@ -296,10 +296,10 @@ export class ProcessingException extends Error {
     public code: string,
     message: string,
     public processingId: string,
-    public metadata?: Record<string, any>
+    public metadata?: Record<string, any>,
   ) {
     super(message);
-    this.name = 'ProcessingException';
+    this.name = "ProcessingException";
   }
 }
 
@@ -327,7 +327,7 @@ export interface SystemInfo {
 }
 
 export interface EnvironmentInfo {
-  environment: 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION';
+  environment: "DEVELOPMENT" | "STAGING" | "PRODUCTION";
   region: string;
   instanceId: string;
   deploymentId: string;
@@ -385,10 +385,10 @@ export interface DetectedForm {
 }
 
 export enum ProcessingStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
+  PENDING = "PENDING",
+  PROCESSING = "PROCESSING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
 }
 
 export interface ProcessingMetadata {

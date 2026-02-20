@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/db/prisma";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '10');
-    const role = searchParams.get('role');
-    const department = searchParams.get('department');
+    const page = parseInt(searchParams.get("page") || "1");
+    const pageSize = parseInt(searchParams.get("pageSize") || "10");
+    const role = searchParams.get("role");
+    const department = searchParams.get("department");
 
     // Build where clause
     const where: any = { isActive: true };
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Get paginated team members
     const team = await prisma.user.findMany({
       where,
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
       select: {
@@ -39,8 +39,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         currentWorkload: true,
         maxWorkload: true,
         approvalLimit: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
 
     return NextResponse.json({
@@ -50,14 +50,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         total,
         page,
         pageSize,
-        totalPages: Math.ceil(total / pageSize)
-      }
+        totalPages: Math.ceil(total / pageSize),
+      },
     });
   } catch (error) {
-    console.error('Error fetching team:', error);
+    console.error("Error fetching team:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch team' },
-      { status: 500 }
+      { success: false, error: "Failed to fetch team" },
+      { status: 500 },
     );
   }
 }

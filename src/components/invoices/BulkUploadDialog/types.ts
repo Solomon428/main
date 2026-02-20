@@ -7,7 +7,7 @@ export interface BulkUploadDialogProps {
 export interface FileWithStatus {
   file: File;
   id: string;
-  status: 'pending' | 'uploading' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "uploading" | "processing" | "completed" | "failed";
   progress: number;
   result?: {
     invoiceId?: string;

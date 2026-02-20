@@ -1,13 +1,13 @@
-import { z } from 'zod';
-import { UserRole } from '../../domain/enums/UserRole';
-import { Department } from '../../domain/enums/Department';
+import { z } from "zod";
+import { UserRole } from "../../domain/enums/UserRole";
+import { Department } from "../../domain/enums/Department";
 
 export const createUserSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email("Invalid email address"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.nativeEnum(UserRole).default(UserRole.VIEWER),
   department: z.nativeEnum(Department).optional(),
   position: z.string().optional(),
@@ -41,28 +41,30 @@ export const loginSchema = z.object({
 });
 
 export const apiKeySchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, "Name is required"),
   permissions: z.array(z.string()).default([]),
   scopes: z.array(z.string()).default([]),
   expiresAt: z.string().datetime().optional(),
   rateLimit: z.number().int().min(1).max(10000).default(1000),
 });
 
-export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
-  confirmPassword: z.string().min(8),
-}).refine(data => data.newPassword === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8),
+    confirmPassword: z.string().min(8),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 export const resetPasswordSchema = z.object({
   email: z.string().email(),
 });
 
 export const twoFactorSchema = z.object({
-  token: z.string().length(6, 'Token must be 6 digits'),
+  token: z.string().length(6, "Token must be 6 digits"),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

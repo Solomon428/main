@@ -8,15 +8,15 @@
 // - Bank detail validation
 // ============================================================================
 
-import { prisma } from '@/lib/database/client';
-import { auditLogger } from '@/lib/utils/audit-logger';
+import { prisma } from "@/lib/database/client";
+import { auditLogger } from "@/lib/utils/audit-logger";
 import {
   SupplierStatus,
   RiskLevel,
   EntityType,
   LogSeverity,
   SupplierCategory,
-} from '@/types';
+} from "@/types";
 
 export interface CreateSupplierInput {
   name: string;
@@ -69,7 +69,7 @@ export class SupplierService {
       where: {
         name: {
           equals: input.name,
-          mode: 'insensitive',
+          mode: "insensitive",
         },
       },
     });
@@ -93,18 +93,18 @@ export class SupplierService {
         bankName: input.bankName,
         branchCode: input.branchCode,
         accountNumber: input.accountNumber,
-        accountType: input.accountType || 'CURRENT',
+        accountType: input.accountType || "CURRENT",
         paymentTerms: input.paymentTerms || 30,
-        category: input.category || 'OTHER',
-        status: 'PENDING_VERIFICATION',
-        riskLevel: 'MEDIUM',
-        country: 'South Africa',
+        category: input.category || "OTHER",
+        status: "PENDING_VERIFICATION",
+        riskLevel: "MEDIUM",
+        country: "South Africa",
       },
     });
 
     // Log creation
     await auditLogger.log({
-      action: 'CREATE',
+      action: "CREATE",
       entityType: EntityType.SUPPLIER,
       entityId: supplier.id,
       entityDescription: `Supplier created: ${input.name}`,
@@ -127,7 +127,7 @@ export class SupplierService {
       where: { id },
       include: {
         invoices: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           take: 10,
         },
       },
@@ -137,14 +137,18 @@ export class SupplierService {
   /**
    * Update supplier
    */
-  static async updateSupplier(id: string, input: UpdateSupplierInput, userId?: string) {
+  static async updateSupplier(
+    id: string,
+    input: UpdateSupplierInput,
+    userId?: string,
+  ) {
     const supplier = await prisma.suppliers.update({
       where: { id },
       data: input,
     });
 
     await auditLogger.log({
-      action: 'UPDATE',
+      action: "UPDATE",
       entityType: EntityType.SUPPLIER,
       entityId: id,
       entityDescription: `Supplier updated: ${supplier.name}`,
@@ -159,13 +163,15 @@ export class SupplierService {
   /**
    * Get all suppliers with pagination
    */
-  static async getSuppliers(options: {
-    page?: number;
-    pageSize?: number;
-    status?: SupplierStatus;
-    riskLevel?: RiskLevel;
-    search?: string;
-  } = {}) {
+  static async getSuppliers(
+    options: {
+      page?: number;
+      pageSize?: number;
+      status?: SupplierStatus;
+      riskLevel?: RiskLevel;
+      search?: string;
+    } = {},
+  ) {
     const { page = 1, pageSize = 20, status, riskLevel, search } = options;
     const skip = (page - 1) * pageSize;
 
@@ -174,7 +180,7 @@ export class SupplierService {
     if (riskLevel) where.riskLevel = riskLevel;
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: "insensitive" } },
         { vatNumber: { contains: search } },
       ];
     }
@@ -184,7 +190,7 @@ export class SupplierService {
         where,
         skip,
         take: pageSize,
-        orderBy: { name: 'asc' },
+        orderBy: { name: "asc" },
       }),
       prisma.suppliers.count({ where }),
     ]);
@@ -205,14 +211,14 @@ export class SupplierService {
     const supplier = await prisma.suppliers.update({
       where: { id },
       data: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
         verifiedById: userId,
         verifiedDate: new Date(),
       },
     });
 
     await auditLogger.log({
-      action: 'UPDATE',
+      action: "UPDATE",
       entityType: EntityType.SUPPLIER,
       entityId: id,
       entityDescription: `Supplier verified: ${supplier.name}`,
@@ -232,13 +238,13 @@ export class SupplierService {
       data: {
         isBlacklisted: true,
         blacklistReason: reason,
-        status: 'SUSPENDED',
-        riskLevel: 'CRITICAL',
+        status: "SUSPENDED",
+        riskLevel: "CRITICAL",
       },
     });
 
     await auditLogger.log({
-      action: 'UPDATE',
+      action: "UPDATE",
       entityType: EntityType.SUPPLIER,
       entityId: id,
       entityDescription: `Supplier blacklisted: ${supplier.name}`,
@@ -257,7 +263,7 @@ export class SupplierService {
     const [invoices, totalAmount, averageAmount] = await Promise.all([
       prisma.invoices.findMany({
         where: { supplierId },
-        orderBy: { invoiceDate: 'desc' },
+        orderBy: { invoiceDate: "desc" },
       }),
       prisma.invoices.aggregate({
         where: { supplierId },
@@ -270,9 +276,9 @@ export class SupplierService {
     ]);
 
     const totalInvoices = invoices.length;
-    const paidInvoices = invoices.filter(inv => inv.status === 'PAID').length;
-    const pendingInvoices = invoices.filter(inv => 
-      ['PENDING_APPROVAL', 'UNDER_REVIEW'].includes(inv.status)
+    const paidInvoices = invoices.filter((inv) => inv.status === "PAID").length;
+    const pendingInvoices = invoices.filter((inv) =>
+      ["PENDING_APPROVAL", "UNDER_REVIEW"].includes(inv.status),
     ).length;
 
     return {
@@ -301,13 +307,13 @@ export class SupplierService {
   static async findOrCreate(
     name: string,
     vatNumber: string | null | undefined,
-    userId: string
+    userId: string,
   ) {
     // Try to find existing supplier
     let supplier = await prisma.suppliers.findFirst({
       where: {
         OR: [
-          { name: { equals: name, mode: 'insensitive' } },
+          { name: { equals: name, mode: "insensitive" } },
           ...(vatNumber ? [{ vatNumber }] : []),
         ],
       },

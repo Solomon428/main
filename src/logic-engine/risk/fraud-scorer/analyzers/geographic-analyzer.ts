@@ -8,9 +8,9 @@ import type {
   FraudScoringInput,
   FraudScoringContext,
   FraudRiskFactor,
-  GeographicRiskAnalysis
-} from '../types';
-import { FraudDetectionMethod } from '../types';
+  GeographicRiskAnalysis,
+} from "../types";
+import { FraudDetectionMethod } from "../types";
 
 /**
  * Calculate risk score based on geographic risk assessment
@@ -18,7 +18,7 @@ import { FraudDetectionMethod } from '../types';
 export function calculateGeographicRisk(
   input: FraudScoringInput,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): GeographicRiskAnalysis {
   // Placeholder for integration with GeographicRiskAssessor service
 
@@ -26,18 +26,18 @@ export function calculateGeographicRisk(
   const riskFactors: FraudRiskFactor[] = [];
 
   // High-risk jurisdiction detection (placeholder)
-  if (input.supplierCountry && ['ZA'].indexOf(input.supplierCountry) === -1) {
+  if (input.supplierCountry && ["ZA"].indexOf(input.supplierCountry) === -1) {
     baseScore += 15;
     riskFactors.push({
-      category: 'GEOGRAPHIC_RISK',
-      factor: 'NON_LOCAL_JURISDICTION',
+      category: "GEOGRAPHIC_RISK",
+      factor: "NON_LOCAL_JURISDICTION",
       description: `Supplier located outside South Africa (${input.supplierCountry})`,
-      severity: 'MEDIUM',
+      severity: "MEDIUM",
       scoreImpact: 15,
       evidence: `supplierCountry=${input.supplierCountry}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,
-      confidence: 0.80,
-      timestamp: new Date()
+      confidence: 0.8,
+      timestamp: new Date(),
     });
   }
 
@@ -46,7 +46,7 @@ export function calculateGeographicRisk(
     normalizedScore: baseScore / 100,
     riskFactors,
     detectionMethods: [FraudDetectionMethod.RULE_BASED],
-    confidence: riskFactors.length > 0 ? 0.85 : 0.60,
-    metadata: { scoringId }
+    confidence: riskFactors.length > 0 ? 0.85 : 0.6,
+    metadata: { scoringId },
   };
 }

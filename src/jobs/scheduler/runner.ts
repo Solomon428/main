@@ -2,12 +2,12 @@
 // Job Runner - Executes scheduled tasks
 // ============================================================================
 
-import { prisma } from '../../lib/prisma';
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { ScheduledTaskStatus } from '../../domain/enums/ScheduledTaskStatus';
-import { getNextExecutionTime, shouldRunTask } from './cron';
-import { getTaskHandler } from './registry';
-import { info, error } from '../../observability/logger';
+import { prisma } from "../../lib/prisma";
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { ScheduledTaskStatus } from "../../domain/enums/ScheduledTaskStatus";
+import { getNextExecutionTime, shouldRunTask } from "./cron";
+import { getTaskHandler } from "./registry";
+import { info, error } from "../../observability/logger";
 
 const RUNNING_TASKS = new Map<string, AbortController>();
 
@@ -19,17 +19,14 @@ export async function runDueTasks(): Promise<void> {
     where: {
       isActive: true,
       isRunning: false,
-      OR: [
-        { nextRunAt: { lte: new Date() } },
-        { nextRunAt: null },
-      ],
+      OR: [{ nextRunAt: { lte: new Date() } }, { nextRunAt: null }],
     },
   });
 
   for (const task of tasks) {
     if (shouldRunTask(task)) {
       // Run task asynchronously
-      runTask(task).catch(err => {
+      runTask(task).catch((err) => {
         error(`Failed to run task ${task.id}`, { error: err.message });
       });
     }
@@ -58,18 +55,18 @@ export async function runTask(task: ScheduledTask): Promise<void> {
   try {
     // Get task handler
     const handler = getTaskHandler(task.taskType);
-    
+
     if (!handler) {
       throw new Error(`No handler found for task type: ${task.taskType}`);
     }
 
     // Execute task with timeout
     const timeoutMs = (task.timeout || 3600) * 1000;
-    
+
     await Promise.race([
       handler(task, abortController.signal),
       new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Task timeout')), timeoutMs);
+        setTimeout(() => reject(new Error("Task timeout")), timeoutMs);
       }),
     ]);
 
@@ -91,12 +88,11 @@ export async function runTask(task: ScheduledTask): Promise<void> {
     });
 
     info(`Task completed: ${task.name}`, { taskId: task.id, duration });
-
   } catch (err) {
     // Task failed
     const duration = Math.round((Date.now() - startTime) / 1000);
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+
     // Check if we should retry
     const shouldRetry = task.failureCount < (task.retryAttempts || 3);
     const nextRunAt = shouldRetry
@@ -108,7 +104,9 @@ export async function runTask(task: ScheduledTask): Promise<void> {
       data: {
         isRunning: false,
         lastRunAt: new Date(),
-        lastRunStatus: shouldRetry ? ScheduledTaskStatus.RETRYING : ScheduledTaskStatus.FAILED,
+        lastRunStatus: shouldRetry
+          ? ScheduledTaskStatus.RETRYING
+          : ScheduledTaskStatus.FAILED,
         lastRunDuration: duration,
         lastRunError: errorMessage,
         nextRunAt,
@@ -116,13 +114,12 @@ export async function runTask(task: ScheduledTask): Promise<void> {
       },
     });
 
-    error(`Task failed: ${task.name}`, { 
-      taskId: task.id, 
-      duration, 
+    error(`Task failed: ${task.name}`, {
+      taskId: task.id,
+      duration,
       error: errorMessage,
       willRetry: shouldRetry,
     });
-
   } finally {
     RUNNING_TASKS.delete(task.id);
   }
@@ -133,13 +130,13 @@ export async function runTask(task: ScheduledTask): Promise<void> {
  */
 export async function cancelTask(taskId: string): Promise<boolean> {
   const controller = RUNNING_TASKS.get(taskId);
-  
+
   if (!controller) {
     return false;
   }
 
   controller.abort();
-  
+
   await prisma.scheduledTask.update({
     where: { id: taskId },
     data: {
@@ -175,11 +172,11 @@ export async function triggerTask(taskId: string): Promise<void> {
   });
 
   if (!task) {
-    throw new Error('Task not found');
+    throw new Error("Task not found");
   }
 
   if (task.isRunning) {
-    throw new Error('Task is already running');
+    throw new Error("Task is already running");
   }
 
   await runTask(task);

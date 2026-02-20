@@ -1,5 +1,5 @@
-import type { OcrResult, LanguageInfo } from '../types';
-import { OcrProcessingError } from '../errors';
+import type { OcrResult, LanguageInfo } from "../types";
+import { OcrProcessingError } from "../errors";
 
 export interface OllamaConfig {
   language: string;
@@ -19,16 +19,16 @@ export class OllamaEngine {
     // This would connect to a local Ollama instance
     // and use a vision-capable model like llava or similar
     throw new OcrProcessingError(
-      'Ollama OCR not yet implemented',
-      'OLLAMA_NOT_IMPLEMENTED'
+      "Ollama OCR not yet implemented",
+      "OLLAMA_NOT_IMPLEMENTED",
     );
   }
 
   async process(_imageBuffer: Buffer, fileName: string): Promise<OcrResult> {
     throw new OcrProcessingError(
-      'Ollama OCR not yet implemented',
-      'OLLAMA_NOT_IMPLEMENTED',
-      { fileName }
+      "Ollama OCR not yet implemented",
+      "OLLAMA_NOT_IMPLEMENTED",
+      { fileName },
     );
   }
 
@@ -39,7 +39,12 @@ export class OllamaEngine {
   async getLanguages(): Promise<LanguageInfo[]> {
     // Ollama with vision models typically supports all languages
     return [
-      { code: 'auto', name: 'Auto-detect', nativeName: 'Auto-detect', supported: true },
+      {
+        code: "auto",
+        name: "Auto-detect",
+        nativeName: "Auto-detect",
+        supported: true,
+      },
     ];
   }
 }

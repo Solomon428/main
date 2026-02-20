@@ -1,0 +1,10 @@
+export enum BankAccountType {
+  CURRENT = 'CURRENT',
+  SAVINGS = 'SAVINGS',
+  BUSINESS = 'BUSINESS',
+  FOREIGN = 'FOREIGN',
+  CREDIT = 'CREDIT',
+  PAYROLL = 'PAYROLL',
+  TRUST = 'TRUST',
+  ESCROW = 'ESCROW',
+}

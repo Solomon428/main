@@ -53,17 +53,17 @@ export interface CategoryStats {
 }
 
 export type InvoiceCategory =
-  | 'IT_SOFTWARE'
-  | 'IT_HARDWARE'
-  | 'UTILITIES'
-  | 'LOGISTICS'
-  | 'MAINTENANCE'
-  | 'CONSULTANCY'
-  | 'MARKETING'
-  | 'OFFICE'
-  | 'COMMUNICATIONS'
-  | 'INSURANCE'
-  | 'RENT'
-  | 'TRAVEL'
-  | 'TRAINING'
-  | 'OTHER';
+  | "IT_SOFTWARE"
+  | "IT_HARDWARE"
+  | "UTILITIES"
+  | "LOGISTICS"
+  | "MAINTENANCE"
+  | "CONSULTANCY"
+  | "MARKETING"
+  | "OFFICE"
+  | "COMMUNICATIONS"
+  | "INSURANCE"
+  | "RENT"
+  | "TRAVEL"
+  | "TRAINING"
+  | "OTHER";

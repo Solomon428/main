@@ -1,7 +1,7 @@
-import type { PSM, OEM } from 'tesseract.js';
+import type { PSM, OEM } from "tesseract.js";
 
 export interface OcrConfig {
-  provider: 'tesseract' | 'google-vision' | 'aws-textract' | 'azure' | 'ollama';
+  provider: "tesseract" | "google-vision" | "aws-textract" | "azure" | "ollama";
   language: string;
   pageSegmentationMode: PSM;
   ocrEngineMode: OEM;
@@ -26,7 +26,13 @@ export interface OcrResult {
 }
 
 export interface OcrProgress {
-  stage: 'initializing' | 'preprocessing' | 'extracting' | 'postprocessing' | 'completed' | 'failed';
+  stage:
+    | "initializing"
+    | "preprocessing"
+    | "extracting"
+    | "postprocessing"
+    | "completed"
+    | "failed";
   progress: number;
   message: string;
   details?: Record<string, any>;
@@ -67,7 +73,7 @@ export interface OcrServiceStatus {
   provider: string;
   language: string;
   activeJobs: number;
-  health: 'healthy' | 'degraded' | 'unhealthy';
+  health: "healthy" | "degraded" | "unhealthy";
   metrics: {
     totalExtractions: number;
     successfulExtractions: number;

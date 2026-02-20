@@ -2,10 +2,10 @@
 // Approvals Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 interface DecisionData {
-  decision: 'APPROVED' | 'REJECTED' | string;
+  decision: "APPROVED" | "REJECTED" | string;
   notes?: string;
 }
 
@@ -22,7 +22,7 @@ interface DelegationData {
 export async function listPendingApprovals() {
   return prisma.approval.findMany({
     where: {
-      status: 'PENDING',
+      status: "PENDING",
     },
     include: {
       invoice: {
@@ -32,7 +32,7 @@ export async function listPendingApprovals() {
       },
       approver: true,
     },
-    orderBy: { slaDueDate: 'asc' },
+    orderBy: { slaDueDate: "asc" },
   });
 }
 
@@ -52,18 +52,15 @@ export async function getApproval(id: string) {
   });
 }
 
-export async function makeDecision(
-  id: string, 
-  data: DecisionData
-) {
+export async function makeDecision(id: string, data: DecisionData) {
   return prisma.approval.update({
     where: { id },
     data: {
       status: data.decision,
       decision: data.decision,
       decisionNotes: data.notes,
-      approvedAt: data.decision === 'APPROVED' ? new Date() : null,
-      rejectedAt: data.decision === 'REJECTED' ? new Date() : null,
+      approvedAt: data.decision === "APPROVED" ? new Date() : null,
+      rejectedAt: data.decision === "REJECTED" ? new Date() : null,
       actionedAt: new Date(),
     },
     include: {
@@ -81,7 +78,7 @@ export async function makeDecision(
 
 export async function listApprovalChains() {
   return prisma.approvalChain.findMany({
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 }
 
@@ -95,7 +92,7 @@ export async function delegateApproval(data: DelegationData) {
       endDate: data.endDate,
       isActive: true,
       reason: data.reason,
-      scope: data.scope || 'ALL',
+      scope: data.scope || "ALL",
     },
     include: {
       delegator: true,
@@ -107,10 +104,7 @@ export async function delegateApproval(data: DelegationData) {
 export async function getDelegatedApprovals(userId: string) {
   return prisma.delegatedApproval.findMany({
     where: {
-      OR: [
-        { delegatorId: userId },
-        { delegateeId: userId },
-      ],
+      OR: [{ delegatorId: userId }, { delegateeId: userId }],
       isActive: true,
     },
     include: {

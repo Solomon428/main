@@ -14,17 +14,37 @@ export const createInvoiceSchema = z.object({
   dueDate: z.string().datetime(),
   totalAmount: z.number().positive("Total amount must be positive"),
   currency: z.string().default("USD"),
-  lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
+  lineItems: z
+    .array(lineItemSchema)
+    .min(1, "At least one line item is required"),
   notes: z.string().optional(),
 });
 
 export const updateInvoiceSchema = z.object({
-  status: z.enum(["PENDING", "UNDER_REVIEW", "APPROVED", "REJECTED", "PAID", "CANCELLED", "DISPUTED"]),
+  status: z.enum([
+    "PENDING",
+    "UNDER_REVIEW",
+    "APPROVED",
+    "REJECTED",
+    "PAID",
+    "CANCELLED",
+    "DISPUTED",
+  ]),
   notes: z.string().optional(),
 });
 
 export const invoiceFiltersSchema = z.object({
-  status: z.enum(["PENDING", "UNDER_REVIEW", "APPROVED", "REJECTED", "PAID", "CANCELLED", "DISPUTED"]).optional(),
+  status: z
+    .enum([
+      "PENDING",
+      "UNDER_REVIEW",
+      "APPROVED",
+      "REJECTED",
+      "PAID",
+      "CANCELLED",
+      "DISPUTED",
+    ])
+    .optional(),
   supplierId: z.string().uuid().optional(),
   dateFrom: z.string().datetime().optional(),
   dateTo: z.string().datetime().optional(),

@@ -1,5 +1,5 @@
-import { UserRole } from '../enums/UserRole';
-import { Department } from '../enums/Department';
+import { UserRole } from "../enums/UserRole";
+import { Department } from "../enums/Department";
 
 export interface User {
   id: string;

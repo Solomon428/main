@@ -1,7 +1,7 @@
-import { createWorker, type Worker } from 'tesseract.js';
-import type { OcrResult, OcrProgress, LanguageInfo } from '../types';
-import { OcrServiceError, OcrProcessingError } from '../errors';
-import { TESSERACT_WHITELIST } from '../constants';
+import { createWorker, type Worker } from "tesseract.js";
+import type { OcrResult, OcrProgress, LanguageInfo } from "../types";
+import { OcrServiceError, OcrProcessingError } from "../errors";
+import { TESSERACT_WHITELIST } from "../constants";
 
 export interface TesseractEngineConfig {
   language: string;
@@ -31,15 +31,15 @@ export class TesseractEngine {
       await this.worker.setParameters({
         tessedit_pageseg_mode: this.config.pageSegmentationMode.toString(),
         tessedit_ocr_engine_mode: this.config.ocrEngineMode.toString(),
-        preserve_interword_spaces: '1',
+        preserve_interword_spaces: "1",
         tessedit_char_whitelist: TESSERACT_WHITELIST,
       });
     } catch (error) {
       throw new OcrServiceError(
-        'Failed to initialize Tesseract.js',
-        'TESSERACT_INIT_FAILED',
+        "Failed to initialize Tesseract.js",
+        "TESSERACT_INIT_FAILED",
         { language: this.config.language },
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }
@@ -48,18 +48,21 @@ export class TesseractEngine {
     imageBuffer: Buffer,
     fileName: string,
     jobId: string,
-    updateProgress: (jobId: string, progress: OcrProgress) => void
+    updateProgress: (jobId: string, progress: OcrProgress) => void,
   ): Promise<OcrResult> {
     if (!this.worker) {
-      throw new OcrServiceError('Tesseract worker not initialized', 'TESSERACT_NOT_INITIALIZED');
+      throw new OcrServiceError(
+        "Tesseract worker not initialized",
+        "TESSERACT_NOT_INITIALIZED",
+      );
     }
 
     try {
       updateProgress(jobId, {
-        stage: 'extracting',
+        stage: "extracting",
         progress: 60,
-        message: 'Running Tesseract OCR',
-        timestamp: new Date()
+        message: "Running Tesseract OCR",
+        timestamp: new Date(),
       });
 
       const startTime = Date.now();
@@ -67,10 +70,10 @@ export class TesseractEngine {
       const processingTime = Date.now() - startTime;
 
       updateProgress(jobId, {
-        stage: 'postprocessing',
+        stage: "postprocessing",
         progress: 85,
-        message: 'Post-processing extracted text',
-        timestamp: new Date()
+        message: "Post-processing extracted text",
+        timestamp: new Date(),
       });
 
       const confidence = result.data.confidence || 0;
@@ -78,25 +81,25 @@ export class TesseractEngine {
 
       return {
         success: true,
-        text: result.data.text || '',
+        text: result.data.text || "",
         confidence,
         pages: 1,
         language: detectedLanguage,
         processingTime,
-        provider: 'tesseract',
+        provider: "tesseract",
         metadata: {
           blockCount: result.data.blocks?.length || 0,
           paragraphCount: result.data.paragraphs?.length || 0,
           lineCount: result.data.lines?.length || 0,
-          wordCount: result.data.words?.length || 0
-        }
+          wordCount: result.data.words?.length || 0,
+        },
       };
     } catch (error) {
       throw new OcrProcessingError(
-        'Tesseract processing failed',
-        'TESSERACT_PROCESSING_FAILED',
+        "Tesseract processing failed",
+        "TESSERACT_PROCESSING_FAILED",
         { fileName },
-        error instanceof Error ? error : undefined
+        error instanceof Error ? error : undefined,
       );
     }
   }
@@ -119,30 +122,31 @@ export class TesseractEngine {
 
     try {
       const languages = await this.worker.getLanguages();
-      const languageMap: Record<string, { name: string; nativeName: string }> = {
-        eng: { name: 'English', nativeName: 'English' },
-        spa: { name: 'Spanish', nativeName: 'Español' },
-        fra: { name: 'French', nativeName: 'Français' },
-        deu: { name: 'German', nativeName: 'Deutsch' },
-        ita: { name: 'Italian', nativeName: 'Italiano' },
-        por: { name: 'Portuguese', nativeName: 'Português' },
-        rus: { name: 'Russian', nativeName: 'Русский' },
-        chi_sim: { name: 'Chinese Simplified', nativeName: '简体中文' },
-        chi_tra: { name: 'Chinese Traditional', nativeName: '繁體中文' },
-        jpn: { name: 'Japanese', nativeName: '日本語' },
-        kor: { name: 'Korean', nativeName: '한국어' },
-        ara: { name: 'Arabic', nativeName: 'العربية' },
-        hin: { name: 'Hindi', nativeName: 'हिन्दी' },
-        ben: { name: 'Bengali', nativeName: 'বাংলা' }
-      };
+      const languageMap: Record<string, { name: string; nativeName: string }> =
+        {
+          eng: { name: "English", nativeName: "English" },
+          spa: { name: "Spanish", nativeName: "Español" },
+          fra: { name: "French", nativeName: "Français" },
+          deu: { name: "German", nativeName: "Deutsch" },
+          ita: { name: "Italian", nativeName: "Italiano" },
+          por: { name: "Portuguese", nativeName: "Português" },
+          rus: { name: "Russian", nativeName: "Русский" },
+          chi_sim: { name: "Chinese Simplified", nativeName: "简体中文" },
+          chi_tra: { name: "Chinese Traditional", nativeName: "繁體中文" },
+          jpn: { name: "Japanese", nativeName: "日本語" },
+          kor: { name: "Korean", nativeName: "한국어" },
+          ara: { name: "Arabic", nativeName: "العربية" },
+          hin: { name: "Hindi", nativeName: "हिन्दी" },
+          ben: { name: "Bengali", nativeName: "বাংলা" },
+        };
 
-      return languages.map(lang => {
+      return languages.map((lang) => {
         const info = languageMap[lang] || { name: lang, nativeName: lang };
         return {
           code: lang,
           name: info.name,
           nativeName: info.nativeName,
-          supported: true
+          supported: true,
         };
       });
     } catch (error) {

@@ -5,10 +5,10 @@
  * GET: Get category statistics
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { AICategorizationService } from '@/services/ai-categorization-service';
-import { prisma } from '../../../lib/prisma';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { AICategorizationService } from "@/services/ai-categorization-service";
+import { prisma } from "@/db/prisma";
+import { z } from "zod";
 
 const categorizeSchema = z.object({
   invoiceId: z.string().uuid(),
@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
 
     if (!invoice) {
       return NextResponse.json(
-        { success: false, error: 'Invoice not found' },
-        { status: 404 }
+        { success: false, error: "Invoice not found" },
+        { status: 404 },
       );
     }
 
@@ -45,15 +45,15 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request', details: error.errors },
-        { status: 400 }
+        { success: false, error: "Invalid request", details: error.errors },
+        { status: 400 },
       );
     }
 
-    console.error('AI categorization error:', error);
+    console.error("AI categorization error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to categorize invoice' },
-      { status: 500 }
+      { success: false, error: "Failed to categorize invoice" },
+      { status: 500 },
     );
   }
 }
@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest) {
 
     const result = await AICategorizationService.autoCategorizeInvoices(
       invoiceIds,
-      confidenceThreshold
+      confidenceThreshold,
     );
 
     return NextResponse.json({
@@ -77,15 +77,15 @@ export async function PATCH(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request', details: error.errors },
-        { status: 400 }
+        { success: false, error: "Invalid request", details: error.errors },
+        { status: 400 },
       );
     }
 
-    console.error('Bulk categorization error:', error);
+    console.error("Bulk categorization error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to categorize invoices' },
-      { status: 500 }
+      { success: false, error: "Failed to categorize invoices" },
+      { status: 500 },
     );
   }
 }
@@ -94,15 +94,15 @@ export async function PATCH(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const startDateStr = searchParams.get('startDate');
-    const endDateStr = searchParams.get('endDate');
+    const startDateStr = searchParams.get("startDate");
+    const endDateStr = searchParams.get("endDate");
 
     const startDate = startDateStr ? new Date(startDateStr) : undefined;
     const endDate = endDateStr ? new Date(endDateStr) : undefined;
 
     const stats = await AICategorizationService.getCategoryStats(
       startDate,
-      endDate
+      endDate,
     );
 
     return NextResponse.json({
@@ -110,10 +110,10 @@ export async function GET(req: NextRequest) {
       data: stats,
     });
   } catch (error) {
-    console.error('Category stats error:', error);
+    console.error("Category stats error:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to get category statistics' },
-      { status: 500 }
+      { success: false, error: "Failed to get category statistics" },
+      { status: 500 },
     );
   }
 }

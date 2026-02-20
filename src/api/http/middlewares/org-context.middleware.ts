@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/db/prisma";
 
 export interface RequestWithOrg extends NextRequest {
   organizationId?: string;
@@ -14,12 +14,12 @@ export interface RequestWithOrg extends NextRequest {
  * Extract organization context from request
  */
 export async function orgContextMiddleware(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<NextResponse | RequestWithOrg> {
   try {
     // Get organization ID from header
-    const orgId = request.headers.get('x-organization-id');
-    
+    const orgId = request.headers.get("x-organization-id");
+
     if (!orgId) {
       // Organization context is optional for some routes
       return request as RequestWithOrg;
@@ -40,8 +40,8 @@ export async function orgContextMiddleware(
 
     if (!organization) {
       return NextResponse.json(
-        { error: 'Organization not found or inactive' },
-        { status: 404 }
+        { error: "Organization not found or inactive" },
+        { status: 404 },
       );
     }
 
@@ -51,12 +51,11 @@ export async function orgContextMiddleware(
     reqWithOrg.organization = organization;
 
     return reqWithOrg;
-
   } catch (error) {
-    console.error('Org context middleware error:', error);
+    console.error("Org context middleware error:", error);
     return NextResponse.json(
-      { error: 'Failed to validate organization context' },
-      { status: 500 }
+      { error: "Failed to validate organization context" },
+      { status: 500 },
     );
   }
 }
@@ -65,12 +64,12 @@ export async function orgContextMiddleware(
  * Require organization context
  */
 export function requireOrgContext(
-  request: RequestWithOrg
+  request: RequestWithOrg,
 ): NextResponse | null {
   if (!request.organizationId) {
     return NextResponse.json(
-      { error: 'Organization context required' },
-      { status: 400 }
+      { error: "Organization context required" },
+      { status: 400 },
     );
   }
   return null;

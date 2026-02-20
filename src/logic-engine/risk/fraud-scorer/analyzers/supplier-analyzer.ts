@@ -9,10 +9,10 @@ import type {
   FraudScoringContext,
   FraudRiskFactor,
   SupplierAgeRiskAnalysis,
-  SupplierRiskProfileAnalysis
-} from '../types';
-import { FraudDetectionMethod } from '../types';
-import { SA_COMPLIANCE_RULES } from '../constants';
+  SupplierRiskProfileAnalysis,
+} from "../types";
+import { FraudDetectionMethod } from "../types";
+import { SA_COMPLIANCE_RULES } from "../constants";
 
 /**
  * Calculate risk score based on supplier age analysis
@@ -20,7 +20,7 @@ import { SA_COMPLIANCE_RULES } from '../constants';
 export function calculateSupplierAgeRisk(
   input: FraudScoringInput,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): SupplierAgeRiskAnalysis {
   let baseScore = 0;
   const riskFactors: FraudRiskFactor[] = [];
@@ -30,28 +30,28 @@ export function calculateSupplierAgeRisk(
   if (supplierAgeDays < SA_COMPLIANCE_RULES.SUPPLIER_PROBATION_DAYS) {
     baseScore += 25;
     riskFactors.push({
-      category: 'SUPPLIER_RISK',
-      factor: 'NEW_SUPPLIER_PROBATION',
+      category: "SUPPLIER_RISK",
+      factor: "NEW_SUPPLIER_PROBATION",
       description: `Supplier is within SARS 90-day probation period (${supplierAgeDays} days old)`,
-      severity: 'HIGH',
+      severity: "HIGH",
       scoreImpact: 25,
       evidence: `supplierAgeDays=${supplierAgeDays}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,
       confidence: 0.95,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   } else if (supplierAgeDays < 365) {
     baseScore += 10;
     riskFactors.push({
-      category: 'SUPPLIER_RISK',
-      factor: 'YOUNG_SUPPLIER',
+      category: "SUPPLIER_RISK",
+      factor: "YOUNG_SUPPLIER",
       description: `Supplier is less than 1 year old (${supplierAgeDays} days)`,
-      severity: 'MEDIUM',
+      severity: "MEDIUM",
       scoreImpact: 10,
       evidence: `supplierAgeDays=${supplierAgeDays}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,
       confidence: 0.85,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -60,8 +60,8 @@ export function calculateSupplierAgeRisk(
     normalizedScore: baseScore / 100,
     riskFactors,
     detectionMethods: [FraudDetectionMethod.RULE_BASED],
-    confidence: riskFactors.length > 0 ? 0.90 : 0.70,
-    metadata: { scoringId }
+    confidence: riskFactors.length > 0 ? 0.9 : 0.7,
+    metadata: { scoringId },
   };
 }
 
@@ -71,25 +71,25 @@ export function calculateSupplierAgeRisk(
 export function calculateSupplierRiskProfile(
   input: FraudScoringInput,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): SupplierRiskProfileAnalysis {
   // Placeholder for integration with SupplierRiskProfile service
   // In production, this would call external risk data providers
 
   const riskScore = input.supplierRiskScore ?? 50;
-  const riskLevel = riskScore > 75 ? 'HIGH' : riskScore > 50 ? 'MEDIUM' : 'LOW';
+  const riskLevel = riskScore > 75 ? "HIGH" : riskScore > 50 ? "MEDIUM" : "LOW";
 
   return {
     score: riskScore,
     normalizedScore: riskScore / 100,
-    riskLevel: riskLevel as import('../types').RiskLevel,
+    riskLevel: riskLevel as import("../types").RiskLevel,
     riskFactors: input.supplierRiskFactors ?? [],
     detectionMethods: [FraudDetectionMethod.EXTERNAL_DATA],
     confidence: 0.75,
     metadata: {
       scoringId,
       supplierId: input.supplierId,
-      supplierName: input.supplierName
-    }
+      supplierName: input.supplierName,
+    },
   };
 }

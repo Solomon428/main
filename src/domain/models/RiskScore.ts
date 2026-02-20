@@ -1,4 +1,4 @@
-import { RiskLevel } from '../enums/RiskLevel';
+import { RiskLevel } from "../enums/RiskLevel";
 
 export interface RiskScore {
   id: string;

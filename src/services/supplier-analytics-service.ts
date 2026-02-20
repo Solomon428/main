@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/database/client';
+import { prisma } from "@/lib/database/client";
 
 export interface SupplierPerformanceMetrics {
   supplierId: string;
@@ -12,7 +12,7 @@ export interface SupplierPerformanceMetrics {
   disputeRate: number;
   qualityScore: number;
   riskLevel: string;
-  trend: 'improving' | 'stable' | 'declining';
+  trend: "improving" | "stable" | "declining";
 }
 
 export interface SupplierComparison {
@@ -41,7 +41,7 @@ export class SupplierAnalyticsService {
   static async getSupplierPerformance(
     supplierId: string,
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
   ): Promise<SupplierPerformanceMetrics | null> {
     const supplier = await prisma.suppliers.findUnique({
       where: { id: supplierId },
@@ -76,16 +76,23 @@ export class SupplierAnalyticsService {
         disputeRate: 0,
         qualityScore: 0,
         riskLevel: supplier.riskLevel,
-        trend: 'stable',
+        trend: "stable",
       };
     }
 
-    const totalAmount = invoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
-    const approvedInvoices = invoices.filter(inv => inv.status === 'APPROVED');
-    const disputedInvoices = invoices.filter(inv => inv.status === 'DISPUTED');
+    const totalAmount = invoices.reduce(
+      (sum, inv) => sum + Number(inv.totalAmount),
+      0,
+    );
+    const approvedInvoices = invoices.filter(
+      (inv) => inv.status === "APPROVED",
+    );
+    const disputedInvoices = invoices.filter(
+      (inv) => inv.status === "DISPUTED",
+    );
 
     // Calculate on-time delivery (invoices received before due date)
-    const onTimeInvoices = invoices.filter(inv => {
+    const onTimeInvoices = invoices.filter((inv) => {
       const receivedDate = new Date(inv.receivedDate);
       const dueDate = new Date(inv.dueDate);
       return receivedDate <= dueDate;
@@ -96,7 +103,7 @@ export class SupplierAnalyticsService {
     let approvalCount = 0;
 
     for (const invoice of invoices) {
-      const approved = invoice.approvals.find(a => a.status === 'APPROVED');
+      const approved = invoice.approvals.find((a) => a.status === "APPROVED");
       if (approved && approved.actionDate) {
         const received = new Date(invoice.receivedDate).getTime();
         const action = new Date(approved.actionDate).getTime();
@@ -117,15 +124,15 @@ export class SupplierAnalyticsService {
       secondHalf.reduce((sum, inv) => sum + Number(inv.totalAmount), 0) /
       (secondHalf.length || 1);
 
-    let trend: 'improving' | 'stable' | 'declining' = 'stable';
-    if (secondHalfAvg > firstHalfAvg * 1.1) trend = 'improving';
-    if (secondHalfAvg < firstHalfAvg * 0.9) trend = 'declining';
+    let trend: "improving" | "stable" | "declining" = "stable";
+    if (secondHalfAvg > firstHalfAvg * 1.1) trend = "improving";
+    if (secondHalfAvg < firstHalfAvg * 0.9) trend = "declining";
 
     // Calculate quality score (0-100)
     const qualityScore = Math.round(
       (onTimeInvoices.length / invoices.length) * 30 +
         (approvedInvoices.length / invoices.length) * 40 +
-        (1 - disputedInvoices.length / invoices.length) * 30
+        (1 - disputedInvoices.length / invoices.length) * 30,
     );
 
     return {
@@ -136,7 +143,8 @@ export class SupplierAnalyticsService {
       averageInvoiceAmount: totalAmount / invoices.length,
       onTimeDeliveryRate: (onTimeInvoices.length / invoices.length) * 100,
       approvalRate: (approvedInvoices.length / invoices.length) * 100,
-      averageApprovalTime: approvalCount > 0 ? totalApprovalTime / approvalCount : 0,
+      averageApprovalTime:
+        approvalCount > 0 ? totalApprovalTime / approvalCount : 0,
       disputeRate: (disputedInvoices.length / invoices.length) * 100,
       qualityScore,
       riskLevel: supplier.riskLevel,
@@ -149,7 +157,7 @@ export class SupplierAnalyticsService {
    */
   static async compareSuppliers(
     category: string,
-    limit: number = 10
+    limit: number = 10,
   ): Promise<SupplierComparison> {
     const suppliers = await prisma.suppliers.findMany({
       where: { category },
@@ -157,7 +165,7 @@ export class SupplierAnalyticsService {
     });
 
     const comparisonData = await Promise.all(
-      suppliers.map(async supplier => {
+      suppliers.map(async (supplier) => {
         const invoices = await prisma.invoices.findMany({
           where: { supplierId: supplier.id },
           include: { approvals: true },
@@ -165,14 +173,14 @@ export class SupplierAnalyticsService {
 
         const totalSpend = invoices.reduce(
           (sum, inv) => sum + Number(inv.totalAmount),
-          0
+          0,
         );
 
         // Calculate average processing time
         let totalTime = 0;
         let count = 0;
         for (const inv of invoices) {
-          const approved = inv.approvals.find(a => a.status === 'APPROVED');
+          const approved = inv.approvals.find((a) => a.status === "APPROVED");
           if (approved?.actionDate) {
             totalTime +=
               (new Date(approved.actionDate).getTime() -
@@ -190,7 +198,7 @@ export class SupplierAnalyticsService {
           avgProcessingTime: count > 0 ? totalTime / count : 0,
           priceCompetitiveness: 0, // Would need market data
         };
-      })
+      }),
     );
 
     return {
@@ -204,7 +212,7 @@ export class SupplierAnalyticsService {
    */
   static async getSpendingPatterns(
     supplierId: string,
-    months: number = 12
+    months: number = 12,
   ): Promise<SpendingPattern[]> {
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - months);
@@ -217,7 +225,7 @@ export class SupplierAnalyticsService {
       include: {
         lineItems: true,
       },
-      orderBy: { invoiceDate: 'asc' },
+      orderBy: { invoiceDate: "asc" },
     });
 
     // Group by month
@@ -225,9 +233,9 @@ export class SupplierAnalyticsService {
 
     for (const invoice of invoices) {
       const monthKey = invoice.invoiceDate.toISOString().slice(0, 7);
-      const monthLabel = invoice.invoiceDate.toLocaleDateString('en-US', {
-        month: 'short',
-        year: 'numeric',
+      const monthLabel = invoice.invoiceDate.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
       });
 
       if (!monthlyData[monthKey]) {
@@ -235,7 +243,7 @@ export class SupplierAnalyticsService {
           month: monthLabel,
           amount: 0,
           invoiceCount: 0,
-          topCategory: '',
+          topCategory: "",
         };
       }
 
@@ -244,7 +252,7 @@ export class SupplierAnalyticsService {
 
       // Determine top category
       const categories = invoice.lineItems
-        .map(li => li.category)
+        .map((li) => li.category)
         .filter(Boolean) as string[];
       if (categories.length > 0) {
         monthlyData[monthKey].topCategory = categories[0];
@@ -259,7 +267,7 @@ export class SupplierAnalyticsService {
    */
   static async getTopPerformers(
     limit: number = 10,
-    metric: 'volume' | 'value' | 'quality' = 'value'
+    metric: "volume" | "value" | "quality" = "value",
   ): Promise<
     Array<{
       supplierId: string;
@@ -275,27 +283,30 @@ export class SupplierAnalyticsService {
     });
 
     const performers = await Promise.all(
-      suppliers.map(async supplier => {
+      suppliers.map(async (supplier) => {
         const invoices = await prisma.invoices.findMany({
           where: { supplierId: supplier.id },
         });
 
         const totalAmount = invoices.reduce(
           (sum, inv) => sum + Number(inv.totalAmount),
-          0
+          0,
         );
 
         let metricValue = 0;
         switch (metric) {
-          case 'volume':
+          case "volume":
             metricValue = invoices.length;
             break;
-          case 'value':
+          case "value":
             metricValue = totalAmount;
             break;
-          case 'quality':
-            const approved = invoices.filter(inv => inv.status === 'APPROVED').length;
-            metricValue = invoices.length > 0 ? (approved / invoices.length) * 100 : 0;
+          case "quality":
+            const approved = invoices.filter(
+              (inv) => inv.status === "APPROVED",
+            ).length;
+            metricValue =
+              invoices.length > 0 ? (approved / invoices.length) * 100 : 0;
             break;
         }
 
@@ -306,12 +317,10 @@ export class SupplierAnalyticsService {
           totalInvoices: invoices.length,
           avgAmount: invoices.length > 0 ? totalAmount / invoices.length : 0,
         };
-      })
+      }),
     );
 
-    return performers
-      .sort((a, b) => b.metric - a.metric)
-      .slice(0, limit);
+    return performers.sort((a, b) => b.metric - a.metric).slice(0, limit);
   }
 
   /**
@@ -327,12 +336,12 @@ export class SupplierAnalyticsService {
     }>
   > {
     const categories = await prisma.suppliers.groupBy({
-      by: ['category'],
+      by: ["category"],
       _count: { id: true },
     });
 
     const opportunities = await Promise.all(
-      categories.map(async cat => {
+      categories.map(async (cat) => {
         const suppliers = await prisma.suppliers.findMany({
           where: { category: cat.category },
         });
@@ -344,7 +353,7 @@ export class SupplierAnalyticsService {
           });
           totalSpend += invoices.reduce(
             (sum, inv) => sum + Number(inv.totalAmount),
-            0
+            0,
           );
         }
 
@@ -361,11 +370,11 @@ export class SupplierAnalyticsService {
               ? `Consider consolidating ${suppliers.length} suppliers to 2-3 strategic partners`
               : `Current supplier count is optimal`,
         };
-      })
+      }),
     );
 
     return opportunities
-      .filter(o => o.supplierCount > 3)
+      .filter((o) => o.supplierCount > 3)
       .sort((a, b) => b.potentialSavings - a.potentialSavings);
   }
 
@@ -383,12 +392,12 @@ export class SupplierAnalyticsService {
   > {
     const highRiskSuppliers = await prisma.suppliers.findMany({
       where: {
-        riskLevel: { in: ['HIGH', 'CRITICAL'] },
+        riskLevel: { in: ["HIGH", "CRITICAL"] },
       },
     });
 
     const riskReport = await Promise.all(
-      highRiskSuppliers.map(async supplier => {
+      highRiskSuppliers.map(async (supplier) => {
         const riskFactors: string[] = [];
         const mitigations: string[] = [];
 
@@ -397,28 +406,34 @@ export class SupplierAnalyticsService {
           where: { supplierId: supplier.id },
         });
 
-        const lateInvoices = invoices.filter(inv => {
+        const lateInvoices = invoices.filter((inv) => {
           const received = new Date(inv.receivedDate);
           const due = new Date(inv.dueDate);
           return received > due;
         });
 
         if (lateInvoices.length > invoices.length * 0.2) {
-          riskFactors.push('Frequent late deliveries (>20%)');
-          mitigations.push('Implement SLA penalties', 'Identify backup suppliers');
+          riskFactors.push("Frequent late deliveries (>20%)");
+          mitigations.push(
+            "Implement SLA penalties",
+            "Identify backup suppliers",
+          );
         }
 
         // Check for quality issues
-        const disputed = invoices.filter(inv => inv.status === 'DISPUTED');
+        const disputed = invoices.filter((inv) => inv.status === "DISPUTED");
         if (disputed.length > invoices.length * 0.1) {
-          riskFactors.push('High dispute rate (>10%)');
-          mitigations.push('Conduct quality audit', 'Review contract terms');
+          riskFactors.push("High dispute rate (>10%)");
+          mitigations.push("Conduct quality audit", "Review contract terms");
         }
 
         // Check for single-source dependency
-        if (supplier.riskLevel === 'CRITICAL') {
-          riskFactors.push('Critical supplier - single point of failure');
-          mitigations.push('Develop alternative suppliers', 'Increase safety stock');
+        if (supplier.riskLevel === "CRITICAL") {
+          riskFactors.push("Critical supplier - single point of failure");
+          mitigations.push(
+            "Develop alternative suppliers",
+            "Increase safety stock",
+          );
         }
 
         return {
@@ -428,7 +443,7 @@ export class SupplierAnalyticsService {
           riskFactors,
           mitigations,
         };
-      })
+      }),
     );
 
     return riskReport;

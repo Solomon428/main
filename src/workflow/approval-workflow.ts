@@ -2,8 +2,12 @@
 // Approval Workflow Engine
 // ============================================================================
 
-import { prisma } from '../db/prisma';
-import { ApprovalStatus, ApprovalDecision, ApprovalChainType } from '../domain/enums';
+import { prisma } from "../db/prisma";
+import {
+  ApprovalStatus,
+  ApprovalDecision,
+  ApprovalChainType,
+} from "../domain/enums";
 
 interface WorkflowContext {
   invoiceId: string;
@@ -32,7 +36,9 @@ interface WorkflowResult {
 /**
  * Determine the appropriate approval chain for an invoice
  */
-export async function determineApprovalChain(context: WorkflowContext): Promise<WorkflowResult> {
+export async function determineApprovalChain(
+  context: WorkflowContext,
+): Promise<WorkflowResult> {
   try {
     // Find matching approval chains based on criteria
     const chains = await prisma.approvalChain.findMany({
@@ -42,36 +48,43 @@ export async function determineApprovalChain(context: WorkflowContext): Promise<
         minAmount: {
           lte: context.amount,
         },
-        OR: [
-          { maxAmount: null },
-          { maxAmount: { gte: context.amount } },
-        ],
+        OR: [{ maxAmount: null }, { maxAmount: { gte: context.amount } }],
       },
-      orderBy: { priority: 'desc' },
+      orderBy: { priority: "desc" },
     });
 
     // Find the best matching chain
-    const matchingChain = chains.find((chain: {
-      department: string | null;
-      category: string | null;
-      levels: unknown;
-      id: string;
-      priority: number;
-    }) => {
-      if (context.department && chain.department && chain.department !== context.department) {
-        return false;
-      }
-      if (context.category && chain.category && chain.category !== context.category) {
-        return false;
-      }
-      return true;
-    });
+    const matchingChain = chains.find(
+      (chain: {
+        department: string | null;
+        category: string | null;
+        levels: unknown;
+        id: string;
+        priority: number;
+      }) => {
+        if (
+          context.department &&
+          chain.department &&
+          chain.department !== context.department
+        ) {
+          return false;
+        }
+        if (
+          context.category &&
+          chain.category &&
+          chain.category !== context.category
+        ) {
+          return false;
+        }
+        return true;
+      },
+    );
 
     if (!matchingChain) {
       return {
         success: false,
         steps: [],
-        error: 'No matching approval chain found for this invoice',
+        error: "No matching approval chain found for this invoice",
       };
     }
 
@@ -85,8 +98,8 @@ export async function determineApprovalChain(context: WorkflowContext): Promise<
 
     const steps: ApprovalStep[] = levels.map((level, index) => ({
       level: level.level || index + 1,
-      approverId: level.specificApproverId || '',
-      approverRole: level.approverRole || '',
+      approverId: level.specificApproverId || "",
+      approverRole: level.approverRole || "",
       isRequired: level.isRequired !== false,
     }));
 
@@ -99,7 +112,10 @@ export async function determineApprovalChain(context: WorkflowContext): Promise<
     return {
       success: false,
       steps: [],
-      error: error instanceof Error ? error.message : 'Unknown error determining approval chain',
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unknown error determining approval chain",
     };
   }
 }
@@ -108,7 +124,7 @@ export async function determineApprovalChain(context: WorkflowContext): Promise<
  * Initialize the approval workflow for an invoice
  */
 export async function initializeApprovalWorkflow(
-  context: WorkflowContext
+  context: WorkflowContext,
 ): Promise<WorkflowResult> {
   const chainResult = await determineApprovalChain(context);
 
@@ -130,18 +146,19 @@ export async function initializeApprovalWorkflow(
             approverId: step.approverId,
             level: step.level,
             sequence: index + 1,
-            status: index === 0 ? ApprovalStatus.PENDING : ApprovalStatus.PENDING,
+            status:
+              index === 0 ? ApprovalStatus.PENDING : ApprovalStatus.PENDING,
             slaDueDate,
           },
         });
-      })
+      }),
     );
 
     // Update invoice status
     await prisma.invoice.update({
       where: { id: context.invoiceId },
       data: {
-        status: 'PENDING_APPROVAL',
+        status: "PENDING_APPROVAL",
         currentApproverId: approvals[0]?.approverId || null,
       },
     });
@@ -155,7 +172,10 @@ export async function initializeApprovalWorkflow(
     return {
       success: false,
       steps: chainResult.steps,
-      error: error instanceof Error ? error.message : 'Failed to initialize approval workflow',
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to initialize approval workflow",
     };
   }
 }
@@ -167,7 +187,7 @@ export async function processApprovalDecision(
   approvalId: string,
   decision: ApprovalDecision,
   decidedById: string,
-  notes?: string
+  notes?: string,
 ): Promise<{
   success: boolean;
   nextApprovalId?: string;
@@ -185,7 +205,7 @@ export async function processApprovalDecision(
     });
 
     if (!approval) {
-      return { success: false, error: 'Approval not found' };
+      return { success: false, error: "Approval not found" };
     }
 
     // Update the approval with the decision
@@ -194,7 +214,10 @@ export async function processApprovalDecision(
       data: {
         decision,
         decisionNotes: notes,
-        status: decision === ApprovalDecision.APPROVED ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED,
+        status:
+          decision === ApprovalDecision.APPROVED
+            ? ApprovalStatus.APPROVED
+            : ApprovalStatus.REJECTED,
         actionedAt: new Date(),
         approvedAt: decision === ApprovalDecision.APPROVED ? new Date() : null,
         rejectedAt: decision === ApprovalDecision.REJECTED ? new Date() : null,
@@ -206,7 +229,7 @@ export async function processApprovalDecision(
       await prisma.invoice.update({
         where: { id: approval.invoiceId },
         data: {
-          status: 'REJECTED',
+          status: "REJECTED",
           currentApproverId: null,
         },
       });
@@ -224,7 +247,7 @@ export async function processApprovalDecision(
         status: ApprovalStatus.PENDING,
         sequence: { gt: approval.sequence },
       },
-      orderBy: { sequence: 'asc' },
+      orderBy: { sequence: "asc" },
     });
 
     if (nextApproval) {
@@ -256,7 +279,7 @@ export async function processApprovalDecision(
     await prisma.invoice.update({
       where: { id: approval.invoiceId },
       data: {
-        status: 'APPROVED',
+        status: "APPROVED",
         currentApproverId: null,
         approvedAt: new Date(),
       },
@@ -269,7 +292,10 @@ export async function processApprovalDecision(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to process approval decision',
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to process approval decision",
     };
   }
 }
@@ -280,7 +306,7 @@ export async function processApprovalDecision(
 export async function escalateApproval(
   approvalId: string,
   reason: string,
-  escalateToId: string
+  escalateToId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await prisma.approval.update({
@@ -298,7 +324,8 @@ export async function escalateApproval(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to escalate approval',
+      error:
+        error instanceof Error ? error.message : "Failed to escalate approval",
     };
   }
 }
@@ -333,13 +360,15 @@ export async function checkSLABreaches(): Promise<{
           // Escalate to next level or admin
           await escalateApproval(
             approval.id,
-            'SLA breach - automatic escalation',
-            approval.approvalChain?.organizationId || '' // Would typically be a manager or admin ID
+            "SLA breach - automatic escalation",
+            approval.approvalChain?.organizationId || "", // Would typically be a manager or admin ID
           );
           escalated++;
         }
       } catch (error) {
-        errors.push(`Failed to escalate approval ${approval.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        errors.push(
+          `Failed to escalate approval ${approval.id}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
       }
     }
 
@@ -347,7 +376,11 @@ export async function checkSLABreaches(): Promise<{
   } catch (error) {
     return {
       escalated,
-      errors: [error instanceof Error ? error.message : 'Unknown error checking SLA breaches'],
+      errors: [
+        error instanceof Error
+          ? error.message
+          : "Unknown error checking SLA breaches",
+      ],
     };
   }
 }

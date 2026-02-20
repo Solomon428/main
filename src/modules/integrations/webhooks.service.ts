@@ -2,11 +2,11 @@
 // Webhooks Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export async function listWebhooks() {
   return prisma.webhook.findMany({
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 }
 
@@ -35,7 +35,11 @@ export async function deleteWebhook(id: string) {
   });
 }
 
-export async function triggerWebhook(webhookId: string, event: string, payload: any) {
+export async function triggerWebhook(
+  webhookId: string,
+  event: string,
+  payload: any,
+) {
   const webhook = await prisma.webhook.findUnique({
     where: { id: webhookId },
   });

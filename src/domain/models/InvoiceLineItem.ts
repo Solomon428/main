@@ -1,4 +1,4 @@
-import { MatchingStatus } from '../enums/MatchingStatus';
+import { MatchingStatus } from "../enums/MatchingStatus";
 
 export interface InvoiceLineItem {
   id: string;

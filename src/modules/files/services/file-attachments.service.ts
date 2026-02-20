@@ -1,10 +1,10 @@
-import { prisma } from '@/lib/prisma';
-import { FileAttachment, Prisma } from '@prisma/client';
-import { logger } from '@/lib/logger';
-import { AppError } from '@/lib/errors';
-import { auditService } from '@/lib/audit/audit.service';
-import { AuditAction, EntityType } from '@/domain/enums';
-import { FileAttachmentWithRelations } from '../types/file-types';
+import { prisma } from "@/lib/prisma";
+import { FileAttachment, Prisma } from "@prisma/client";
+import { logger } from "@/lib/logger";
+import { AppError } from "@/lib/errors";
+import { auditService } from "@/lib/audit/audit.service";
+import { AuditAction, EntityType } from "@/domain/enums";
+import { FileAttachmentWithRelations } from "../types/file-types";
 
 export interface CreateFileAttachmentInput {
   fileName: string;
@@ -49,7 +49,9 @@ export class FileAttachmentsService {
   /**
    * Create a new file attachment record
    */
-  async createFileAttachment(input: CreateFileAttachmentInput): Promise<FileAttachment> {
+  async createFileAttachment(
+    input: CreateFileAttachmentInput,
+  ): Promise<FileAttachment> {
     try {
       const file = await prisma.fileAttachment.create({
         data: {
@@ -62,17 +64,24 @@ export class FileAttachmentsService {
           entityId: input.entityId,
           organizationId: input.organizationId,
           uploadedById: input.uploadedById,
-          processingStatus: input.processingStatus || 'PENDING',
+          processingStatus: input.processingStatus || "PENDING",
           metadata: input.metadata as Prisma.JsonValue,
         },
       });
 
-      logger.info({ fileId: file.id, fileName: file.fileName }, 'File attachment created');
+      logger.info(
+        { fileId: file.id, fileName: file.fileName },
+        "File attachment created",
+      );
 
       return file;
     } catch (error) {
-      logger.error({ error, input }, 'Failed to create file attachment');
-      throw new AppError('Failed to create file attachment', 'FILE_CREATE_ERROR', 500);
+      logger.error({ error, input }, "Failed to create file attachment");
+      throw new AppError(
+        "Failed to create file attachment",
+        "FILE_CREATE_ERROR",
+        500,
+      );
     }
   }
 
@@ -81,7 +90,7 @@ export class FileAttachmentsService {
    */
   async getFileAttachmentById(
     fileId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<FileAttachmentWithRelations> {
     const file = await prisma.fileAttachment.findUnique({
       where: { id: fileId },
@@ -96,11 +105,11 @@ export class FileAttachmentsService {
     });
 
     if (!file) {
-      throw new AppError('File not found', 'FILE_NOT_FOUND', 404);
+      throw new AppError("File not found", "FILE_NOT_FOUND", 404);
     }
 
     if (file.organizationId !== organizationId) {
-      throw new AppError('Access denied to file', 'ACCESS_DENIED', 403);
+      throw new AppError("Access denied to file", "ACCESS_DENIED", 403);
     }
 
     return file;
@@ -113,7 +122,7 @@ export class FileAttachmentsService {
     fileId: string,
     organizationId: string,
     input: UpdateFileAttachmentInput,
-    userId: string
+    userId: string,
   ): Promise<FileAttachment> {
     const file = await this.getFileAttachmentById(fileId, organizationId);
 
@@ -121,7 +130,9 @@ export class FileAttachmentsService {
       where: { id: fileId },
       data: {
         ...(input.fileName && { fileName: input.fileName }),
-        ...(input.processingStatus && { processingStatus: input.processingStatus }),
+        ...(input.processingStatus && {
+          processingStatus: input.processingStatus,
+        }),
         ...(input.entityType && { entityType: input.entityType }),
         ...(input.entityId && { entityId: input.entityId }),
         ...(input.metadata && { metadata: input.metadata as Prisma.JsonValue }),
@@ -140,7 +151,7 @@ export class FileAttachmentsService {
       },
     });
 
-    logger.info({ fileId, changes: input }, 'File attachment updated');
+    logger.info({ fileId, changes: input }, "File attachment updated");
 
     return updatedFile;
   }
@@ -151,7 +162,7 @@ export class FileAttachmentsService {
   async deleteFileAttachment(
     fileId: string,
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<void> {
     const file = await this.getFileAttachmentById(fileId, organizationId);
 
@@ -174,13 +185,15 @@ export class FileAttachmentsService {
       },
     });
 
-    logger.info({ fileId }, 'File attachment deleted');
+    logger.info({ fileId }, "File attachment deleted");
   }
 
   /**
    * List file attachments with filtering and pagination
    */
-  async listFileAttachments(options: FileFilterOptions): Promise<FileListResult> {
+  async listFileAttachments(
+    options: FileFilterOptions,
+  ): Promise<FileListResult> {
     const {
       organizationId,
       entityType,
@@ -201,8 +214,8 @@ export class FileAttachmentsService {
       ...(status && { processingStatus: status }),
       ...(search && {
         OR: [
-          { fileName: { contains: search, mode: 'insensitive' } },
-          { originalName: { contains: search, mode: 'insensitive' } },
+          { fileName: { contains: search, mode: "insensitive" } },
+          { originalName: { contains: search, mode: "insensitive" } },
         ],
       }),
     };
@@ -212,7 +225,7 @@ export class FileAttachmentsService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           uploadedBy: {
             select: { id: true, name: true, email: true },
@@ -236,7 +249,7 @@ export class FileAttachmentsService {
   async getFilesByEntity(
     entityType: EntityType,
     entityId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<FileAttachmentWithRelations[]> {
     return prisma.fileAttachment.findMany({
       where: {
@@ -244,7 +257,7 @@ export class FileAttachmentsService {
         entityId,
         organizationId,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         uploadedBy: {
           select: { id: true, name: true, email: true },
@@ -259,7 +272,7 @@ export class FileAttachmentsService {
   async updateFileStatus(
     fileId: string,
     processingStatus: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<FileAttachment> {
     return prisma.fileAttachment.update({
       where: { id: fileId },
@@ -276,14 +289,15 @@ export class FileAttachmentsService {
   async bulkDeleteFiles(
     fileIds: string[],
     userId: string,
-    organizationId: string
+    organizationId: string,
   ): Promise<{
     total: number;
     successful: number;
     failed: number;
     results: Array<{ fileId: string; success: boolean; error?: string }>;
   }> {
-    const results: Array<{ fileId: string; success: boolean; error?: string }> = [];
+    const results: Array<{ fileId: string; success: boolean; error?: string }> =
+      [];
 
     for (const fileId of fileIds) {
       try {
@@ -293,7 +307,7 @@ export class FileAttachmentsService {
         results.push({
           fileId,
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
@@ -318,12 +332,12 @@ export class FileAttachmentsService {
     const [total, byStatus, byEntityType, sizeResult] = await Promise.all([
       prisma.fileAttachment.count({ where: { organizationId } }),
       prisma.fileAttachment.groupBy({
-        by: ['processingStatus'],
+        by: ["processingStatus"],
         where: { organizationId },
         _count: { processingStatus: true },
       }),
       prisma.fileAttachment.groupBy({
-        by: ['entityType'],
+        by: ["entityType"],
         where: { organizationId },
         _count: { entityType: true },
       }),
@@ -334,10 +348,10 @@ export class FileAttachmentsService {
     ]);
 
     const statusCounts: Record<string, number> = {
-      'PENDING': 0,
-      'PROCESSING': 0,
-      'COMPLETED': 0,
-      'ERROR': 0,
+      PENDING: 0,
+      PROCESSING: 0,
+      COMPLETED: 0,
+      ERROR: 0,
     };
     byStatus.forEach((item) => {
       statusCounts[item.processingStatus] = item._count.processingStatus;
@@ -345,7 +359,7 @@ export class FileAttachmentsService {
 
     const entityTypeCounts: Record<string, number> = {};
     byEntityType.forEach((item) => {
-      entityTypeCounts[item.entityType || 'UNKNOWN'] = item._count.entityType;
+      entityTypeCounts[item.entityType || "UNKNOWN"] = item._count.entityType;
     });
 
     return {

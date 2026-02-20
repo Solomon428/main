@@ -8,16 +8,16 @@
 // - Payment reconciliation
 // ============================================================================
 
-import { prisma } from '@/lib/database/client';
-import { NotificationService } from '@/services/notification-service';
-import { auditLogger } from '@/lib/utils/audit-logger';
+import { prisma } from "@/lib/database/client";
+import { NotificationService } from "@/services/notification-service";
+import { auditLogger } from "@/lib/utils/audit-logger";
 import {
   InvoiceStatus,
   PaymentMethod,
   BatchStatus,
   EntityType,
   LogSeverity,
-} from '@/types';
+} from "@/types";
 
 export interface PaymentBatchInput {
   invoiceIds: string[];
@@ -40,8 +40,11 @@ export class PaymentWorkflow {
   /**
    * Create a payment batch
    */
-  static async createPaymentBatch(input: PaymentBatchInput): Promise<PaymentBatchResult> {
-    const { invoiceIds, paymentDate, paymentMethod, bankAccount, createdById } = input;
+  static async createPaymentBatch(
+    input: PaymentBatchInput,
+  ): Promise<PaymentBatchResult> {
+    const { invoiceIds, paymentDate, paymentMethod, bankAccount, createdById } =
+      input;
     const errors: string[] = [];
 
     // Validate invoices
@@ -53,9 +56,11 @@ export class PaymentWorkflow {
     });
 
     if (invoices.length !== invoiceIds.length) {
-      const foundIds = invoices.map(inv => inv.id);
-      const missingIds = invoiceIds.filter(id => !foundIds.includes(id));
-      errors.push(`Invoices not found or not ready for payment: ${missingIds.join(', ')}`);
+      const foundIds = invoices.map((inv) => inv.id);
+      const missingIds = invoiceIds.filter((id) => !foundIds.includes(id));
+      errors.push(
+        `Invoices not found or not ready for payment: ${missingIds.join(", ")}`,
+      );
     }
 
     if (invoices.length === 0) {
@@ -63,14 +68,14 @@ export class PaymentWorkflow {
         success: false,
         totalAmount: 0,
         invoiceCount: 0,
-        errors: [...errors, 'No valid invoices for payment batch'],
+        errors: [...errors, "No valid invoices for payment batch"],
       };
     }
 
     // Calculate totals
     const totalAmount = invoices.reduce(
       (sum, inv) => sum + Number(inv.amountDue),
-      0
+      0,
     );
 
     // Generate batch number
@@ -92,7 +97,7 @@ export class PaymentWorkflow {
     // Update invoices with batch ID
     await prisma.invoices.updateMany({
       where: {
-        id: { in: invoices.map(inv => inv.id) },
+        id: { in: invoices.map((inv) => inv.id) },
       },
       data: {
         paymentBatchId: batch.id,
@@ -102,7 +107,7 @@ export class PaymentWorkflow {
 
     // Log batch creation
     await auditLogger.log({
-      action: 'CREATE',
+      action: "CREATE",
       entityType: EntityType.PAYMENT,
       entityId: batch.id,
       entityDescription: `Payment batch created: ${batchNumber}`,
@@ -131,18 +136,21 @@ export class PaymentWorkflow {
    */
   static async releaseBatch(
     batchId: string,
-    releasedById: string
+    releasedById: string,
   ): Promise<{ success: boolean; message: string }> {
     const batch = await prisma.payment_batches.findUnique({
       where: { id: batchId },
     });
 
     if (!batch) {
-      return { success: false, message: 'Batch not found' };
+      return { success: false, message: "Batch not found" };
     }
 
     if (batch.status !== BatchStatus.PENDING) {
-      return { success: false, message: `Batch is already ${batch.status.toLowerCase()}` };
+      return {
+        success: false,
+        message: `Batch is already ${batch.status.toLowerCase()}`,
+      };
     }
 
     // Update batch
@@ -175,7 +183,7 @@ export class PaymentWorkflow {
 
     // Log release
     await auditLogger.log({
-      action: 'UPDATE',
+      action: "UPDATE",
       entityType: EntityType.PAYMENT,
       entityId: batchId,
       entityDescription: `Payment batch released: ${batch.batchNumber}`,
@@ -183,7 +191,7 @@ export class PaymentWorkflow {
       userId: releasedById,
     });
 
-    return { success: true, message: 'Batch released successfully' };
+    return { success: true, message: "Batch released successfully" };
   }
 
   /**
@@ -193,7 +201,7 @@ export class PaymentWorkflow {
     invoiceId: string,
     amountPaid: number,
     paymentReference: string,
-    paidById: string
+    paidById: string,
   ) {
     const invoice = await prisma.invoices.update({
       where: { id: invoiceId },
@@ -206,7 +214,7 @@ export class PaymentWorkflow {
     });
 
     await auditLogger.log({
-      action: 'UPDATE',
+      action: "UPDATE",
       entityType: EntityType.INVOICE,
       entityId: invoiceId,
       entityDescription: `Invoice marked as paid: ${invoice.invoiceNumber}`,
@@ -222,9 +230,9 @@ export class PaymentWorkflow {
     if (invoice.createdById) {
       await NotificationService.sendNotification({
         userId: invoice.createdById,
-        title: 'Invoice Paid',
+        title: "Invoice Paid",
         message: `Invoice ${invoice.invoiceNumber} has been paid (R${amountPaid.toLocaleString()})`,
-        type: 'INVOICE_APPROVED',
+        type: "INVOICE_APPROVED",
       });
     }
 
@@ -237,7 +245,7 @@ export class PaymentWorkflow {
   static async getPaymentBatches(status?: BatchStatus) {
     return prisma.payment_batches.findMany({
       where: status ? { status } : undefined,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -249,14 +257,18 @@ export class PaymentWorkflow {
       where: {
         status: InvoiceStatus.READY_FOR_PAYMENT,
       },
-      orderBy: { dueDate: 'asc' },
+      orderBy: { dueDate: "asc" },
     });
   }
 
   /**
    * Cancel payment batch
    */
-  static async cancelBatch(batchId: string, cancelledById: string, reason: string) {
+  static async cancelBatch(
+    batchId: string,
+    cancelledById: string,
+    reason: string,
+  ) {
     const batch = await prisma.payment_batches.update({
       where: { id: batchId },
       data: {
@@ -274,7 +286,7 @@ export class PaymentWorkflow {
     });
 
     await auditLogger.log({
-      action: 'DELETE',
+      action: "DELETE",
       entityType: EntityType.PAYMENT,
       entityId: batchId,
       entityDescription: `Payment batch cancelled: ${batch.batchNumber}`,

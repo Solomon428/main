@@ -2,13 +2,13 @@
 // Task Handler Registry
 // ============================================================================
 
-import { ScheduledTask } from '../../domain/models/ScheduledTask';
-import { ScheduledTaskType } from '../../domain/enums/ScheduledTaskType';
+import { ScheduledTask } from "../../domain/models/ScheduledTask";
+import { ScheduledTaskType } from "../../domain/enums/ScheduledTaskType";
 
 // Task handler type
 export type TaskHandler = (
   task: ScheduledTask,
-  signal: AbortSignal
+  signal: AbortSignal,
 ) => Promise<void>;
 
 // Registry of task handlers
@@ -19,7 +19,7 @@ const handlers = new Map<ScheduledTaskType, TaskHandler>();
  */
 export function registerTaskHandler(
   type: ScheduledTaskType,
-  handler: TaskHandler
+  handler: TaskHandler,
 ): void {
   handlers.set(type, handler);
 }
@@ -27,7 +27,9 @@ export function registerTaskHandler(
 /**
  * Get a task handler
  */
-export function getTaskHandler(type: ScheduledTaskType): TaskHandler | undefined {
+export function getTaskHandler(
+  type: ScheduledTaskType,
+): TaskHandler | undefined {
   return handlers.get(type);
 }
 
@@ -64,19 +66,55 @@ export function clearHandlers(): void {
 export async function registerBuiltInHandlers(): Promise<void> {
   // Import task modules dynamically to avoid circular dependencies
   const taskModules = [
-    { type: ScheduledTaskType.INVOICE_PROCESSING, path: '../tasks/invoice-processing.task' },
-    { type: ScheduledTaskType.APPROVAL_ESCALATION, path: '../tasks/approval-escalation.task' },
-    { type: ScheduledTaskType.APPROVAL_REMINDER, path: '../tasks/approval-reminder.task' },
-    { type: ScheduledTaskType.PAYMENT_PROCESSING, path: '../tasks/payment-processing.task' },
-    { type: ScheduledTaskType.RECONCILIATION, path: '../tasks/reconciliation.task' },
-    { type: ScheduledTaskType.RISK_ASSESSMENT, path: '../tasks/risk-assessment.task' },
-    { type: ScheduledTaskType.COMPLIANCE_CHECK, path: '../tasks/compliance-check.task' },
-    { type: ScheduledTaskType.REPORT_GENERATION, path: '../tasks/report-generation.task' },
-    { type: ScheduledTaskType.DATA_CLEANUP, path: '../tasks/data-cleanup.task' },
-    { type: ScheduledTaskType.BACKUP, path: '../tasks/backup.task' },
-    { type: ScheduledTaskType.NOTIFICATION_DIGEST, path: '../tasks/notification-digest.task' },
-    { type: ScheduledTaskType.AUDIT_LOG_ARCHIVE, path: '../tasks/audit-log-archive.task' },
-    { type: ScheduledTaskType.SUPPLIER_RATING_UPDATE, path: '../tasks/supplier-rating-update.task' },
+    {
+      type: ScheduledTaskType.INVOICE_PROCESSING,
+      path: "../tasks/invoice-processing.task",
+    },
+    {
+      type: ScheduledTaskType.APPROVAL_ESCALATION,
+      path: "../tasks/approval-escalation.task",
+    },
+    {
+      type: ScheduledTaskType.APPROVAL_REMINDER,
+      path: "../tasks/approval-reminder.task",
+    },
+    {
+      type: ScheduledTaskType.PAYMENT_PROCESSING,
+      path: "../tasks/payment-processing.task",
+    },
+    {
+      type: ScheduledTaskType.RECONCILIATION,
+      path: "../tasks/reconciliation.task",
+    },
+    {
+      type: ScheduledTaskType.RISK_ASSESSMENT,
+      path: "../tasks/risk-assessment.task",
+    },
+    {
+      type: ScheduledTaskType.COMPLIANCE_CHECK,
+      path: "../tasks/compliance-check.task",
+    },
+    {
+      type: ScheduledTaskType.REPORT_GENERATION,
+      path: "../tasks/report-generation.task",
+    },
+    {
+      type: ScheduledTaskType.DATA_CLEANUP,
+      path: "../tasks/data-cleanup.task",
+    },
+    { type: ScheduledTaskType.BACKUP, path: "../tasks/backup.task" },
+    {
+      type: ScheduledTaskType.NOTIFICATION_DIGEST,
+      path: "../tasks/notification-digest.task",
+    },
+    {
+      type: ScheduledTaskType.AUDIT_LOG_ARCHIVE,
+      path: "../tasks/audit-log-archive.task",
+    },
+    {
+      type: ScheduledTaskType.SUPPLIER_RATING_UPDATE,
+      path: "../tasks/supplier-rating-update.task",
+    },
   ];
 
   for (const { type, path } of taskModules) {

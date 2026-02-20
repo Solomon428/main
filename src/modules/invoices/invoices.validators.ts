@@ -1,19 +1,19 @@
-import { z } from 'zod';
-import { InvoiceStatus } from '../../domain/enums/InvoiceStatus';
-import { Currency } from '../../enums/Currency';
-import { PaymentMethod } from '../../domain/enums/PaymentMethod';
+import { z } from "zod";
+import { InvoiceStatus } from "../../domain/enums/InvoiceStatus";
+import { Currency } from "../../enums/Currency";
+import { PaymentMethod } from "../../domain/enums/PaymentMethod";
 
-const decimalSchema = z.union([z.string(), z.number()]).transform(val => 
-  typeof val === 'string' ? parseFloat(val) : val
-);
+const decimalSchema = z
+  .union([z.string(), z.number()])
+  .transform((val) => (typeof val === "string" ? parseFloat(val) : val));
 
 export const lineItemSchema = z.object({
-  description: z.string().min(1, 'Description is required'),
+  description: z.string().min(1, "Description is required"),
   productCode: z.string().optional(),
   sku: z.string().optional(),
   quantity: decimalSchema.default(1),
   unitPrice: decimalSchema,
-  unitOfMeasure: z.string().default('EA'),
+  unitOfMeasure: z.string().default("EA"),
   vatRate: decimalSchema.default(15),
   glCode: z.string().optional(),
   costCenter: z.string().optional(),
@@ -24,7 +24,7 @@ export const lineItemSchema = z.object({
 
 export const createInvoiceSchema = z.object({
   supplierId: z.string().uuid().optional(),
-  invoiceNumber: z.string().min(1, 'Invoice number is required'),
+  invoiceNumber: z.string().min(1, "Invoice number is required"),
   referenceNumber: z.string().optional(),
   purchaseOrderNumber: z.string().optional(),
   contractNumber: z.string().optional(),
@@ -49,19 +49,21 @@ export const createInvoiceSchema = z.object({
   internalNotes: z.string().optional(),
   tags: z.array(z.string()).default([]),
   isUrgent: z.boolean().default(false),
-  lineItems: z.array(lineItemSchema).min(1, 'At least one line item is required'),
+  lineItems: z
+    .array(lineItemSchema)
+    .min(1, "At least one line item is required"),
 });
 
 export const updateInvoiceSchema = createInvoiceSchema.partial();
 
 export const approveInvoiceSchema = z.object({
-  decision: z.enum(['APPROVE', 'REJECT']),
+  decision: z.enum(["APPROVE", "REJECT"]),
   notes: z.string().optional(),
 });
 
 export const bulkInvoiceActionSchema = z.object({
   invoiceIds: z.array(z.string().uuid()).min(1),
-  action: z.enum(['APPROVE', 'REJECT', 'DELETE', 'EXPORT']),
+  action: z.enum(["APPROVE", "REJECT", "DELETE", "EXPORT"]),
   notes: z.string().optional(),
 });
 

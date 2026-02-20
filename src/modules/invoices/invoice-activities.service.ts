@@ -2,7 +2,7 @@
 // Invoice Activities Service
 // ============================================================================
 
-import { prisma } from '../../db/prisma';
+import { prisma } from "../../db/prisma";
 
 export interface CreateActivityInput {
   invoiceId: string;
@@ -31,10 +31,13 @@ export interface ActivityQueryOptions {
 /**
  * List activities for an invoice with pagination
  */
-export async function listInvoiceActivities(invoiceId: string, options?: {
-  page?: number;
-  limit?: number;
-}) {
+export async function listInvoiceActivities(
+  invoiceId: string,
+  options?: {
+    page?: number;
+    limit?: number;
+  },
+) {
   const page = options?.page || 1;
   const limit = options?.limit || 50;
   const skip = (page - 1) * limit;
@@ -50,7 +53,7 @@ export async function listInvoiceActivities(invoiceId: string, options?: {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
@@ -94,7 +97,7 @@ export async function createInvoiceActivity(data: CreateActivityInput) {
     data: {
       invoiceId: data.invoiceId,
       actorId: data.actorId,
-      actorType: data.actorType || 'USER',
+      actorType: data.actorType || "USER",
       actorName: data.actorName,
       action: data.action,
       description: data.description,
@@ -124,13 +127,13 @@ export async function logStatusChange(
   newStatus: string,
   actorId?: string,
   actorName?: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ) {
   return createInvoiceActivity({
     invoiceId,
     actorId,
     actorName,
-    action: 'STATUS_CHANGE',
+    action: "STATUS_CHANGE",
     description: `Status changed from ${oldStatus} to ${newStatus}`,
     oldValue: { status: oldStatus },
     newValue: { status: newStatus },
@@ -143,17 +146,17 @@ export async function logStatusChange(
  */
 export async function logApprovalAction(
   invoiceId: string,
-  action: 'APPROVED' | 'REJECTED' | 'DELEGATED' | 'ESCALATED',
+  action: "APPROVED" | "REJECTED" | "DELEGATED" | "ESCALATED",
   approverId: string,
   approverName: string,
   notes?: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ) {
   const actionDescriptions: Record<string, string> = {
-    APPROVED: 'Invoice approved',
-    REJECTED: 'Invoice rejected',
-    DELEGATED: 'Approval delegated',
-    ESCALATED: 'Approval escalated',
+    APPROVED: "Invoice approved",
+    REJECTED: "Invoice rejected",
+    DELEGATED: "Approval delegated",
+    ESCALATED: "Approval escalated",
   };
 
   return createInvoiceActivity({
@@ -172,17 +175,17 @@ export async function logApprovalAction(
 export async function logPaymentAction(
   invoiceId: string,
   paymentId: string,
-  action: 'SCHEDULED' | 'PROCESSED' | 'FAILED' | 'RECONCILED',
+  action: "SCHEDULED" | "PROCESSED" | "FAILED" | "RECONCILED",
   actorId?: string,
   actorName?: string,
   amount?: number,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ) {
   const actionDescriptions: Record<string, string> = {
-    SCHEDULED: 'Payment scheduled',
-    PROCESSED: 'Payment processed',
-    FAILED: 'Payment failed',
-    RECONCILED: 'Payment reconciled',
+    SCHEDULED: "Payment scheduled",
+    PROCESSED: "Payment processed",
+    FAILED: "Payment failed",
+    RECONCILED: "Payment reconciled",
   };
 
   return createInvoiceActivity({
@@ -190,8 +193,8 @@ export async function logPaymentAction(
     actorId,
     actorName,
     action: `PAYMENT_${action}`,
-    description: amount 
-      ? `${actionDescriptions[action]} for ${amount}` 
+    description: amount
+      ? `${actionDescriptions[action]} for ${amount}`
       : actionDescriptions[action],
     metadata: {
       ...metadata,
@@ -233,7 +236,7 @@ export async function queryActivities(options: ActivityQueryOptions) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),
@@ -257,7 +260,7 @@ export async function queryActivities(options: ActivityQueryOptions) {
 export async function getInvoiceTimeline(invoiceId: string) {
   const activities = await prisma.invoiceActivity.findMany({
     where: { invoiceId },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: "asc" },
   });
 
   return activities.map((activity, index) => ({
@@ -296,7 +299,7 @@ export async function getRecentActivities(options?: {
         },
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: options?.limit || 20,
   });
 }

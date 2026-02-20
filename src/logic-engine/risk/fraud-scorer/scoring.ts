@@ -24,15 +24,15 @@ import type {
   FraudAlertPriority,
   FraudEscalationPath,
   FraudConfidenceInterval,
-  FraudMitigationAction
-} from '../types';
+  FraudMitigationAction,
+} from "../types";
 import {
   RISK_WEIGHTS,
   RISK_THRESHOLDS,
   CONFIDENCE_INTERVALS,
   ALERT_PRIORITIES,
-  MITIGATION_ACTIONS
-} from '../constants';
+  MITIGATION_ACTIONS,
+} from "../constants";
 
 /**
  * Aggregate weighted risk scores from all dimensions
@@ -49,10 +49,10 @@ export function aggregateRiskScores(
   vatComplianceRisk: VATComplianceRiskAnalysis,
   regulatoryRisk: RegulatoryRiskAnalysis,
   context?: FraudScoringContext,
-  scoringId?: string
+  scoringId?: string,
 ): AggregatedRiskAnalysis {
   // Calculate weighted score
-  const weightedScore = (
+  const weightedScore =
     amountRisk.score * RISK_WEIGHTS.AMOUNT_RISK +
     supplierAgeRisk.score * RISK_WEIGHTS.SUPPLIER_AGE_RISK +
     supplierRiskProfile.score * RISK_WEIGHTS.SUPPLIER_RISK_PROFILE +
@@ -62,15 +62,14 @@ export function aggregateRiskScores(
     behavioralRisk.score * RISK_WEIGHTS.BEHAVIORAL_RISK +
     networkRisk.score * RISK_WEIGHTS.NETWORK_RISK +
     vatComplianceRisk.score * RISK_WEIGHTS.VAT_COMPLIANCE_RISK +
-    regulatoryRisk.score * RISK_WEIGHTS.REGULATORY_RISK
-  );
+    regulatoryRisk.score * RISK_WEIGHTS.REGULATORY_RISK;
 
   // Apply context-based adjustments
   let adjustedScore = weightedScore;
 
-  if (context?.businessUnitRiskAppetite === 'LOW') {
+  if (context?.businessUnitRiskAppetite === "LOW") {
     adjustedScore *= 1.2; // Increase score for low-risk appetite business units
-  } else if (context?.businessUnitRiskAppetite === 'HIGH') {
+  } else if (context?.businessUnitRiskAppetite === "HIGH") {
     adjustedScore *= 0.9; // Decrease score for high-risk appetite business units
   }
 
@@ -90,7 +89,7 @@ export function aggregateRiskScores(
       behavioralRisk: behavioralRisk.score,
       networkRisk: networkRisk.score,
       vatComplianceRisk: vatComplianceRisk.score,
-      regulatoryRisk: regulatoryRisk.score
+      regulatoryRisk: regulatoryRisk.score,
     },
     riskFactors: [
       ...amountRisk.riskFactors,
@@ -102,21 +101,23 @@ export function aggregateRiskScores(
       ...behavioralRisk.riskFactors,
       ...networkRisk.riskFactors,
       ...vatComplianceRisk.riskFactors,
-      ...regulatoryRisk.riskFactors
+      ...regulatoryRisk.riskFactors,
     ],
-    detectionMethods: Array.from(new Set([
-      ...amountRisk.detectionMethods,
-      ...supplierAgeRisk.detectionMethods,
-      ...supplierRiskProfile.detectionMethods,
-      ...paymentPatternRisk.detectionMethods,
-      ...temporalAnomalyRisk.detectionMethods,
-      ...geographicRisk.detectionMethods,
-      ...behavioralRisk.detectionMethods,
-      ...networkRisk.detectionMethods,
-      ...vatComplianceRisk.detectionMethods,
-      ...regulatoryRisk.detectionMethods
-    ])),
-    confidence: (
+    detectionMethods: Array.from(
+      new Set([
+        ...amountRisk.detectionMethods,
+        ...supplierAgeRisk.detectionMethods,
+        ...supplierRiskProfile.detectionMethods,
+        ...paymentPatternRisk.detectionMethods,
+        ...temporalAnomalyRisk.detectionMethods,
+        ...geographicRisk.detectionMethods,
+        ...behavioralRisk.detectionMethods,
+        ...networkRisk.detectionMethods,
+        ...vatComplianceRisk.detectionMethods,
+        ...regulatoryRisk.detectionMethods,
+      ]),
+    ),
+    confidence:
       amountRisk.confidence * RISK_WEIGHTS.AMOUNT_RISK +
       supplierAgeRisk.confidence * RISK_WEIGHTS.SUPPLIER_AGE_RISK +
       supplierRiskProfile.confidence * RISK_WEIGHTS.SUPPLIER_RISK_PROFILE +
@@ -126,27 +127,29 @@ export function aggregateRiskScores(
       behavioralRisk.confidence * RISK_WEIGHTS.BEHAVIORAL_RISK +
       networkRisk.confidence * RISK_WEIGHTS.NETWORK_RISK +
       vatComplianceRisk.confidence * RISK_WEIGHTS.VAT_COMPLIANCE_RISK +
-      regulatoryRisk.confidence * RISK_WEIGHTS.REGULATORY_RISK
-    ),
-    metadata: { scoringId }
+      regulatoryRisk.confidence * RISK_WEIGHTS.REGULATORY_RISK,
+    metadata: { scoringId },
   };
 }
 
 /**
  * Determine risk level based on aggregated score
  */
-export function determineRiskLevel(score: number, scoringId?: string): RiskLevel {
-  if (score >= RISK_THRESHOLDS.BLACKLISTED) return 'BLACKLISTED';
-  if (score >= RISK_THRESHOLDS.SEVERE) return 'SEVERE';
-  if (score >= RISK_THRESHOLDS.CRITICAL) return 'CRITICAL';
-  if (score >= RISK_THRESHOLDS.VERY_HIGH) return 'VERY_HIGH';
-  if (score >= RISK_THRESHOLDS.HIGH) return 'HIGH';
-  if (score >= RISK_THRESHOLDS.MEDIUM_HIGH) return 'MEDIUM_HIGH';
-  if (score >= RISK_THRESHOLDS.MEDIUM) return 'MEDIUM';
-  if (score >= RISK_THRESHOLDS.LOW_MEDIUM) return 'LOW_MEDIUM';
-  if (score >= RISK_THRESHOLDS.LOW) return 'LOW';
-  if (score >= RISK_THRESHOLDS.VERY_LOW) return 'VERY_LOW';
-  return 'NO_RISK';
+export function determineRiskLevel(
+  score: number,
+  scoringId?: string,
+): RiskLevel {
+  if (score >= RISK_THRESHOLDS.BLACKLISTED) return "BLACKLISTED";
+  if (score >= RISK_THRESHOLDS.SEVERE) return "SEVERE";
+  if (score >= RISK_THRESHOLDS.CRITICAL) return "CRITICAL";
+  if (score >= RISK_THRESHOLDS.VERY_HIGH) return "VERY_HIGH";
+  if (score >= RISK_THRESHOLDS.HIGH) return "HIGH";
+  if (score >= RISK_THRESHOLDS.MEDIUM_HIGH) return "MEDIUM_HIGH";
+  if (score >= RISK_THRESHOLDS.MEDIUM) return "MEDIUM";
+  if (score >= RISK_THRESHOLDS.LOW_MEDIUM) return "LOW_MEDIUM";
+  if (score >= RISK_THRESHOLDS.LOW) return "LOW";
+  if (score >= RISK_THRESHOLDS.VERY_LOW) return "VERY_LOW";
+  return "NO_RISK";
 }
 
 /**
@@ -155,27 +158,27 @@ export function determineRiskLevel(score: number, scoringId?: string): RiskLevel
 export function determineSeverityLevel(
   riskLevel: RiskLevel,
   riskFactors: FraudRiskFactor[],
-  scoringId?: string
+  scoringId?: string,
 ): FraudSeverityLevel {
   switch (riskLevel) {
-    case 'BLACKLISTED':
-    case 'SEVERE':
-      return 'SEVERE';
-    case 'CRITICAL':
-      return 'CRITICAL';
-    case 'VERY_HIGH':
-    case 'HIGH':
-      return 'HIGH';
-    case 'MEDIUM_HIGH':
-    case 'MEDIUM':
-      return 'MEDIUM';
-    case 'LOW_MEDIUM':
-    case 'LOW':
-    case 'VERY_LOW':
-    case 'NO_RISK':
-      return 'LOW';
+    case "BLACKLISTED":
+    case "SEVERE":
+      return "SEVERE";
+    case "CRITICAL":
+      return "CRITICAL";
+    case "VERY_HIGH":
+    case "HIGH":
+      return "HIGH";
+    case "MEDIUM_HIGH":
+    case "MEDIUM":
+      return "MEDIUM";
+    case "LOW_MEDIUM":
+    case "LOW":
+    case "VERY_LOW":
+    case "NO_RISK":
+      return "LOW";
     default:
-      return 'MEDIUM';
+      return "MEDIUM";
   }
 }
 
@@ -193,7 +196,7 @@ export function generateRiskFactors(
   networkRisk: NetworkRiskAnalysis,
   vatComplianceRisk: VATComplianceRiskAnalysis,
   regulatoryRisk: RegulatoryRiskAnalysis,
-  scoringId?: string
+  scoringId?: string,
 ): FraudRiskFactor[] {
   return [
     ...amountRisk.riskFactors,
@@ -205,7 +208,7 @@ export function generateRiskFactors(
     ...behavioralRisk.riskFactors,
     ...networkRisk.riskFactors,
     ...vatComplianceRisk.riskFactors,
-    ...regulatoryRisk.riskFactors
+    ...regulatoryRisk.riskFactors,
   ].sort((a, b) => b.scoreImpact - a.scoreImpact);
 }
 
@@ -215,38 +218,38 @@ export function generateRiskFactors(
 export function generateMitigationActions(
   riskFactors: FraudRiskFactor[],
   severityLevel: FraudSeverityLevel,
-  scoringId?: string
+  scoringId?: string,
 ): FraudMitigationAction[] {
   const actions = new Set<FraudMitigationAction>();
 
   // Add severity-based actions
   switch (severityLevel) {
-    case 'SEVERE':
-    case 'CRITICAL':
-      actions.add('IMMEDIATE_ESCALATION');
-      actions.add('PAYMENT_HOLD');
-      actions.add('SUPPLIER_SUSPENSION');
-      actions.add('REGULATORY_REPORTING');
+    case "SEVERE":
+    case "CRITICAL":
+      actions.add("IMMEDIATE_ESCALATION");
+      actions.add("PAYMENT_HOLD");
+      actions.add("SUPPLIER_SUSPENSION");
+      actions.add("REGULATORY_REPORTING");
       break;
-    case 'HIGH':
-      actions.add('ENHANCED_SCRUTINY');
-      actions.add('MANUAL_REVIEW');
-      actions.add('APPROVAL_ESCALATION');
-      actions.add('SUPPLIER_VERIFICATION');
+    case "HIGH":
+      actions.add("ENHANCED_SCRUTINY");
+      actions.add("MANUAL_REVIEW");
+      actions.add("APPROVAL_ESCALATION");
+      actions.add("SUPPLIER_VERIFICATION");
       break;
-    case 'MEDIUM':
-      actions.add('STANDARD_REVIEW');
-      actions.add('APPROVAL_REQUIRED');
+    case "MEDIUM":
+      actions.add("STANDARD_REVIEW");
+      actions.add("APPROVAL_REQUIRED");
       break;
-    case 'LOW':
-      actions.add('AUTOMATED_APPROVAL');
+    case "LOW":
+      actions.add("AUTOMATED_APPROVAL");
       break;
   }
 
   // Add factor-based actions
-  riskFactors.forEach(factor => {
+  riskFactors.forEach((factor) => {
     const factorActions = MITIGATION_ACTIONS[factor.category] || [];
-    factorActions.forEach(action => actions.add(action));
+    factorActions.forEach((action) => actions.add(action));
   });
 
   return Array.from(actions);
@@ -258,13 +261,15 @@ export function generateMitigationActions(
 export function calculateConfidenceInterval(
   score: number,
   riskLevel: RiskLevel,
-  scoringId?: string
+  scoringId?: string,
 ): FraudConfidenceInterval {
-  return CONFIDENCE_INTERVALS[riskLevel] || {
-    lower: 0.50,
-    upper: 0.70,
-    level: 'LOW'
-  };
+  return (
+    CONFIDENCE_INTERVALS[riskLevel] || {
+      lower: 0.5,
+      upper: 0.7,
+      level: "LOW",
+    }
+  );
 }
 
 /**
@@ -272,9 +277,9 @@ export function calculateConfidenceInterval(
  */
 export function determineAlertPriority(
   severityLevel: FraudSeverityLevel,
-  scoringId?: string
+  scoringId?: string,
 ): FraudAlertPriority {
-  return ALERT_PRIORITIES[severityLevel] || 'MEDIUM';
+  return ALERT_PRIORITIES[severityLevel] || "MEDIUM";
 }
 
 /**
@@ -283,19 +288,31 @@ export function determineAlertPriority(
 export function determineEscalationPath(
   severityLevel: FraudSeverityLevel,
   riskLevel: RiskLevel,
-  scoringId?: string
+  scoringId?: string,
 ): FraudEscalationPath[] {
   switch (severityLevel) {
-    case 'SEVERE':
-    case 'CRITICAL':
-      return ['FRAUD_MANAGER', 'COMPLIANCE_OFFICER', 'CHIEF_FINANCIAL_OFFICER', 'CHIEF_EXECUTIVE_OFFICER', 'BOARD_OF_DIRECTORS', 'REGULATORY_BODY'];
-    case 'HIGH':
-      return ['FRAUD_MANAGER', 'COMPLIANCE_OFFICER', 'RISK_MANAGER', 'CHIEF_FINANCIAL_OFFICER'];
-    case 'MEDIUM':
-      return ['FRAUD_ANALYST', 'FRAUD_MANAGER', 'COMPLIANCE_OFFICER'];
-    case 'LOW':
-      return ['FRAUD_ANALYST'];
+    case "SEVERE":
+    case "CRITICAL":
+      return [
+        "FRAUD_MANAGER",
+        "COMPLIANCE_OFFICER",
+        "CHIEF_FINANCIAL_OFFICER",
+        "CHIEF_EXECUTIVE_OFFICER",
+        "BOARD_OF_DIRECTORS",
+        "REGULATORY_BODY",
+      ];
+    case "HIGH":
+      return [
+        "FRAUD_MANAGER",
+        "COMPLIANCE_OFFICER",
+        "RISK_MANAGER",
+        "CHIEF_FINANCIAL_OFFICER",
+      ];
+    case "MEDIUM":
+      return ["FRAUD_ANALYST", "FRAUD_MANAGER", "COMPLIANCE_OFFICER"];
+    case "LOW":
+      return ["FRAUD_ANALYST"];
     default:
-      return ['FRAUD_ANALYST'];
+      return ["FRAUD_ANALYST"];
   }
 }

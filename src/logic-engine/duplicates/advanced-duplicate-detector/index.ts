@@ -1,13 +1,13 @@
 /**
  * CREDITORFLOW EMS - ADVANCED DUPLICATE DETECTOR INDEX
  * Version: 3.9.2
- * 
+ *
  * Main entry point for the advanced duplicate detection engine
  * Re-exports all modules for easy consumption
  */
 
 // Core detector class
-export { AdvancedDuplicateDetector } from './core';
+export { AdvancedDuplicateDetector } from "./core";
 
 // Types and interfaces
 export type {
@@ -28,10 +28,10 @@ export type {
   ConfidenceCalculationResult,
   ConfidenceBreakdown,
   PotentialDuplicate,
-  InvestigationPriority
-} from './types';
+  InvestigationPriority,
+} from "./types";
 
-export { DuplicateDetectionException } from './types';
+export { DuplicateDetectionException } from "./types";
 
 // Constants and configuration
 export {
@@ -40,16 +40,16 @@ export {
   DUPLICATE_PATTERNS,
   RISK_LEVELS,
   MITIGATION_ACTIONS,
-  FUZZY_MATCH_SETTINGS
-} from './constants';
+  FUZZY_MATCH_SETTINGS,
+} from "./constants";
 
 // Fuzzy matching algorithms
 export {
   detectFuzzyMatches,
   fuzzyMatchInvoiceNumber,
   fuzzyMatchSupplierName,
-  matchAmount
-} from './algorithms';
+  matchAmount,
+} from "./algorithms";
 
 // Phonetic and string similarity algorithms
 export {
@@ -57,8 +57,8 @@ export {
   calculateJaroWinklerSimilarity,
   soundexEncode,
   metaphoneEncode,
-  calculateCosineSimilarity
-} from './phonetic';
+  calculateCosineSimilarity,
+} from "./phonetic";
 
 // Hash-based duplicate detection
 export {
@@ -71,8 +71,8 @@ export {
   generateSecureId,
   DuplicateBloomFilter,
   generateSimHash,
-  calculateSimHashSimilarity
-} from './hash';
+  calculateSimHashSimilarity,
+} from "./hash";
 
 // Scoring and confidence calculation
 export {
@@ -88,13 +88,13 @@ export {
   calculateWeightedScore,
   normalizeConfidence,
   calculateRiskScore,
-  requiresEscalation
-} from './scoring';
+  requiresEscalation,
+} from "./scoring";
 
 // Analysis functions
 export {
   analyzeTemporalClusters,
   analyzeSupplierClusters,
   analyzeLineItems,
-  performContextualAnalysis
-} from './analysis';
+  performContextualAnalysis,
+} from "./analysis";
