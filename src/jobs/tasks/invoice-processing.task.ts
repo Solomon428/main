@@ -12,7 +12,7 @@ export async function runTask(
 ): Promise<void> {
   info("Starting invoice processing task", { taskId: task.id });
 
-  const invoices = await prisma.invoices.findMany({
+  const invoices = await prisma.invoice.findMany({
     where: {
       status: InvoiceStatus.PENDING_EXTRACTION,
       processingDeadline: {
@@ -32,7 +32,7 @@ export async function runTask(
 
     try {
       // Update status to processing
-      await prisma.invoices.update({
+      await prisma.invoice.update({
         where: { id: invoice.id },
         data: { status: InvoiceStatus.PROCESSING },
       });
@@ -43,7 +43,7 @@ export async function runTask(
       // TODO: Run compliance checks
 
       // Mark as validated if all checks pass
-      await prisma.invoices.update({
+      await prisma.invoice.update({
         where: { id: invoice.id },
         data: {
           status: InvoiceStatus.VALIDATED,
@@ -57,7 +57,7 @@ export async function runTask(
       });
 
       // Mark for manual review
-      await prisma.invoices.update({
+      await prisma.invoice.update({
         where: { id: invoice.id },
         data: {
           status: InvoiceStatus.UNDER_REVIEW,

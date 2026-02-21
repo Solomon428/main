@@ -1,168 +1,145 @@
-import { prisma } from "@/lib/prisma"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { redirect } from "next/navigation"
-import { DashboardStats } from "@/components/dashboard/dashboard-stats"
-import { RecentInvoices } from "@/components/dashboard/recent-invoices"
-import { ActivityFeed } from "@/components/dashboard/activity-feed"
-import { QuickActions } from "@/components/dashboard/quick-actions"
-import { SpendingChart } from "@/components/dashboard/spending-chart"
-import { SupplierDistribution } from "@/components/dashboard/supplier-distribution"
-import { Breadcrumbs } from "@/components/dashboard/breadcrumbs"
+import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { AuthUtils } from "@/lib/auth-utils";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
-  if (!session) redirect("/auth/signin")
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth-token")?.value;
 
-  const orgId = session.user.organizationId
+  if (!token) {
+    redirect("/login");
+  }
 
-  // Fetch dashboard statistics
-  const [
-    totalPayables,
-    overdueAmount,
-    pendingApproval,
-    paidThisMonth,
-    recentInvoices,
-    recentActivity
-  ] = await Promise.all([
-    // Total payables (unpaid invoices)
-    prisma.invoices.aggregate({
-      where: {
-        organizationId: orgId,
-        status: { in: ["PENDING_APPROVAL", "APPROVED", "PROCESSING"] },
-      },
-      _sum: { totalAmount: true },
-    }),
+  const user = await AuthUtils.verifyToken(token);
 
-    // Overdue amount
-    prisma.invoices.aggregate({
-      where: {
-        organizationId: orgId,
-        status: { not: "PAID" },
-        dueDate: { lt: new Date() },
-      },
-      _sum: { totalAmount: true },
-    }),
+  if (!user) {
+    redirect("/login");
+  }
 
-    // Pending approval count
-    prisma.invoices.count({
-      where: {
-        organizationId: orgId,
-        status: "PENDING_APPROVAL",
-      },
-    }),
+  const orgId = "dev-org-001";
 
-    // Paid this month
-    prisma.invoices.aggregate({
-      where: {
-        organizationId: orgId,
-        status: "PAID",
-        paidDate: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        },
-      },
-      _sum: { totalAmount: true },
-    }),
+  // Simple stats
+  const totalInvoices = await prisma.invoice.count({
+    where: { organizationId: orgId },
+  });
 
-    // Recent invoices
-    prisma.invoices.findMany({
-      where: { organizationId: orgId },
-      include: {
-        supplier: {
-          select: { name: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    }),
+  const pendingInvoices = await prisma.invoice.count({
+    where: { organizationId: orgId, status: "PENDING_APPROVAL" },
+  });
 
-    // Recent activity
-    prisma.auditLog.findMany({
-      where: { organizationId: orgId },
-      include: {
-        user: {
-          select: { name: true, email: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    }),
-  ])
+  const paidInvoices = await prisma.invoice.count({
+    where: { organizationId: orgId, status: "PAID" },
+  });
 
-  // Monthly spending data for chart
-  const spendingData = await prisma.$queryRaw`
-    SELECT 
-      DATE_TRUNC('month', "invoiceDate") as month,
-      SUM("totalAmount") as total,
-      COUNT(*) as count
-    FROM "invoices"
-    WHERE "organizationId" = ${orgId}
-      AND "invoiceDate" >= DATE_TRUNC('year', CURRENT_DATE)
-    GROUP BY DATE_TRUNC('month', "invoiceDate")
-    ORDER BY month ASC
-  `
+  const suppliers = await prisma.supplier.count({
+    where: { organizationId: orgId },
+  });
 
-  // Supplier distribution
-  const supplierDistribution = await prisma.invoices.groupBy({
-    by: ["supplierId"],
-    where: {
-      organizationId: orgId,
-      invoiceDate: {
-        gte: new Date(new Date().getFullYear(), 0, 1),
-      },
-    },
-    _sum: { totalAmount: true },
-    _count: { id: true },
-  })
-
-  const supplierData = await Promise.all(
-    supplierDistribution.map(async (item) => {
-      const supplier = await prisma.suppliers.findUnique({
-        where: { id: item.supplierId },
-        select: { name: true },
-      })
-      return {
-        name: supplier?.name || "Unknown",
-        amount: item._sum.totalAmount || 0,
-        count: item._count.id,
-      }
-    })
-  )
+  const recentInvoices = await prisma.invoice.findMany({
+    where: { organizationId: orgId },
+    include: { supplier: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
 
   return (
-    <div className="space-y-6">
-      <Breadcrumbs />
-      
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">
-          Welcome back, {session.user.name || session.user.email}. Here's what's happening today.
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="px-4 py-6 sm:px-0">
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="mt-1 text-gray-600">
+            Welcome back, {user.name || user.email}
+          </p>
+        </div>
 
-      {/* Quick Actions */}
-      <QuickActions />
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 mb-8">
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <dt className="text-sm font-medium text-gray-500 truncate">
+                Total Invoices
+              </dt>
+              <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                {totalInvoices}
+              </dd>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <dt className="text-sm font-medium text-gray-500 truncate">
+                Pending Approval
+              </dt>
+              <dd className="mt-1 text-3xl font-semibold text-yellow-600">
+                {pendingInvoices}
+              </dd>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <dt className="text-sm font-medium text-gray-500 truncate">
+                Paid
+              </dt>
+              <dd className="mt-1 text-3xl font-semibold text-green-600">
+                {paidInvoices}
+              </dd>
+            </div>
+          </div>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <dt className="text-sm font-medium text-gray-500 truncate">
+                Suppliers
+              </dt>
+              <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                {suppliers}
+              </dd>
+            </div>
+          </div>
+        </div>
 
-      {/* Stats */}
-      <DashboardStats
-        totalPayables={totalPayables._sum.totalAmount || 0}
-        overdueAmount={overdueAmount._sum.totalAmount || 0}
-        pendingApproval={pendingApproval}
-        paidThisMonth={paidThisMonth._sum.totalAmount || 0}
-      />
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SpendingChart data={spendingData as any[]} />
-        <SupplierDistribution data={supplierData} />
-      </div>
-
-      {/* Lists */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentInvoices invoices={recentInvoices} />
-        <ActivityFeed activities={recentActivity} />
+        {/* Recent Invoices */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:px-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              Recent Invoices
+            </h3>
+          </div>
+          <div className="border-t border-gray-200">
+            <ul className="divide-y divide-gray-200">
+              {recentInvoices.map((invoice) => (
+                <li key={invoice.id} className="px-4 py-4 sm:px-6">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-blue-600 truncate">
+                      {invoice.invoiceNumber}
+                    </p>
+                    <div className="ml-2 flex-shrink-0 flex">
+                      <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        {invoice.status}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2 sm:flex sm:justify-between">
+                    <div className="sm:flex">
+                      <p className="flex items-center text-sm text-gray-500">
+                        {invoice.supplier?.name || "Unknown Supplier"}
+                      </p>
+                    </div>
+                    <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                      <p>R{Number(invoice.totalAmount).toFixed(2)}</p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+              {recentInvoices.length === 0 && (
+                <li className="px-4 py-8 text-center text-gray-500">
+                  No invoices found. Create your first invoice to get started.
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
-  )
+  );
 }

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { invoiceId } = categorizeSchema.parse(body);
 
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
 

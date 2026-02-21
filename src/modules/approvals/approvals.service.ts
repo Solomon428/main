@@ -3,9 +3,11 @@
 // ============================================================================
 
 import { prisma } from "../../db/prisma";
+import { ApprovalStatus } from "../../domain/enums/ApprovalStatus";
+import { ApprovalDecision } from "../../domain/enums/ApprovalDecision";
 
 interface DecisionData {
-  decision: "APPROVED" | "REJECTED" | string;
+  decision: ApprovalDecision;
   notes?: string;
 }
 
@@ -53,14 +55,20 @@ export async function getApproval(id: string) {
 }
 
 export async function makeDecision(id: string, data: DecisionData) {
+  const newStatus = data.decision === ApprovalDecision.APPROVED 
+    ? ApprovalStatus.APPROVED 
+    : data.decision === ApprovalDecision.REJECTED 
+      ? ApprovalStatus.REJECTED 
+      : ApprovalStatus.IN_PROGRESS;
+
   return prisma.approval.update({
     where: { id },
     data: {
-      status: data.decision,
+      status: newStatus,
       decision: data.decision,
       decisionNotes: data.notes,
-      approvedAt: data.decision === "APPROVED" ? new Date() : null,
-      rejectedAt: data.decision === "REJECTED" ? new Date() : null,
+      approvedAt: data.decision === ApprovalDecision.APPROVED ? new Date() : null,
+      rejectedAt: data.decision === ApprovalDecision.REJECTED ? new Date() : null,
       actionedAt: new Date(),
     },
     include: {

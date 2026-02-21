@@ -12,10 +12,10 @@
 // ============================================================================
 
 import { prisma } from "@/lib/database/client";
-import { VATValidator } from "./vat-validator";
+import { VATValidator } from "./vat-validator/index";
 import { SARSValidator } from "./sar-validator";
-import { AdvancedDuplicateDetector } from "../duplicates/advanced-duplicate-detector";
-import { FraudScorer } from "../risk/fraud-scorer";
+import { AdvancedDuplicateDetector } from "../duplicates/advanced-duplicate-detector/index";
+import { FraudScorer } from "../risk/fraud-scorer/index";
 import { auditLogger } from "@/lib/utils/audit-logger";
 import { EntityType, LogSeverity, InvoiceStatus, RiskLevel } from "@/types";
 
@@ -41,7 +41,7 @@ export class InvoiceComplianceChecker {
     invoiceId: string,
   ): Promise<ComplianceCheckResult> {
     // Use SQLite table names
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
         lineItems: true,
@@ -171,7 +171,7 @@ export class InvoiceComplianceChecker {
     // 6. Fraud Scoring
     try {
       const supplier = invoice.supplierId
-        ? await prisma.suppliers.findUnique({
+        ? await prisma.supplier.findUnique({
             where: { id: invoice.supplierId },
           })
         : null;
@@ -204,7 +204,7 @@ export class InvoiceComplianceChecker {
       const fraudResult = FraudScorer.calculateScore(fraudInput);
 
       // Update invoice with fraud score
-      await prisma.invoices.update({
+      await prisma.invoice.update({
         where: { id: invoiceId },
         data: {
           fraudScore: fraudResult.score,
@@ -251,7 +251,7 @@ export class InvoiceComplianceChecker {
 
     // Update invoice compliance status
     const vatCheck = checks.find((c) => c.name === "VAT Validation");
-    await prisma.invoices.update({
+    await prisma.invoice.update({
       where: { id: invoiceId },
       data: {
         vatCompliant: vatCheck?.passed ?? false,

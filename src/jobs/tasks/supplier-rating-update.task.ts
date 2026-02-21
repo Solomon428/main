@@ -14,7 +14,7 @@ export async function runTask(
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
   // Get all suppliers
-  const suppliers = await prisma.suppliers.findMany({
+  const suppliers = await prisma.supplier.findMany({
     include: {
       invoices: {
         where: {
@@ -66,7 +66,7 @@ export async function runTask(
     });
 
     // Update supplier stats
-    await prisma.suppliers.update({
+    await prisma.supplier.update({
       where: { id: supplier.id },
       data: {
         totalInvoices: invoices.length,

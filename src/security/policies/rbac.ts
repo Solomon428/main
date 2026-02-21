@@ -46,10 +46,10 @@ export const PERMISSIONS = {
 } as const;
 
 // Role to permissions mapping
-const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
-  [UserRole.SYSTEM_ADMIN]: Object.values(PERMISSIONS),
+const ROLE_PERMISSIONS: Partial<Record<UserRole, string[]>> = {
+  [UserRole.SUPER_ADMIN]: Object.values(PERMISSIONS),
 
-  [UserRole.ORG_ADMIN]: [
+  [UserRole.ADMIN]: [
     PERMISSIONS.INVOICE_CREATE,
     PERMISSIONS.INVOICE_READ,
     PERMISSIONS.INVOICE_UPDATE,

@@ -165,20 +165,6 @@ export function convertCurrency(
   return numAmount * rate;
 }
 
-// Add missing AED currency support
-EXCHANGE_RATES[Currency.AED] = {
-  [Currency.ZAR]: 4.85,
-  [Currency.USD]: 0.27,
-  [Currency.EUR]: 0.25,
-  [Currency.GBP]: 0.22,
-  [Currency.AUD]: 0.41,
-  [Currency.CAD]: 0.37,
-  [Currency.JPY]: 40.5,
-  [Currency.CNY]: 1.96,
-  [Currency.INR]: 22.6,
-  [Currency.AED]: 1,
-};
-
 /**
  * Calculate VAT
  */

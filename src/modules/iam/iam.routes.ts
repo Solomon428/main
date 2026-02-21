@@ -91,7 +91,8 @@ router.get("/api-keys/:userId", async (req, res) => {
 
 router.post("/api-keys", async (req, res) => {
   try {
-    const key = await apiKeysService.generateApiKey(req.body);
+    const { userId, organizationId, ...data } = req.body;
+    const key = await apiKeysService.generateApiKey(userId, organizationId, data);
     res.status(201).json(key);
   } catch (error) {
     res.status(500).json({ error: "Failed to generate API key" });
@@ -100,7 +101,8 @@ router.post("/api-keys", async (req, res) => {
 
 router.delete("/api-keys/:id", async (req, res) => {
   try {
-    await apiKeysService.revokeApiKey(req.params.id);
+    const { userId, reason } = req.body;
+    await apiKeysService.revokeApiKey(req.params.id, userId, reason);
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: "Failed to revoke API key" });

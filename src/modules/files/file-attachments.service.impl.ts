@@ -5,6 +5,9 @@ import { AuditAction } from "../../domain/enums/AuditAction";
 import { EntityType } from "../../domain/enums/EntityType";
 import { StorageProvider } from "../../domain/enums/StorageProvider";
 import { Currency } from "../../domain/enums/Currency";
+import OcrService from "./ocr/core";
+import ExtractionService from "./ocr/extraction/core";
+import * as InvoiceService from "../invoices/invoices.service";
 import crypto from "crypto";
 import path from "path";
 
@@ -604,10 +607,6 @@ export async function cleanupExpiredFiles() {
 // ============================================================================
 // PDF Processing and OCR Integration Methods
 // ============================================================================
-
-import { OcrService } from "./ocr/ocr.service";
-import { ExtractionService } from "./ocr/extraction.service";
-import { InvoiceService } from "../invoices/invoices.service";
 
 export interface InvoiceUploadInput {
   file: Buffer;

@@ -108,7 +108,7 @@ export class MainWorker {
           );
 
           // Store processing result
-          await prisma.invoices.updateMany({
+          await prisma.invoice.updateMany({
             where: { invoiceNumber: result.structuredData.invoiceNumber },
             data: {
               processingMetadata: {
@@ -179,7 +179,7 @@ export class MainWorker {
           );
 
           // Get invoice and supplier data
-          const invoice = await prisma.invoices.findUnique({
+          const invoice = await prisma.invoice.findUnique({
             where: { id: invoiceId },
           });
 
@@ -201,7 +201,7 @@ export class MainWorker {
           );
 
           // Update invoice with compliance status
-          await prisma.invoices.update({
+          await prisma.invoice.update({
             where: { id: invoiceId },
             data: {
               vatCompliant: complianceResult.vatCompliant,
@@ -396,7 +396,7 @@ export class MainWorker {
 
           switch (cleanupType) {
             case "OLD_INVOICES":
-              const result = await prisma.invoices.deleteMany({
+              const result = await prisma.invoice.deleteMany({
                 where: {
                   status: "ARCHIVED",
                   archivedAt: { lt: cutoffDate },
@@ -405,7 +405,7 @@ export class MainWorker {
               cleanedCount = result.count;
               break;
             case "OLD_NOTIFICATIONS":
-              const notifResult = await prisma.notifications.deleteMany({
+              const notifResult = await prisma.notification.deleteMany({
                 where: {
                   isRead: true,
                   createdAt: { lt: cutoffDate },
@@ -443,7 +443,7 @@ export class MainWorker {
 
           console.log(`📦 Archiving ${invoiceIds.length} invoices [${job.id}]`);
 
-          await prisma.invoices.updateMany({
+          await prisma.invoice.updateMany({
             where: { id: { in: invoiceIds } },
             data: {
               status: "ARCHIVED",

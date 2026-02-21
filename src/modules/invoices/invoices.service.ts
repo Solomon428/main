@@ -5,7 +5,7 @@
 import { prisma } from "../../db/prisma";
 
 export async function listInvoices() {
-  return prisma.invoices.findMany({
+  return prisma.invoice.findMany({
     include: {
       supplier: true,
       lineItems: true,
@@ -17,7 +17,7 @@ export async function listInvoices() {
 }
 
 export async function getInvoice(id: string) {
-  return prisma.invoices.findUnique({
+  return prisma.invoice.findUnique({
     where: { id },
     include: {
       supplier: true,
@@ -42,7 +42,7 @@ export async function getInvoice(id: string) {
 export async function createInvoice(data: any) {
   const { lineItems, ...invoiceData } = data;
 
-  return prisma.invoices.create({
+  return prisma.invoice.create({
     data: {
       ...invoiceData,
       lineItems: lineItems
@@ -59,7 +59,7 @@ export async function createInvoice(data: any) {
 }
 
 export async function updateInvoice(id: string, data: any) {
-  return prisma.invoices.update({
+  return prisma.invoice.update({
     where: { id },
     data: {
       ...data,
@@ -73,7 +73,7 @@ export async function updateInvoice(id: string, data: any) {
 }
 
 export async function approveInvoice(id: string, data: any) {
-  return prisma.invoices.update({
+  return prisma.invoice.update({
     where: { id },
     data: {
       status: "APPROVED",
@@ -86,7 +86,7 @@ export async function approveInvoice(id: string, data: any) {
 }
 
 export async function rejectInvoice(id: string, data: any) {
-  return prisma.invoices.update({
+  return prisma.invoice.update({
     where: { id },
     data: {
       status: "REJECTED",
@@ -98,7 +98,7 @@ export async function rejectInvoice(id: string, data: any) {
 }
 
 export async function deleteInvoice(id: string) {
-  return prisma.invoices.delete({
+  return prisma.invoice.delete({
     where: { id },
   });
 }

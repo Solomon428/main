@@ -46,7 +46,7 @@ async function generateDailyReport(organizationId: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const invoicesToday = await prisma.invoices.count({
+  const invoicesToday = await prisma.invoice.count({
     where: {
       organizationId,
       createdAt: { gte: today },
@@ -77,7 +77,7 @@ async function generateWeeklyReport(organizationId: string) {
     },
   });
 
-  const overdueInvoices = await prisma.invoices.count({
+  const overdueInvoices = await prisma.invoice.count({
     where: {
       organizationId,
       dueDate: { lt: new Date() },
@@ -104,7 +104,7 @@ async function generateMonthlyReport(organizationId: string) {
     _sum: { amount: true },
   });
 
-  const supplierCount = await prisma.suppliers.count({
+  const supplierCount = await prisma.supplier.count({
     where: {
       organizationId,
       createdAt: { gte: firstDayOfMonth },

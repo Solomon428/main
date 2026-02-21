@@ -42,8 +42,8 @@ export function validateVAT(
   vatNumber: string,
   country: string = "ZA",
 ): boolean {
-  const pattern = VAT_PATTERNS[country] || VAT_PATTERNS.ZA;
-  return pattern.test(vatNumber);
+  const pattern = VAT_PATTERNS[country] || VAT_PATTERNS["ZA"];
+  return pattern ? pattern.test(vatNumber) : false;
 }
 
 /**
@@ -243,4 +243,19 @@ export function validateJSON(json: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Validate postal code (South African format)
+ */
+export function validatePostalCode(postalCode: string, country: string = "ZA"): boolean {
+  const patterns: Record<string, RegExp> = {
+    ZA: /^[0-9]{4}$/,
+    GB: /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i,
+    US: /^[0-9]{5}(-[0-9]{4})?$/,
+    AU: /^[0-9]{4}$/,
+  };
+  
+  const pattern = patterns[country] || /^[0-9]{4,10}$/;
+  return pattern ? pattern.test(postalCode) : false;
 }

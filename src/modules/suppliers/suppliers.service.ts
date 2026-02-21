@@ -5,7 +5,7 @@
 import { prisma } from "../../db/prisma";
 
 export async function listSuppliers() {
-  return prisma.suppliers.findMany({
+  return prisma.supplier.findMany({
     include: {
       contacts: true,
       bankAccounts: true,
@@ -16,7 +16,7 @@ export async function listSuppliers() {
 }
 
 export async function getSupplier(id: string) {
-  return prisma.suppliers.findUnique({
+  return prisma.supplier.findUnique({
     where: { id },
     include: {
       contacts: true,
@@ -31,7 +31,7 @@ export async function getSupplier(id: string) {
 }
 
 export async function createSupplier(data: any) {
-  return prisma.suppliers.create({
+  return prisma.supplier.create({
     data: {
       ...data,
       createdAt: new Date(),
@@ -44,7 +44,7 @@ export async function createSupplier(data: any) {
 }
 
 export async function updateSupplier(id: string, data: any) {
-  return prisma.suppliers.update({
+  return prisma.supplier.update({
     where: { id },
     data: {
       ...data,
@@ -58,17 +58,17 @@ export async function updateSupplier(id: string, data: any) {
 }
 
 export async function deleteSupplier(id: string) {
-  return prisma.suppliers.delete({
+  return prisma.supplier.delete({
     where: { id },
   });
 }
 
 export async function searchSuppliers(query: string) {
-  return prisma.suppliers.findMany({
+  return prisma.supplier.findMany({
     where: {
       OR: [
         { name: { contains: query, mode: "insensitive" } },
-        { email: { contains: query, mode: "insensitive" } },
+        { primaryContactEmail: { contains: query, mode: "insensitive" } },
         { vatNumber: { contains: query, mode: "insensitive" } },
       ],
     },

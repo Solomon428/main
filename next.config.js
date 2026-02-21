@@ -38,6 +38,11 @@ const nextConfig = {
         tls: false,
         crypto: false,
       };
+      // Polyfill DOMMatrix for canvas-related packages
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        canvas: false,
+      };
     }
     return config;
   },

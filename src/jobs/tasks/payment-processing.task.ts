@@ -16,7 +16,7 @@ export async function runTask(
   info("Starting payment processing task", { taskId: task.id });
 
   // Get approved invoices ready for payment
-  const pendingPayments = await prisma.invoices.findMany({
+  const pendingPayments = await prisma.invoice.findMany({
     where: {
       status: InvoiceStatus.APPROVED,
       readyForPayment: true,
@@ -57,7 +57,7 @@ export async function runTask(
       });
 
       // Update invoice status
-      await prisma.invoices.update({
+      await prisma.invoice.update({
         where: { id: invoice.id },
         data: {
           paymentStatus: PaymentStatus.SCHEDULED,

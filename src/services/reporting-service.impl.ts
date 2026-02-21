@@ -85,7 +85,7 @@ export interface ReportExecution {
   outputSizeBytes?: number;
   outputUrl?: string;
   error?: string;
-  meta Record<string, any>;
+  meta: Record<string, any>;
 }
 
 export interface ReportDataRow {
@@ -238,7 +238,7 @@ export class ExcelExporter implements ReportExporter {
       // Simple bar chart example (would be customized per report type)
       const chart = worksheet.addChart({
         type: 'bar',
-         {
+        data: {
           labels: reportData.rows.slice(0, 10).map((_, i) => `Row ${i + 1}`),
           datasets: [
             {
@@ -408,7 +408,7 @@ export class JSONExporter implements ReportExporter {
   
   async export(reportData: ReportData): Promise<Buffer> {
     const output = {
-      meta reportData.metadata,
+      meta: reportData.metadata,
       columns: reportData.columns,
       rows: reportData.rows.map(row => {
         const transformed: Record<string, any> = {};
@@ -501,7 +501,7 @@ export class ReportingService {
       };
       dataProvider: {
         executeQuery: (queryTemplate: string, parameters: Record<string, any>, maxRows: number) => Promise<ReportDataRow[]>;
-        getColumnMeta (queryTemplate: string) => Promise<{ key: string; label: string; type?: string }[]>;
+        getColumnMeta: (queryTemplate: string) => Promise<{ key: string; label: string; type?: string }[]>;
       };
     },
     exporters?: ReportExporter[],
@@ -603,7 +603,7 @@ export class ReportingService {
       initiatedBy: userId,
       initiatedAt: DateTime.now(),
       expiresAt: DateTime.now().plus({ days: definition.retentionDays }),
-      meta {
+      meta: {
         priority: options.priority || 'normal',
         cacheKey
       }
@@ -739,7 +739,7 @@ export class ReportingService {
       return {
         columns,
         rows,
-        meta {
+        meta: {
           totalRows: rows.length,
           reportDate: DateTime.now(),
           parameters,
@@ -844,7 +844,7 @@ export class ReportingService {
       expiresAt: DateTime.now().plus({ days: definition.retentionDays }),
       outputSizeBytes: content.length,
       outputUrl: `/cache/${uuidv4()}.${format}`,
-      meta {
+      meta: {
         fromCache: true,
         cacheHit: true,
         rowCount: cachedData.metadata.totalRows

@@ -343,6 +343,7 @@ enum EntityType {
   AUDIT_LOG
   FILE_ATTACHMENT
   INTEGRATION
+  RISK_SCORE
 }
 
 enum AuditAction {
@@ -687,7 +688,8 @@ model Organization {
   planExpiresAt DateTime?
   maxUsers      Int       @default(10)
   maxInvoices   Int       @default(1000)
-  storageQuota  Int       @default(10737418240) // 10GB in bytes
+  // CHANGED: storageQuota from Int to BigInt to support 10GB default
+  storageQuota  BigInt    @default(10737418240) // 10GB in bytes
   storageUsed   Int       @default(0)
 
   // Metadata
@@ -2155,9 +2157,33 @@ model Webhook {
   createdBy String?
 
   // Relations
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  WebhookDelivery WebhookDelivery[]
 
   @@index([organizationId, isActive])
   @@index([events])
   @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id           String    @id @default(cuid())
+  webhookId    String
+  eventType    String
+  payload      Json
+  response     Json?
+  statusCode   Int?
+  status       String    @default("PENDING") // PENDING, SUCCESS, FAILED
+  errorMessage String?
+  attempts     Int       @default(0)
+  maxAttempts  Int       @default(3)
+  nextRetryAt  DateTime?
+  deliveredAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, status])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
 }

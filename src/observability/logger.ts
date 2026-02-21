@@ -91,7 +91,7 @@ export function info(message: string, meta?: LogMeta): void {
  * Log warning message
  */
 export function warn(message: string, meta?: LogMeta): void {
-  log(LogSeverity.WARN, message, meta);
+  log(LogSeverity.WARNING, message, meta);
 }
 
 /**
@@ -102,10 +102,10 @@ export function error(message: string, meta?: LogMeta): void {
 }
 
 /**
- * Log fatal message
+ * Log critical message
  */
-export function fatal(message: string, meta?: LogMeta): void {
-  log(LogSeverity.FATAL, message, meta);
+export function critical(message: string, meta?: LogMeta): void {
+  log(LogSeverity.CRITICAL, message, meta);
 }
 
 /**
@@ -142,8 +142,8 @@ export function createChildLogger(defaultMeta: LogMeta) {
       warn(message, { ...defaultMeta, ...meta }),
     error: (message: string, meta?: LogMeta) =>
       error(message, { ...defaultMeta, ...meta }),
-    fatal: (message: string, meta?: LogMeta) =>
-      fatal(message, { ...defaultMeta, ...meta }),
+    critical: (message: string, meta?: LogMeta) =>
+      critical(message, { ...defaultMeta, ...meta }),
     security: (message: string, meta?: LogMeta) =>
       security(message, { ...defaultMeta, ...meta }),
     audit: (message: string, meta?: LogMeta) =>

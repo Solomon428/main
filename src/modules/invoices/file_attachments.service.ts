@@ -1,18 +1,49 @@
 // src/modules/invoices/file-attachments.service.ts
-import { Prisma, type FileAttachment, type Invoice, type User, type Organization, PrismaClient } from '@prisma/client';
-import { type Decimal } from '@prisma/client/runtime/library';
-import { z } from 'zod';
-import { type Logger } from 'winston';
-import { addDays, differenceInDays, format, parseISO, isBefore, isAfter, isValid, subDays } from 'date-fns';
-import { validateEmail, validateVAT, validateBankAccount, validateInvoiceNumber, validateTaxId, validatePostalCode, validatePhoneNumber } from '../../utils/validation';
-import { generateId, validateId, parseId, createCuid, parseCuid, validateCuid } from '../../utils/ids';
-import { AuditAction } from '../../domain/enums/AuditAction';
-import { EntityType } from '../../domain/enums/EntityType';
-import { InvoiceNotFoundError } from '../common/errors/InvoiceNotFoundError';
-import { ValidationError } from '../common/errors/ValidationError';
-import { PermissionError } from '../common/errors/PermissionError';
-import { AuditLogService } from '../common/services/audit-log.service';
-import { getLogger } from '../../logging/logger';
+import {
+  Prisma,
+  type FileAttachment,
+  type Invoice,
+  type User,
+  type Organization,
+  PrismaClient,
+} from "@prisma/client";
+import { type Decimal } from "@prisma/client/runtime/library";
+import { z } from "zod";
+import { type Logger } from "winston";
+import {
+  addDays,
+  differenceInDays,
+  format,
+  parseISO,
+  isBefore,
+  isAfter,
+  isValid,
+  subDays,
+} from "date-fns";
+import {
+  validateEmail,
+  validateVAT,
+  validateBankAccount,
+  validateInvoiceNumber,
+  validateTaxId,
+  validatePostalCode,
+  validatePhoneNumber,
+} from "../../utils/validation";
+import {
+  generateId,
+  validateId,
+  parseId,
+  createCuid,
+  parseCuid,
+  validateCuid,
+} from "../../utils/ids";
+import { AuditAction } from "../../domain/enums/AuditAction";
+import { EntityType } from "../../domain/enums/EntityType";
+import { InvoiceNotFoundError } from "../common/errors/InvoiceNotFoundError";
+import { ValidationError } from "../common/errors/ValidationError";
+import { PermissionError } from "../common/errors/PermissionError";
+import { AuditLogService } from "../common/services/audit-log.service";
+import { getLogger } from "../../logging/logger";
 
 // --- INPUT INTERFACES ---
 export interface CreateFileAttachmentInput {
@@ -76,9 +107,9 @@ export class FileAttachmentService {
 
   constructor(
     private prisma: PrismaClient,
-    logger?: Logger
+    logger?: Logger,
   ) {
-    this.logger = logger ?? getLogger('FileAttachmentService');
+    this.logger = logger ?? getLogger("FileAttachmentService");
     this.auditLogService = new AuditLogService(prisma, this.logger);
   }
 
@@ -89,10 +120,17 @@ export class FileAttachmentService {
    * @param input Data for the new file attachment.
    * @returns The created file attachment record.
    */
-  async createFileAttachment(tx: any, input: CreateFileAttachmentInput): Promise<FileAttachment> {
+  async createFileAttachment(
+    tx: any,
+    input: CreateFileAttachmentInput,
+  ): Promise<FileAttachment> {
     const startTime = Date.now();
     const transactionId = createCuid();
-    this.logger.info('Starting file attachment creation', { transactionId, invoiceId: input.invoiceId, fileName: input.fileName });
+    this.logger.info("Starting file attachment creation", {
+      transactionId,
+      invoiceId: input.invoiceId,
+      fileName: input.fileName,
+    });
 
     try {
       await this.validateCreateFileAttachmentInput(input);
@@ -115,7 +153,7 @@ export class FileAttachmentService {
       // }
 
       const fileAttachment = await tx.fileAttachment.create({
-         {
+        data: {
           id: generateId(),
           invoiceId: input.invoiceId,
           fileName: input.fileName,
@@ -124,7 +162,7 @@ export class FileAttachmentService {
           storagePath: input.storagePath,
           storageProvider: input.storageProvider,
           isEncrypted: input.isEncrypted,
-          encryptionKey: input.encryptionKey || null, // Often not stored for security
+          encryptionKey: input.encryptionKey || null,
           mimeType: input.mimeType,
           description: input.description || null,
           checksum: input.checksum || null,
@@ -148,7 +186,7 @@ export class FileAttachmentService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.info('File attachment created successfully', {
+      this.logger.info("File attachment created successfully", {
         transactionId,
         fileAttachmentId: fileAttachment.id,
         invoiceId: fileAttachment.invoiceId,
@@ -159,12 +197,12 @@ export class FileAttachmentService {
       return fileAttachment;
     } catch (error) {
       const duration = Date.now() - startTime;
-      this.logger.error('Failed to create file attachment', {
+      this.logger.error("Failed to create file attachment", {
         transactionId,
         invoiceId: input.invoiceId,
         fileName: input.fileName,
         duration,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
       });
       throw error;
@@ -183,20 +221,35 @@ export class FileAttachmentService {
     attachmentId: string,
     userId: string,
     organizationId: string,
-    include: GetFileAttachmentIncludeOptions = {}
-  ): Promise<FileAttachment & {
-    invoice?: Invoice;
-    uploadedBy?: User;
-    updatedBy?: User;
-  }> {
+    include: GetFileAttachmentIncludeOptions = {},
+  ): Promise<
+    FileAttachment & {
+      invoice?: Invoice;
+      uploadedBy?: User;
+      updatedBy?: User;
+    }
+  > {
     try {
       // Check permissions (example: user must belong to the org containing the invoice)
-      await this.checkViewFileAttachmentPermissions(attachmentId, userId, organizationId);
+      await this.checkViewFileAttachmentPermissions(
+        attachmentId,
+        userId,
+        organizationId,
+      );
 
       const includeClause: any = {};
-      if (include.invoice) includeClause.invoice = { select: { id: true, invoiceNumber: true, organizationId: true } }; // Basic info only
-      if (include.uploadedBy) includeClause.uploadedBy = { select: { id: true, email: true, name: true } };
-      if (include.updatedBy) includeClause.updatedBy = { select: { id: true, email: true, name: true } };
+      if (include.invoice)
+        includeClause.invoice = {
+          select: { id: true, invoiceNumber: true, organizationId: true },
+        }; // Basic info only
+      if (include.uploadedBy)
+        includeClause.uploadedBy = {
+          select: { id: true, email: true, name: true },
+        };
+      if (include.updatedBy)
+        includeClause.updatedBy = {
+          select: { id: true, email: true, name: true },
+        };
 
       const attachment = await this.prisma.fileAttachment.findUnique({
         where: {
@@ -208,7 +261,9 @@ export class FileAttachmentService {
       });
 
       if (!attachment) {
-        throw new ValidationError(`File attachment with ID ${attachmentId} not found or does not belong to organization.`);
+        throw new ValidationError(
+          `File attachment with ID ${attachmentId} not found or does not belong to organization.`,
+        );
       }
 
       // Create audit log for view
@@ -218,15 +273,15 @@ export class FileAttachmentService {
         action: AuditAction.VIEW,
         userId,
         organizationId,
-        ipAddress: '127.0.0.1', // Placeholder
+        ipAddress: "127.0.0.1", // Placeholder
       });
 
       return attachment;
     } catch (error) {
-      this.logger.error('Failed to get file attachment', {
+      this.logger.error("Failed to get file attachment", {
         attachmentId,
         userId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -239,10 +294,16 @@ export class FileAttachmentService {
    * @param input The update data.
    * @returns The updated file attachment.
    */
-  async updateFileAttachment(attachmentId: string, input: UpdateFileAttachmentInput): Promise<FileAttachment> {
+  async updateFileAttachment(
+    attachmentId: string,
+    input: UpdateFileAttachmentInput,
+  ): Promise<FileAttachment> {
     const startTime = Date.now();
     const transactionId = createCuid();
-    this.logger.info('Starting file attachment update', { transactionId, attachmentId });
+    this.logger.info("Starting file attachment update", {
+      transactionId,
+      attachmentId,
+    });
 
     try {
       const currentAttachment = await this.prisma.fileAttachment.findUnique({
@@ -251,7 +312,9 @@ export class FileAttachmentService {
       });
 
       if (!currentAttachment) {
-        throw new ValidationError(`File attachment with ID ${attachmentId} not found.`);
+        throw new ValidationError(
+          `File attachment with ID ${attachmentId} not found.`,
+        );
       }
 
       // Example: Only the uploader or an admin can update metadata
@@ -261,36 +324,48 @@ export class FileAttachmentService {
       // }
 
       // Validate update input against current state
-      const validationErrors = await this.validateUpdateFileAttachmentInput(input, currentAttachment);
+      const validationErrors = await this.validateUpdateFileAttachmentInput(
+        input,
+        currentAttachment,
+      );
       if (validationErrors.length > 0) {
-        throw new ValidationError('Validation failed for update input', validationErrors);
+        throw new ValidationError(
+          "Validation failed for update input",
+          validationErrors,
+        );
       }
 
       const updatedAttachment = await this.prisma.$transaction(async (tx) => {
         const updateData: any = {};
-        if (input.description !== undefined) updateData.description = input.description;
-        if (input.isEncrypted !== undefined) updateData.isEncrypted = input.isEncrypted;
-        if (input.encryptionKey !== undefined) updateData.encryptionKey = input.encryptionKey; // Be very careful with this
+        if (input.description !== undefined)
+          updateData.description = input.description;
+        if (input.isEncrypted !== undefined)
+          updateData.isEncrypted = input.isEncrypted;
+        if (input.encryptionKey !== undefined)
+          updateData.encryptionKey = input.encryptionKey; // Be very careful with this
         if (input.checksum !== undefined) updateData.checksum = input.checksum;
         if (input.version !== undefined) updateData.version = input.version;
 
         // Determine which fields actually changed for audit log
         const changes: Record<string, any> = {};
         Object.entries(updateData).forEach(([key, value]) => {
-          const currentValue = currentAttachment[key as keyof typeof currentAttachment];
+          const currentValue =
+            currentAttachment[key as keyof typeof currentAttachment];
           if (JSON.stringify(currentValue) !== JSON.stringify(value)) {
             changes[key] = { from: currentValue, to: value };
           }
         });
 
         if (Object.keys(changes).length === 0) {
-          this.logger.info('No changes detected in update request', { attachmentId });
+          this.logger.info("No changes detected in update request", {
+            attachmentId,
+          });
           return currentAttachment; // Return original if no changes
         }
 
         const updatedAttachmentRecord = await tx.fileAttachment.update({
           where: { id: attachmentId },
-           {
+          data: {
             ...updateData,
             updatedById: input.updatedById,
             updatedAt: new Date(),
@@ -311,7 +386,7 @@ export class FileAttachmentService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.info('File attachment metadata updated successfully', {
+      this.logger.info("File attachment metadata updated successfully", {
         attachmentId,
         updatedById: input.updatedById,
         duration,
@@ -321,11 +396,11 @@ export class FileAttachmentService {
       return updatedAttachment;
     } catch (error) {
       const duration = Date.now() - startTime;
-      this.logger.error('Failed to update file attachment', {
+      this.logger.error("Failed to update file attachment", {
         attachmentId,
         updatedById: input.updatedById,
         duration,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -338,7 +413,11 @@ export class FileAttachmentService {
    * @param deletedById The ID of the user performing the deletion.
    * @param organizationId The organization context.
    */
-  async deleteFileAttachment(attachmentId: string, deletedById: string, organizationId: string): Promise<void> {
+  async deleteFileAttachment(
+    attachmentId: string,
+    deletedById: string,
+    organizationId: string,
+  ): Promise<void> {
     try {
       const attachment = await this.prisma.fileAttachment.findUnique({
         where: { id: attachmentId, deletedAt: null },
@@ -346,7 +425,9 @@ export class FileAttachmentService {
       });
 
       if (!attachment) {
-        throw new ValidationError(`File attachment with ID ${attachmentId} not found.`);
+        throw new ValidationError(
+          `File attachment with ID ${attachmentId} not found.`,
+        );
       }
 
       // Example: Only the uploader or an admin can delete
@@ -374,10 +455,10 @@ export class FileAttachmentService {
         });
       });
     } catch (error) {
-      this.logger.error('Failed to delete file attachment', {
+      this.logger.error("Failed to delete file attachment", {
         attachmentId,
         deletedById,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -389,31 +470,30 @@ export class FileAttachmentService {
    * @param invoiceId Optional. If provided, summarize attachments for this specific invoice.
    * @returns Summary statistics for the attachments.
    */
-  async getFileAttachmentSummary(organizationId: string, invoiceId?: string): Promise<FileAttachmentSummary> {
+  async getFileAttachmentSummary(
+    organizationId: string,
+    invoiceId?: string,
+  ): Promise<FileAttachmentSummary> {
     try {
       const whereClause: any = { invoice: { organizationId }, deletedAt: null };
       if (invoiceId) {
-          whereClause.invoiceId = invoiceId;
+        whereClause.invoiceId = invoiceId;
       }
 
-      const [
-        overallAgg,
-        mimeTypeGroup,
-        providerGroup,
-      ] = await Promise.all([
+      const [overallAgg, mimeTypeGroup, providerGroup] = await Promise.all([
         this.prisma.fileAttachment.aggregate({
-            where: whereClause,
-            _count: true,
-            _sum: { fileSize: true },
-        }),
-        this.prisma.fileAttachment.groupBy({
-          by: ['mimeType'],
           where: whereClause,
           _count: true,
           _sum: { fileSize: true },
         }),
         this.prisma.fileAttachment.groupBy({
-          by: ['storageProvider'],
+          by: ["mimeType"],
+          where: whereClause,
+          _count: true,
+          _sum: { fileSize: true },
+        }),
+        this.prisma.fileAttachment.groupBy({
+          by: ["storageProvider"],
           where: whereClause,
           _count: true,
           _sum: { fileSize: true },
@@ -428,27 +508,27 @@ export class FileAttachmentService {
       };
 
       // Populate mime type breakdown
-      mimeTypeGroup.forEach(group => {
-          summary.byMimeType[group.mimeType] = {
-              count: group._count,
-              totalSize: group._sum.fileSize || 0,
-          };
+      mimeTypeGroup.forEach((group) => {
+        summary.byMimeType[group.mimeType] = {
+          count: group._count,
+          totalSize: group._sum.fileSize || 0,
+        };
       });
 
       // Populate storage provider breakdown
-      providerGroup.forEach(group => {
-          summary.byStorageProvider[group.storageProvider] = {
-              count: group._count,
-              totalSize: group._sum.fileSize || 0,
-          };
+      providerGroup.forEach((group) => {
+        summary.byStorageProvider[group.storageProvider] = {
+          count: group._count,
+          totalSize: group._sum.fileSize || 0,
+        };
       });
 
       return summary;
     } catch (error) {
-      this.logger.error('Failed to get file attachment summary', {
+      this.logger.error("Failed to get file attachment summary", {
         organizationId,
         invoiceId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       throw error;
     }
@@ -456,23 +536,32 @@ export class FileAttachmentService {
 
   // --- Helper Methods ---
 
-  private async validateCreateFileAttachmentInput(input: CreateFileAttachmentInput): Promise<void> {
+  private async validateCreateFileAttachmentInput(
+    input: CreateFileAttachmentInput,
+  ): Promise<void> {
     const errors: string[] = [];
 
-    if (!input.invoiceId) errors.push('invoiceId is required');
-    if (!input.fileName) errors.push('fileName is required');
-    if (!input.fileType) errors.push('fileType is required');
-    if (input.fileSize === undefined || input.fileSize < 0) errors.push('fileSize is required and must be non-negative');
-    if (!input.storagePath) errors.push('storagePath is required');
-    if (!input.storageProvider) errors.push('storageProvider is required');
-    if (input.isEncrypted === undefined) errors.push('isEncrypted is required');
-    if (!input.mimeType) errors.push('mimeType is required');
-    if (!input.uploadedById) errors.push('uploadedById is required');
+    if (!input.invoiceId) errors.push("invoiceId is required");
+    if (!input.fileName) errors.push("fileName is required");
+    if (!input.fileType) errors.push("fileType is required");
+    if (input.fileSize === undefined || input.fileSize < 0)
+      errors.push("fileSize is required and must be non-negative");
+    if (!input.storagePath) errors.push("storagePath is required");
+    if (!input.storageProvider) errors.push("storageProvider is required");
+    if (input.isEncrypted === undefined) errors.push("isEncrypted is required");
+    if (!input.mimeType) errors.push("mimeType is required");
+    if (!input.uploadedById) errors.push("uploadedById is required");
 
     // Basic file type and mime type consistency check (optional)
-    const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png', 'text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    const allowedMimeTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "text/csv",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ];
     if (!allowedMimeTypes.includes(input.mimeType)) {
-        errors.push(`Unsupported mime type: ${input.mimeType}`);
+      errors.push(`Unsupported mime type: ${input.mimeType}`);
     }
 
     // Example: If encrypted, ensure a key is provided (or handled securely elsewhere)
@@ -481,31 +570,49 @@ export class FileAttachmentService {
     // }
 
     if (errors.length > 0) {
-      throw new ValidationError('Validation failed for create file attachment input', errors);
+      throw new ValidationError(
+        "Validation failed for create file attachment input",
+        errors,
+      );
     }
   }
 
-  private async validateUpdateFileAttachmentInput(input: UpdateFileAttachmentInput, currentAttachment: FileAttachment & { invoice: Invoice }): Promise<string[]> {
+  private async validateUpdateFileAttachmentInput(
+    input: UpdateFileAttachmentInput,
+    currentAttachment: FileAttachment & { invoice: Invoice },
+  ): Promise<string[]> {
     const errors: string[] = [];
 
     // Add specific validations for updates here if needed
     // e.g., validate file size increase limits
-    if (input.fileSize !== undefined && input.fileSize < currentAttachment.fileSize) {
-        errors.push('fileSize cannot be decreased');
+    if (
+      input.fileSize !== undefined &&
+      input.fileSize < currentAttachment.fileSize
+    ) {
+      errors.push("fileSize cannot be decreased");
     }
 
     return errors;
   }
 
-  private async checkViewFileAttachmentPermissions(attachmentId: string, userId: string, organizationId: string): Promise<void> {
+  private async checkViewFileAttachmentPermissions(
+    attachmentId: string,
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
     // Example permission check: User must belong to the same organization as the invoice linked to the attachment
     const attachmentWithInvoice = await this.prisma.fileAttachment.findUnique({
       where: { id: attachmentId },
       include: { invoice: { select: { organizationId: true } } },
     });
 
-    if (!attachmentWithInvoice || attachmentWithInvoice.invoice.organizationId !== organizationId) {
-      throw new PermissionError('User does not have permission to view this file attachment');
+    if (
+      !attachmentWithInvoice ||
+      attachmentWithInvoice.invoice.organizationId !== organizationId
+    ) {
+      throw new PermissionError(
+        "User does not have permission to view this file attachment",
+      );
     }
   }
 }

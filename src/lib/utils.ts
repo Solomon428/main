@@ -90,3 +90,21 @@ export function formatFileSize(bytes: number): string {
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
+
+/**
+ * Get invoice status color class
+ */
+export function getInvoiceStatusColor(status: string): string {
+  const colors: Record<string, string> = {
+    DRAFT: "bg-gray-100 text-gray-800",
+    PENDING_APPROVAL: "bg-yellow-100 text-yellow-800",
+    APPROVED: "bg-blue-100 text-blue-800",
+    REJECTED: "bg-red-100 text-red-800",
+    PROCESSING: "bg-purple-100 text-purple-800",
+    PAID: "bg-green-100 text-green-800",
+    OVERDUE: "bg-orange-100 text-orange-800",
+    CANCELLED: "bg-gray-100 text-gray-600",
+    DISPUTED: "bg-red-100 text-red-800",
+  };
+  return colors[status] || "bg-gray-100 text-gray-800";
+}

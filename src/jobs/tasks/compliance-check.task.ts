@@ -14,7 +14,7 @@ export async function runTask(
 ): Promise<void> {
   info("Starting compliance check task", { taskId: task.id });
 
-  const invoices = await prisma.invoices.findMany({
+  const invoices = await prisma.invoice.findMany({
     where: {
       status: { in: [InvoiceStatus.SUBMITTED, InvoiceStatus.PROCESSING] },
     },
@@ -85,7 +85,7 @@ async function runSupplierCheck(invoice: any) {
 }
 
 async function runDuplicateCheck(invoice: any) {
-  const duplicates = await prisma.invoices.count({
+  const duplicates = await prisma.invoice.count({
     where: {
       supplierId: invoice.supplierId,
       invoiceNumber: invoice.invoiceNumber,
@@ -107,7 +107,7 @@ async function runDuplicateCheck(invoice: any) {
   });
 
   if (isDuplicate) {
-    await prisma.invoices.update({
+    await prisma.invoice.update({
       where: { id: invoice.id },
       data: { isDuplicate: true },
     });

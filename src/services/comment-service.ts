@@ -2,6 +2,16 @@ import { prisma } from '@/lib/database/client';
 import { EntityType, LogSeverity } from '@/types';
 import { auditLogger } from '@/lib/utils/audit-logger';
 
+// Type for audit log entry
+interface AuditLogEntry {
+  id: string;
+  entityType: string;
+  entityId: string;
+  userId: string | null;
+  timestamp: Date;
+  metadata: Record<string, unknown> | null;
+}
+
 export interface Comment {
   id: string;
   entityType: EntityType;
@@ -75,7 +85,7 @@ export class CommentService {
     }
 
     // Store comment metadata in audit log
-    const auditEntry = await prisma.audit_logs.create({
+    const auditEntry = await prisma.auditLog.create({
       data: {
         action: 'COMMENT_ADDED',
         entityType: input.entityType,
@@ -92,7 +102,7 @@ export class CommentService {
     });
 
     // Get user details
-    const user = await prisma.User.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: input.userId },
       select: { name: true },
     });
@@ -153,18 +163,18 @@ export class CommentService {
 
     // Get comments from audit log
     const [auditEntries, total] = await Promise.all([
-      prisma.audit_logs.findMany({
+      prisma.auditLog.findMany({
         where,
         orderBy: { timestamp: 'desc' },
         skip,
         take: pageSize,
       }),
-      prisma.audit_logs.count({ where }),
+      prisma.auditLog.count({ where }),
     ]);
 
     // Fetch user details separately since there's no relation
     const userIds = [...new Set(auditEntries.map(e => e.userId).filter(Boolean))];
-    const users = await prisma.User.findMany({
+    const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
       select: { id: true, name: true, email: true },
     });
@@ -217,7 +227,7 @@ export class CommentService {
    * Get a single comment by ID
    */
   static async getCommentById(commentId: string): Promise<Comment | null> {
-    const auditEntry = await prisma.audit_logs.findUnique({
+    const auditEntry = await prisma.auditLog.findUnique({
       where: { id: commentId },
     });
 
@@ -228,7 +238,7 @@ export class CommentService {
     // Fetch user details separately since there's no relation
     let userName = 'Unknown';
     if (auditEntry.userId) {
-      const user = await prisma.User.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id: auditEntry.userId },
         select: { name: true },
       });
@@ -257,7 +267,7 @@ export class CommentService {
         uploadedAt: auditEntry.createdAt,
       })),
     };
-  })
+  }
 
   /**
    * Update a comment
@@ -278,7 +288,7 @@ export class CommentService {
     }
 
     // Create update audit entry
-    const auditEntry = await prisma.audit_logs.create({
+    const auditEntry = await prisma.auditLog.create({
       data: {
         action: 'COMMENT_UPDATED',
         entityType: existingComment.entityType,
@@ -313,7 +323,7 @@ export class CommentService {
     }
 
     // Allow deletion by comment author or admin
-    const user = await prisma.User.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { role: true },
     });
@@ -323,7 +333,7 @@ export class CommentService {
     }
 
     // Log deletion
-    await prisma.audit_logs.create({
+    await prisma.auditLog.create({
       data: {
         action: 'COMMENT_DELETED',
         entityType: existingComment.entityType,
@@ -345,7 +355,7 @@ export class CommentService {
     entityType: EntityType,
     entityId: string
   ): Promise<number> {
-    return prisma.audit_logs.count({
+    return prisma.auditLog.count({
       where: {
         action: 'COMMENT_ADDED',
         entityType,
@@ -384,7 +394,7 @@ export class CommentService {
 
     const entityIds = (userEntities as any[]).map(e => e.entity_id);
 
-    const auditEntries = await prisma.audit_logs.findMany({
+    const auditEntries = await prisma.auditLog.findMany({
       where: {
         entityId: { in: entityIds },
       },
@@ -395,7 +405,7 @@ export class CommentService {
 
     // Fetch user details separately since there's no relation
     const userIds = [...new Set(auditEntries.map(e => e.userId).filter(Boolean))];
-    const users = await prisma.User.findMany({
+    const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
       select: { id: true, name: true },
     });
@@ -428,7 +438,7 @@ export class CommentService {
   ): Promise<boolean> {
     switch (entityType) {
       case 'INVOICE':
-        const invoice = await prisma.invoices.findUnique({
+        const invoice = await prisma.invoice.findUnique({
           where: { id: entityId },
           select: { id: true },
         });
@@ -459,7 +469,7 @@ export class CommentService {
       const userName = mention.substring(1);
 
       // Find user by name
-      const user = await prisma.User.findFirst({
+      const user = await prisma.user.findFirst({
         where: { name: { contains: userName, mode: 'insensitive' } },
         select: { id: true },
       });

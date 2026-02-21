@@ -1,51 +1,52 @@
-import { Request, Response, NextFunction } from "express";
-import { verify } from "jsonwebtoken";
-import { prisma } from "@/lib/prisma";
-import { AppError } from "@/lib/errors";
-import { logger } from "@/lib/logger";
+import { NextRequest, NextResponse } from 'next/server';
+import { verify } from 'jsonwebtoken';
+import { prisma } from '@/lib/prisma';
+import { AppError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
-// Extend Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        name?: string;
-        organizationId: string;
-        role?: string;
-      };
-    }
-  }
-}
+export type AuthenticatedRequest = NextRequest & {
+  user?: {
+    id: string;
+    email: string;
+    name?: string;
+    organizationId: string;
+    role?: string;
+  };
+};
 
 /**
- * JWT authentication middleware
+ * JWT authentication middleware for Next.js API routes
+ * Usage: export async function GET(req: AuthenticatedRequest) { ... }
+ * Wrap your handler with this function.
  */
 export async function authenticate(
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-) {
+  req: AuthenticatedRequest
+): Promise<{ user: NonNullable<AuthenticatedRequest['user']> } | NextResponse> {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.get('authorization');
 
-    if (!authHeader?.startsWith("Bearer ")) {
-      return next(new AppError("Authentication required", "UNAUTHORIZED", 401));
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
     const token = authHeader.substring(7);
 
     if (!token) {
-      return next(new AppError("Token not provided", "UNAUTHORIZED", 401));
+      return NextResponse.json(
+        { error: 'Token not provided' },
+        { status: 401 }
+      );
     }
 
-    // Verify JWT
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      logger.error("JWT_SECRET not configured");
-      return next(
-        new AppError("Server configuration error", "CONFIG_ERROR", 500),
+      logger.error('JWT_SECRET not configured');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
       );
     }
 
@@ -54,7 +55,6 @@ export async function authenticate(
       email: string;
     };
 
-    // Fetch user from database
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
@@ -67,11 +67,14 @@ export async function authenticate(
     });
 
     if (!user) {
-      return next(new AppError("User not found", "UNAUTHORIZED", 401));
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 401 }
+      );
     }
 
-    // Attach user to request
-    req.user = {
+    // Attach user to request object
+    (req as AuthenticatedRequest).user = {
       id: user.id,
       email: user.email,
       name: user.name || undefined,
@@ -79,70 +82,75 @@ export async function authenticate(
       role: user.role || undefined,
     };
 
-    next();
+    // Return user data for convenience
+    return { user: req.user! };
   } catch (error) {
-    if (error instanceof AppError) {
-      return next(error);
-    }
-
-    logger.error({ error }, "Authentication failed");
-    return next(new AppError("Invalid or expired token", "UNAUTHORIZED", 401));
+    logger.error({ error }, 'Authentication failed');
+    return NextResponse.json(
+      { error: 'Invalid or expired token' },
+      { status: 401 }
+    );
   }
 }
 
 /**
- * Require authentication middleware
- * Ensures req.user is set (must be used after authenticate)
+ * Higher-order function to protect API routes with authentication.
+ * Example: export const GET = withAuth(async (req) => { ... })
  */
-export function requireAuth(req: Request, _res: Response, next: NextFunction) {
-  if (!req.user) {
-    return next(new AppError("Authentication required", "UNAUTHORIZED", 401));
-  }
-  next();
-}
-
-/**
- * Require specific role middleware
- */
-export function requireRole(allowedRoles: string[]) {
-  return (req: Request, _res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(new AppError("Authentication required", "UNAUTHORIZED", 401));
+export function withAuth(
+  handler: (req: AuthenticatedRequest) => Promise<NextResponse> | NextResponse
+) {
+  return async (req: AuthenticatedRequest): Promise<NextResponse> => {
+    const authResult = await authenticate(req);
+    if (authResult instanceof NextResponse) {
+      return authResult; // error response
     }
-
-    if (!allowedRoles.includes(req.user.role || "")) {
-      return next(new AppError("Insufficient permissions", "FORBIDDEN", 403));
-    }
-
-    next();
+    // authentication succeeded, call handler
+    return handler(req);
   };
 }
 
 /**
- * Optional authentication middleware
- * Sets req.user if token is valid, but doesn't require it
+ * Require specific role middleware (to be used inside handler after authenticate)
+ */
+export function requireRole(allowedRoles: string[], user?: AuthenticatedRequest['user']) {
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+  if (!allowedRoles.includes(user.role || '')) {
+    return NextResponse.json(
+      { error: 'Insufficient permissions' },
+      { status: 403 }
+    );
+  }
+  return null; // success
+}
+
+/**
+ * Optional authentication for API routes (does not fail if no token)
  */
 export async function optionalAuth(
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-) {
+  req: AuthenticatedRequest
+): Promise<{ user?: AuthenticatedRequest['user'] }> {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.get('authorization');
 
-    if (!authHeader?.startsWith("Bearer ")) {
-      return next();
+    if (!authHeader?.startsWith('Bearer ')) {
+      return {};
     }
 
     const token = authHeader.substring(7);
 
     if (!token) {
-      return next();
+      return {};
     }
 
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      return next();
+      return {};
     }
 
     const decoded = verify(token, jwtSecret) as {
@@ -171,9 +179,9 @@ export async function optionalAuth(
       };
     }
 
-    next();
+    return { user: req.user };
   } catch {
     // Silently fail for optional auth
-    next();
+    return {};
   }
 }

@@ -76,7 +76,7 @@ export interface ApprovalRequest {
   }[];
   amount?: number;
   currency?: string;
-  meta Record<string, any>;
+  meta: Record<string, any>;
   createdAt: DateTime;
   updatedAt: DateTime;
   expiresAt?: DateTime;
@@ -359,7 +359,7 @@ export class EscalationManager {
       if (!firstApprover.metadata?.escalationLoopCount) {
         return {
           ...firstApprover,
-          meta { ...firstApprover.metadata, escalationLoopCount: 1 }
+          meta: { ...firstApprover.metadata, escalationLoopCount: 1 }
         };
       }
       
@@ -371,7 +371,7 @@ export class EscalationManager {
       
       return {
         ...firstApprover,
-        meta { 
+        meta: { 
           ...firstApprover.metadata, 
           escalationLoopCount: firstApprover.metadata.escalationLoopCount + 1 
         }
@@ -479,8 +479,8 @@ export class ApprovalService {
   async requestApproval(
     requestId: string,
     approvalType: ApprovalType,
-    amount?: number,
-    meta Record<string, any> = {},
+    amount: number,
+    meta: Record<string, any> = {},
     overridePolicyId?: string
   ): Promise<ApprovalRequest> {
     // Find matching policy
@@ -492,7 +492,7 @@ export class ApprovalService {
         throw new ApprovalError(`Policy ${overridePolicyId} not found`, 'POLICY_NOT_FOUND');
       }
     } else {
-      policy = this.policyEngine.findMatchingPolicy(approvalType, amount, metadata);
+      policy = this.policyEngine.findMatchingPolicy(approvalType, amount, meta);
       if (!policy) {
         throw new ApprovalError(
           `No approval policy found for type ${approvalType}` + (amount ? ` and amount ${amount}` : ''),

@@ -83,7 +83,7 @@ export interface DuplicateDetectionResult {
   recommendedAction: 'approve' | 'review' | 'reject' | 'escalate';
   checkDurationMs: number;
   timestamp: DateTime;
-  meta {
+  meta: {
     algorithmsUsed: string[];
     windowDays: number;
     thresholdApplied: number;
@@ -486,7 +486,7 @@ export class AdvancedDuplicateDetector {
                            riskLevel === DuplicateRiskLevel.SEVERE,
       investigationPriority: this.determineInvestigationPriority(riskLevel, adjustedConfidence),
       saComplianceImpact: this.assessSAComplianceImpact(duplicateType, adjustedConfidence),
-      meta { checkId, candidateId: candidate.id }
+      meta: { checkId, candidateId: candidate.id }
     };
   }
 
@@ -667,7 +667,7 @@ export class AdvancedDuplicateDetector {
       recommendedAction: 'approve',
       checkDurationMs: endTime.diff(startTime, 'milliseconds').milliseconds,
       timestamp: endTime,
-      meta {
+      meta: {
         algorithmsUsed: [],
         windowDays: this.config.windowDays,
         thresholdApplied: this.config.saComplianceThreshold,

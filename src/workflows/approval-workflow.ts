@@ -52,7 +52,7 @@ export class ApprovalWorkflow {
   ): Promise<WorkflowInitiationResult> {
     try {
       // Use SQLite table names
-      const invoice = await prisma.invoices.findUnique({
+      const invoice = await prisma.invoice.findUnique({
         where: { id: invoiceId },
       });
 
@@ -141,7 +141,7 @@ export class ApprovalWorkflow {
             });
 
             // Update invoice with current approver
-            await prisma.invoices.update({
+            await prisma.invoice.update({
               where: { id: invoiceId },
               data: {
                 currentApproverId: approver.id,
@@ -192,7 +192,7 @@ export class ApprovalWorkflow {
     invoiceId: string,
   ): Promise<WorkflowAdvanceResult> {
     try {
-      const invoice = await prisma.invoices.findUnique({
+      const invoice = await prisma.invoice.findUnique({
         where: { id: invoiceId },
         include: {
           approvals: {
@@ -212,7 +212,7 @@ export class ApprovalWorkflow {
 
       if (!nextApproval) {
         // Workflow is complete
-        await prisma.invoices.update({
+        await prisma.invoice.update({
           where: { id: invoiceId },
           data: {
             status: InvoiceStatus.APPROVED,
@@ -258,7 +258,7 @@ export class ApprovalWorkflow {
       });
 
       // Update invoice
-      await prisma.invoices.update({
+      await prisma.invoice.update({
         where: { id: invoiceId },
         data: {
           currentStage: nextApproval.sequenceNumber,
@@ -325,7 +325,7 @@ export class ApprovalWorkflow {
       });
 
       // Notify creator
-      const invoice = await prisma.invoices.findUnique({
+      const invoice = await prisma.invoice.findUnique({
         where: { id: invoiceId },
       });
 
@@ -365,7 +365,7 @@ export class ApprovalWorkflow {
    * Find backup approver for a tier
    */
   private static async findBackupApprover(tier: string) {
-    return prisma.users.findFirst({
+    return prisma.user.findFirst({
       where: {
         role: tier,
         isActive: true,
@@ -390,7 +390,7 @@ export class ApprovalWorkflow {
       decisionDate?: Date;
     }>;
   } | null> {
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
         approvals: {
@@ -405,14 +405,14 @@ export class ApprovalWorkflow {
     const approverIds = [
       ...new Set(invoice.approvals.map((a) => a.approverId).filter(Boolean)),
     ];
-    const approvers = await prisma.users.findMany({
+    const approvers = await prisma.user.findMany({
       where: { id: { in: approverIds } },
       select: { id: true, name: true },
     });
     const approverMap = new Map(approvers.map((a) => [a.id, a]));
 
     const currentApprover = invoice.currentApproverId
-      ? await prisma.users.findUnique({
+      ? await prisma.user.findUnique({
           where: { id: invoice.currentApproverId },
           select: { id: true, name: true },
         })

@@ -28,7 +28,7 @@ import {
   DetectedForm,
   ProcessingException,
 } from "./types";
-import { auditLogger } from "../audit-logger";
+import { auditLogger } from "../utils/audit-logger";
 import { TEMP_DIR, OCR_ENGINES } from "./constants";
 
 const pipelineAsync = promisify(pipeline);

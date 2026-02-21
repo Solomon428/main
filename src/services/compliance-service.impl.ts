@@ -95,7 +95,7 @@ export interface ScreeningResult {
   reviewedBy?: string;
   reviewedAt?: DateTime;
   reviewNotes?: string;
-  meta Record<string, any>;
+  meta: Record<string, any>;
 }
 
 export interface ScreeningPolicy {
@@ -567,7 +567,7 @@ export class ComplianceService {
       listsScreened: lists,
       screeningDate: DateTime.now(),
       expiryDate: this.calculateExpiryDate(policy, riskLevel),
-      meta {
+      meta: {
         policyId: policy.id,
         policyName: policy.name,
         provider: this.screeningProvider.name,

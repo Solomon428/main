@@ -1,37 +1,54 @@
-// Minimal PDFExtractor implementation re-homed into pdf-processor.
-// This is a deterministic stand-in to satisfy the τ₂ gate and avoid
-// breaking downstream imports while you migrate to a full implementation.
+import { EnhancedExtractor } from '@/lib/utils/pdf-extractor-enhanced'
+
+// Public return shape for PDFExtractor (adapted from EnhancedPDFExtractor)
+export type PDFExtractionResult = {
+  success: boolean;
+  data?: any;
+  strategy: 'TEXT' | 'OCR' | 'MANUAL' | 'NONE';
+  errors: string[];
+  warnings: string[];
+  confidence: number;
+  processingTime: number;
+  mathValidation?: {
+    passed: boolean;
+    expectedTotal: number;
+    actualTotal: number;
+    difference: number;
+  };
+};
+
 export class PDFExtractor {
-  static async extractInvoiceData(filePath: string): Promise<{
-    success: boolean;
-    data?: any;
-    strategy: "TEXT" | "OCR" | "MANUAL" | "NONE";
-    errors: string[];
-    warnings: string[];
-    confidence: number;
-    processingTime: number;
-    mathValidation?: {
-      passed: boolean;
-      expectedTotal: number;
-      actualTotal: number;
-      difference: number;
+  static async extractInvoiceData(filePath: string): Promise<PDFExtractionResult> {
+    const enhanced = await EnhancedExtractor.extractInvoiceData(filePath);
+
+    // Map Enhanced strategy to PDFExtractionResult's enum
+    const strategy = enhanced.strategy === 'TEXT'
+      ? 'TEXT'
+      : enhanced.strategy === 'MANUAL'
+      ? 'MANUAL'
+      : 'OCR';
+
+    const mathVal = enhanced.mathValidation ?? {
+      passed: false,
+      expectedTotal: 0,
+      actualTotal: 0,
+      difference: 0,
     };
-  }> {
-    // Not implemented in this patch; return a conservative failure with guidance.
+
     return {
-      success: false,
-      data: undefined,
-      strategy: "NONE",
-      errors: ["PDF extraction not implemented in this fork yet"],
-      warnings: [],
-      confidence: 0,
-      processingTime: 0,
+      success: enhanced.success,
+      data: enhanced.data,
+      strategy,
+      errors: enhanced.errors ?? [],
+      warnings: enhanced.warnings ?? [],
+      confidence: enhanced.confidence ?? 0,
+      processingTime: enhanced.processingTime ?? 0,
       mathValidation: {
-        passed: false,
-        expectedTotal: 0,
-        actualTotal: 0,
-        difference: 0,
-      },
+        passed: mathVal.passed ?? false,
+        expectedTotal: mathVal.expectedTotal ?? 0,
+        actualTotal: mathVal.actualTotal ?? 0,
+        difference: mathVal.difference ?? 0
+      }
     };
   }
 }

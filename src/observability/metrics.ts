@@ -103,7 +103,7 @@ export function getMetrics(): string {
   const lines: string[] = [];
 
   // Counters
-  for (const [name, entries] of counters) {
+  for (const [name, entries] of Array.from(counters.entries())) {
     lines.push(`# TYPE ${name} counter`);
     for (const entry of entries) {
       const labelStr = formatLabels(entry.labels);
@@ -112,7 +112,7 @@ export function getMetrics(): string {
   }
 
   // Gauges
-  for (const [name, entries] of gauges) {
+  for (const [name, entries] of Array.from(gauges.entries())) {
     lines.push(`# TYPE ${name} gauge`);
     for (const entry of entries) {
       const labelStr = formatLabels(entry.labels);
@@ -121,11 +121,11 @@ export function getMetrics(): string {
   }
 
   // Histograms
-  for (const [name, entry] of histograms) {
+  for (const [name, entry] of Array.from(histograms.entries())) {
     lines.push(`# TYPE ${name} histogram`);
-    const labelStr = formatLabels({}); // Histogram labels would need to be stored differently
+    const labelStr = formatLabels({});
 
-    for (const [bucket, count] of entry.buckets) {
+    for (const [bucket, count] of Array.from(entry.buckets.entries())) {
       lines.push(`${name}_bucket{le="${bucket}"}${labelStr} ${count}`);
     }
     lines.push(`${name}_sum${labelStr} ${entry.sum}`);

@@ -2,7 +2,6 @@
 import { Prisma, type RiskScore, type Invoice, type Supplier, type User, type Organization, PrismaClient } from '@prisma/client';
 import { type Decimal } from '@prisma/client/runtime/library';
 import { z } from 'zod';
-import { type Logger } from 'winston';
 import { addDays, differenceInDays, format, parseISO, isBefore, isAfter, isValid, subDays, isWeekend, isSameDay } from 'date-fns';
 import { validateEmail, validateVAT, validateBankAccount, validateInvoiceNumber, validateTaxId, validatePostalCode, validatePhoneNumber } from '../../utils/validation';
 import { generateId, validateId, parseId, createCuid, parseCuid, validateCuid } from '../../utils/ids';
@@ -12,11 +11,8 @@ import { ComplianceStatus } from '../../domain/enums/ComplianceStatus';
 import { AuditAction } from '../../domain/enums/AuditAction';
 import { EntityType } from '../../domain/enums/EntityType';
 import { Currency } from '../../domain/enums/Currency';
-import { InvoiceNotFoundError } from '../common/errors/InvoiceNotFoundError';
-import { ValidationError } from '../common/errors/ValidationError';
-import { PermissionError } from '../common/errors/PermissionError';
-import { AuditLogService } from '../common/services/audit-log.service';
-import { getLogger } from '../../logging/logger';
+import { prisma } from '../../db/prisma';
+import { info, error, warn } from '../../observability/logger';
 
 // --- INPUT INTERFACES ---
 export interface CreateRiskScoreInput {
@@ -104,23 +100,24 @@ export class RiskAssessmentService {
         throw new InvoiceNotFoundError(input.invoiceId);
       }
 
-      const riskScore = await tx.riskScore.create({
-         {
-          id: generateId(),
-          invoiceId: input.invoiceId,
-          riskLevel: input.riskLevel,
-          score: input.score,
-          factors: input.factors,
-          calculationMethod: input.calculationMethod,
-          meta input.metadata || {},
-          notes: input.notes || null,
-          createdById: input.createdById,
-        },
-      });
+          const riskScore = await tx.riskScore.create({
+        data: {
+             
+              id: generateId(),
+              invoiceId: input.invoiceId,
+              riskLevel: input.riskLevel,
+              score: input.score,
+              factors: input.factors,
+              calculationMethod: input.calculationMethod,
+              // meta input.metadata || {},
+              notes: input.notes || null,
+              createdById: input.createdById,
+            },
+          });
 
       // Create audit log for creation
       await this.auditLogService.createAuditLog(tx, {
-        entityType: EntityType.RISKSCORE,
+        entityType: EntityType.RISK_SCORE,
         entityId: riskScore.id,
         action: AuditAction.CREATE,
         userId: input.createdById,
@@ -199,7 +196,7 @@ export class RiskAssessmentService {
 
       // Create audit log for view
       await this.auditLogService.createAuditLog(this.prisma, {
-        entityType: EntityType.RISKSCORE,
+        entityType: EntityType.RISK_SCORE,
         entityId: riskScoreId,
         action: AuditAction.VIEW,
         userId,
@@ -276,7 +273,7 @@ export class RiskAssessmentService {
 
         const updatedScoreRecord = await tx.riskScore.update({
           where: { id: riskScoreId },
-           {
+          data: {
             ...updateData,
             updatedById: input.updatedById,
             updatedAt: new Date(),
@@ -285,7 +282,7 @@ export class RiskAssessmentService {
 
         // Create audit log for update
         await this.auditLogService.createAuditLog(tx, {
-          entityType: EntityType.RISKSCORE,
+          entityType: EntityType.RISK_SCORE,
           entityId: riskScoreId,
           action: AuditAction.UPDATE,
           userId: input.updatedById,
@@ -350,7 +347,7 @@ export class RiskAssessmentService {
 
         // Create audit log for deletion
         await this.auditLogService.createAuditLog(tx, {
-          entityType: EntityType.RISKSCORE,
+          entityType: EntityType.RISK_SCORE,
           entityId: riskScoreId,
           action: AuditAction.DELETE,
           userId: deletedById,
@@ -566,7 +563,7 @@ export class RiskAssessmentService {
         score: riskScore,
         factors,
         calculationMethod,
-        meta {
+        meta: {
             factorBreakdown: factorDetails,
             calculationTimestamp: new Date().toISOString(),
         },

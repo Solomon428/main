@@ -22,7 +22,7 @@ import { DateTime } from 'luxon';
 import { PrismaClient, InvoiceStatus, ValidationSeverity } from '@prisma/client';
 
 // REAL VAT CALCULATION VALIDATION (NO PLACEHOLDERS)
-private validateVATCalculations(input: InvoiceValidationInput, results: ValidationResult[]): void {
+function validateVATCalculations(input: InvoiceValidationInput, results: ValidationResult[]): void {
   let calculatedVatTotal = 0;
   let calculatedSubtotal = 0;
   

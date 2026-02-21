@@ -115,3 +115,5 @@ export async function listUserSessions(userId: string) {
     },
   });
 }
+
+export const findSessionsByUserId = listUserSessions;

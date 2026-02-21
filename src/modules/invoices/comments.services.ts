@@ -18,7 +18,7 @@ const createCommentSchema = z.object({
     .min(1, "Comment content is required")
     .max(5000, "Comment too long"),
   isInternal: z.boolean().default(false),
-  createdById: z.string().min(1, "User ID is required"),
+  userId: z.string().min(1, "User ID is required"),
   parentId: z.string().optional(),
 });
 
@@ -55,7 +55,7 @@ export interface CreateInvoiceCommentInput {
   invoiceId: string;
   content: string;
   isInternal: boolean; // If true, only visible to internal users
-  createdById: string;
+  userId: string;
   parentId?: string; // For threaded replies
 }
 
@@ -67,8 +67,7 @@ export interface UpdateInvoiceCommentInput {
 
 export interface GetInvoiceCommentIncludeOptions {
   invoice?: boolean;
-  createdBy?: boolean;
-  updatedBy?: boolean;
+  user?: boolean;
   parent?: boolean;
   replies?: boolean; // Include direct child comments
 }
@@ -130,11 +129,11 @@ export class InvoiceCommentService {
         invoiceId: validated.invoiceId,
         content: validated.content,
         isInternal: validated.isInternal,
-        createdById: validated.createdById,
+        userId: validated.userId,
         parentId: validated.parentId || null,
       },
       include: {
-        createdBy: true,
+        user: true,
         parent: true,
       },
     });
@@ -161,7 +160,7 @@ export class InvoiceCommentService {
     }
 
     // Verify user has permission to update
-    if (existingComment.createdById !== validated.updatedById) {
+    if (existingComment.userId !== validated.updatedById) {
       throw new PermissionError("You can only update your own comments");
     }
 
@@ -176,8 +175,7 @@ export class InvoiceCommentService {
         updatedAt: new Date(),
       },
       include: {
-        createdBy: true,
-        updatedBy: true,
+        user: true,
       },
     });
 
@@ -196,7 +194,7 @@ export class InvoiceCommentService {
       throw new Error("Comment not found");
     }
 
-    if (comment.createdById !== userId) {
+    if (comment.userId !== userId) {
       throw new PermissionError("You can only delete your own comments");
     }
 
@@ -205,7 +203,7 @@ export class InvoiceCommentService {
       where: { id: commentId },
       data: {
         content: "[deleted]",
-        isDeleted: true,
+        deletedAt: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -221,12 +219,11 @@ export class InvoiceCommentService {
     const comment = await this.prisma.invoiceComment.findUnique({
       where: { id: commentId },
       include: {
-        createdBy: include?.createdBy ?? false,
-        updatedBy: include?.updatedBy ?? false,
+        user: include?.user ?? false,
         parent: include?.parent ?? false,
         replies: include?.replies
           ? {
-              where: { isDeleted: false },
+              where: { deletedAt: null },
               orderBy: { createdAt: "asc" },
             }
           : false,
@@ -251,17 +248,17 @@ export class InvoiceCommentService {
     const comments = await this.prisma.invoiceComment.findMany({
       where: {
         invoiceId,
-        isDeleted: false,
+        deletedAt: null,
         ...(options?.includeInternal === false && { isInternal: false }),
         ...(options?.includeReplies === false && { parentId: null }),
       },
       include: {
-        createdBy: true,
+        user: true,
         replies: options?.includeReplies
           ? {
-              where: { isDeleted: false },
+              where: { deletedAt: null },
               orderBy: { createdAt: "asc" },
-              include: { createdBy: true },
+              include: { user: true },
             }
           : false,
       },
@@ -280,17 +277,19 @@ export class InvoiceCommentService {
     const comments = await this.prisma.invoiceComment.findMany({
       where: {
         invoiceId,
-        isDeleted: false,
+        deletedAt: null,
       },
       select: {
         isInternal: true,
-        createdById: true,
+        userId: true,
       },
     });
 
     const byUser: Record<string, number> = {};
     comments.forEach((comment) => {
-      byUser[comment.createdById] = (byUser[comment.createdById] || 0) + 1;
+      if (comment.userId) {
+        byUser[comment.userId] = (byUser[comment.userId] || 0) + 1;
+      }
     });
 
     return {
@@ -299,22 +298,6 @@ export class InvoiceCommentService {
       externalCount: comments.filter((c) => !c.isInternal).length,
       byUser,
     };
-  }
-
-  /**
-   * Mark all comments as read for a user on an invoice
-   */
-  async markCommentsAsRead(invoiceId: string, userId: string): Promise<void> {
-    await this.prisma.invoiceComment.updateMany({
-      where: {
-        invoiceId,
-        isRead: false,
-        createdById: { not: userId }, // Don't mark own comments
-      },
-      data: {
-        isRead: true,
-      },
-    });
   }
 }
 

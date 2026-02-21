@@ -5,12 +5,24 @@
  */
 
 // Core class
-export { FraudScorer } from './core';
-export { default } from './core';
+export { FraudScorer } from "./core";
+export { default } from "./core";
 
-// Types and interfaces
+// Types and interfaces - re-export from types barrel
 export type {
   FraudScoringContext,
+  FraudScoringInput,
+  FraudScoringResult,
+  FraudRiskFactor,
+  FraudConfidenceInterval,
+  FraudModelVersion,
+  FraudScoringMetadata,
+  FraudAuditTrail,
+  FraudSLATimeline,
+  FraudScoringException,
+} from "./types";
+
+export type {
   AmountRiskAnalysis,
   SupplierAgeRiskAnalysis,
   SupplierRiskProfileAnalysis,
@@ -22,12 +34,4 @@ export type {
   VATComplianceRiskAnalysis,
   RegulatoryRiskAnalysis,
   AggregatedRiskAnalysis,
-  FraudScoringInput,
-  FraudScoringResult,
-  FraudRiskFactor,
-  FraudConfidenceInterval,
-  FraudModelVersion,
-  FraudScoringMetadata,
-  FraudAuditTrail,
-  FraudSLATimeline
-};
+} from "./types";

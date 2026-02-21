@@ -1,20 +1,20 @@
-import React from 'react'
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { ThemeProvider } from '@/components/ui/theme-provider'
+import React from "react";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "@/components/ui/theme-provider";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'CREDITORFLOW - Enterprise Invoice Management',
-  description: 'AI-powered invoice processing and approval system',
-}
+  title: "CREDITORFLOW - Enterprise Invoice Management",
+  description: "AI-powered invoice processing and approval system",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -34,22 +34,40 @@ export default function RootLayout({
                     <h1 className="text-2xl font-bold">CREDITORFLOW</h1>
                   </div>
                   <nav className="flex items-center space-x-6">
-                    <a href="/dashboard" className="text-sm font-medium hover:text-primary">
+                    <a
+                      href="/dashboard"
+                      className="text-sm font-medium hover:text-primary"
+                    >
                       Dashboard
                     </a>
-                    <a href="/invoices" className="text-sm font-medium hover:text-primary">
+                    <a
+                      href="/dashboard/invoices"
+                      className="text-sm font-medium hover:text-primary"
+                    >
                       Invoices
                     </a>
-                    <a href="/suppliers" className="text-sm font-medium hover:text-primary">
+                    <a
+                      href="/dashboard/suppliers"
+                      className="text-sm font-medium hover:text-primary"
+                    >
                       Suppliers
                     </a>
-                    <a href="/approvals" className="text-sm font-medium hover:text-primary">
+                    <a
+                      href="/approvals"
+                      className="text-sm font-medium hover:text-primary"
+                    >
                       Approvals
                     </a>
-                    <a href="/team" className="text-sm font-medium hover:text-primary">
+                    <a
+                      href="/team"
+                      className="text-sm font-medium hover:text-primary"
+                    >
                       Team
                     </a>
-                    <a href="/reports" className="text-sm font-medium hover:text-primary">
+                    <a
+                      href="/dashboard/reports"
+                      className="text-sm font-medium hover:text-primary"
+                    >
                       Reports
                     </a>
                   </nav>
@@ -61,5 +79,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

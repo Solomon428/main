@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { InvoiceStatus } from "../../domain/enums/InvoiceStatus";
-import { Currency } from "../../enums/Currency";
+import { Currency } from "../../domain/enums/Currency";
 import { PaymentMethod } from "../../domain/enums/PaymentMethod";
 
 const decimalSchema = z

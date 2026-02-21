@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { mkdir } from "fs/promises";
-import { PDFExtractor } from "@/lib/pdf-processor";
 import { prisma } from "@/db/prisma";
 import { AuditLogger } from "@/lib/utils/audit-logger";
 import { authMiddleware } from "@/lib/middleware/auth";
@@ -36,10 +35,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get total count
-    const total = await prisma.invoices.count({ where });
+    const total = await prisma.invoice.count({ where });
 
     // Get paginated invoices
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * pageSize,
@@ -113,7 +112,7 @@ async function handleJsonCreate(request: NextRequest): Promise<NextResponse> {
   const userId = request.headers.get("x-user-id") || "system";
 
   // Create invoice
-  const invoice = await prisma.invoices.create({
+  const invoice = await prisma.invoice.create({
     data: {
       invoiceNumber: body.invoiceNumber || `INV-${Date.now()}`,
       supplierName: body.supplierName || "Unknown Supplier",
@@ -226,6 +225,7 @@ async function handleFileUpload(request: NextRequest): Promise<NextResponse> {
 
     // Extract data from PDF
     if (file.type === "application/pdf") {
+      const { PDFExtractor } = await import("@/lib/pdf-processor");
       extractionResult = await PDFExtractor.extractInvoiceData(filepath);
     } else {
       extractionResult = {
@@ -250,7 +250,7 @@ async function handleFileUpload(request: NextRequest): Promise<NextResponse> {
   const extractedData = extractionResult?.data;
   const timestamp = Date.now();
 
-  const invoice = await prisma.invoices.create({
+  const invoice = await prisma.invoice.create({
     data: {
       invoiceNumber:
         manualData.invoiceNumber ||

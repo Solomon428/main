@@ -6,20 +6,22 @@
 
 import { compare, hash } from "bcryptjs";
 import { UserRole, Permission } from "@/types";
-
-// Simple JWT implementation without jsonwebtoken package
-// In production, use a proper JWT library
+import { SignJWT, jwtVerify } from "jose";
 
 const JWT_SECRET =
   process.env.JWT_SECRET ||
   "creditorflow-fallback-secret-min-32-chars-long-key";
+const SECRET = new TextEncoder().encode(JWT_SECRET);
 
 export interface JWTPayload {
-  userId: string;
+  id: string;
   email: string;
   role: UserRole;
   department: string;
+  name?: string;
+  approvalLimit?: number;
   exp?: number;
+  iat?: number;
 }
 
 /**
@@ -40,55 +42,44 @@ export async function verifyPassword(
 }
 
 /**
- * Simple base64 encoding for JWT-like tokens
- * NOTE: This is a simplified implementation for demo purposes.
- * In production, use a proper JWT library like jsonwebtoken
+ * Generate a JWT token using jose library
  */
-function base64UrlEncode(str: string): string {
-  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-}
+export async function generateToken(
+  payload: Omit<JWTPayload, "iat" | "exp">,
+): Promise<string> {
+  const token = await new SignJWT({
+    id: payload.id,
+    email: payload.email,
+    role: payload.role,
+    department: payload.department,
+    name: payload.name,
+    approvalLimit: payload.approvalLimit,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("24h")
+    .sign(SECRET);
 
-function base64UrlDecode(str: string): string {
-  const padding = "=".repeat((4 - (str.length % 4)) % 4);
-  const base64 = str.replace(/-/g, "+").replace(/_/g, "/") + padding;
-  return atob(base64);
+  return token;
 }
 
 /**
- * Generate a simple token (JWT-like)
- * NOTE: For production, install jsonwebtoken: npm install jsonwebtoken
- */
-export function generateToken(payload: JWTPayload): string {
-  const header = { alg: "none", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const body = { ...payload, exp: now + 24 * 60 * 60 }; // 24 hours
-
-  const encodedHeader = base64UrlEncode(JSON.stringify(header));
-  const encodedBody = base64UrlEncode(JSON.stringify(body));
-  const signature = base64UrlEncode(
-    `${encodedHeader}.${encodedBody}.${JWT_SECRET}`,
-  );
-
-  return `${encodedHeader}.${encodedBody}.${signature}`;
-}
-
-/**
- * Verify a token
- * NOTE: For production, install jsonwebtoken: npm install jsonwebtoken
+ * Verify a JWT token using jose library
  */
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-
-    const body = JSON.parse(base64UrlDecode(parts[1]));
-
-    // Check expiration
-    if (body.exp && body.exp < Math.floor(Date.now() / 1000)) {
-      return null;
-    }
-
-    return body as JWTPayload;
+    const { payload } = await jwtVerify(token, SECRET);
+    // Map jose payload to our JWTPayload
+    return {
+      id: (payload as any).id || (payload as any).userId || "",
+      email: payload.email as string,
+      role: (payload as any).role as UserRole,
+      department: (payload as any).department as string,
+      name: (payload as any).name,
+      approvalLimit: (payload as any).approvalLimit,
+      exp: payload.exp,
+      iat: payload.iat,
+    };
   } catch {
     return null;
   }
@@ -104,8 +95,12 @@ const ROLE_HIERARCHY: UserRole[] = [
   "EXECUTIVE",
   "GROUP_FINANCIAL_MANAGER",
   "ADMIN",
+  "SUPER_ADMIN",
+  "FINANCE_MANAGER",
+  "APPROVER",
+  "PROCUREMENT",
+  "VIEWER",
   "AUDITOR",
-  "SYSTEM",
 ];
 
 /**
@@ -175,7 +170,7 @@ export function hasPermission(
       "MANAGE_SETTINGS",
     ],
     AUDITOR: ["VIEW_INVOICE", "VIEW_REPORT", "VIEW_AUDIT_LOG"],
-    SYSTEM: [
+    SUPER_ADMIN: [
       "VIEW_INVOICE",
       "CREATE_INVOICE",
       "EDIT_INVOICE",
@@ -187,6 +182,29 @@ export function hasPermission(
       "MANAGE_SETTINGS",
       "VIEW_AUDIT_LOG",
     ],
+    FINANCE_MANAGER: [
+      "VIEW_INVOICE",
+      "CREATE_INVOICE",
+      "EDIT_INVOICE",
+      "APPROVE_INVOICE",
+      "VIEW_REPORT",
+      "MANAGE_SUPPLIER",
+    ],
+    APPROVER: [
+      "VIEW_INVOICE",
+      "CREATE_INVOICE",
+      "EDIT_INVOICE",
+      "APPROVE_INVOICE",
+      "VIEW_REPORT",
+    ],
+    PROCUREMENT: [
+      "VIEW_INVOICE",
+      "CREATE_INVOICE",
+      "EDIT_INVOICE",
+      "VIEW_REPORT",
+      "MANAGE_SUPPLIER",
+    ],
+    VIEWER: ["VIEW_INVOICE", "VIEW_REPORT"],
   };
 
   const userPermissions = ROLE_PERMISSIONS[userRole] || [];

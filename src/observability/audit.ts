@@ -6,6 +6,7 @@ import { prisma } from "../lib/prisma";
 import { AuditAction } from "../domain/enums/AuditAction";
 import { EntityType } from "../domain/enums/EntityType";
 import { LogSeverity } from "../domain/enums/LogSeverity";
+import { Prisma } from "@prisma/client";
 
 interface AuditEventData {
   userId?: string;
@@ -41,9 +42,9 @@ export async function logAuditEvent(data: AuditEventData): Promise<void> {
         entityType: data.entityType,
         entityId: data.entityId,
         entityDescription: data.entityDescription,
-        oldValue: data.oldValue || null,
-        newValue: data.newValue || null,
-        diff: calculateDiff(data.oldValue, data.newValue),
+        oldValue: data.oldValue as Prisma.InputJsonValue || Prisma.JsonNull,
+        newValue: data.newValue as Prisma.InputJsonValue || Prisma.JsonNull,
+        diff: calculateDiff(data.oldValue, data.newValue) as Prisma.InputJsonValue || Prisma.JsonNull,
         changesSummary:
           data.changesSummary ||
           generateChangesSummary(data.oldValue, data.newValue),
@@ -60,7 +61,6 @@ export async function logAuditEvent(data: AuditEventData): Promise<void> {
       },
     });
   } catch (error) {
-    // Fail silently but log to console
     console.error("Failed to write audit log:", error);
   }
 }
@@ -76,11 +76,12 @@ function calculateDiff(
 
   const diff: Record<string, { old: unknown; new: unknown }> = {};
 
-  // Check for changed values
-  for (const key of new Set([
+  const keys = Array.from(new Set([
     ...Object.keys(oldValue),
     ...Object.keys(newValue),
-  ])) {
+  ]));
+
+  for (const key of keys) {
     if (JSON.stringify(oldValue[key]) !== JSON.stringify(newValue[key])) {
       diff[key] = {
         old: oldValue[key],

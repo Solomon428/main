@@ -68,7 +68,7 @@ export class BulkOperationsService {
     for (const invoiceId of input.invoiceIds) {
       try {
         // Check if user has approval authority
-        const invoice = await prisma.invoices.findUnique({
+        const invoice = await prisma.invoice.findUnique({
           where: { id: invoiceId },
           include: { approvals: { where: { status: "PENDING" } } },
         });
@@ -100,7 +100,7 @@ export class BulkOperationsService {
         });
 
         if (remainingApprovals === 0) {
-          await prisma.invoices.update({
+          await prisma.invoice.update({
             where: { id: invoiceId },
             data: {
               status: InvoiceStatus.APPROVED,
@@ -152,7 +152,7 @@ export class BulkOperationsService {
 
     for (const invoiceId of input.invoiceIds) {
       try {
-        const invoice = await prisma.invoices.findUnique({
+        const invoice = await prisma.invoice.findUnique({
           where: { id: invoiceId },
           include: { approvals: { where: { status: "PENDING" } } },
         });
@@ -176,7 +176,7 @@ export class BulkOperationsService {
         }
 
         // Update invoice status
-        await prisma.invoices.update({
+        await prisma.invoice.update({
           where: { id: invoiceId },
           data: {
             status: InvoiceStatus.REJECTED,
@@ -227,7 +227,7 @@ export class BulkOperationsService {
 
     for (const invoiceId of input.invoiceIds) {
       try {
-        await prisma.invoices.update({
+        await prisma.invoice.update({
           where: { id: invoiceId },
           data: {
             status: input.status,
@@ -283,7 +283,7 @@ export class BulkOperationsService {
     const errors: BulkOperationResult["errors"] = [];
 
     // Verify approver exists and is active
-    const approver = await prisma.User.findUnique({
+    const approver = await prisma.user.findUnique({
       where: { id: input.approverId },
       select: { id: true, name: true, isActive: true },
     });
@@ -303,7 +303,7 @@ export class BulkOperationsService {
 
     for (const invoiceId of input.invoiceIds) {
       try {
-        await prisma.invoices.update({
+        await prisma.invoice.update({
           where: { id: invoiceId },
           data: {
             currentApproverId: input.approverId,
@@ -367,7 +367,7 @@ export class BulkOperationsService {
     contentType: string;
   }> {
     // Fetch invoices with all requested data
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: { id: { in: input.invoiceIds } },
       include: {
         line_items: input.includeLineItems,
@@ -404,7 +404,7 @@ export class BulkOperationsService {
     byStatus: Record<string, number>;
     byCurrency: Record<string, number>;
   }> {
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: { id: { in: invoiceIds } },
       include: {
         supplier: { select: { name: true } },

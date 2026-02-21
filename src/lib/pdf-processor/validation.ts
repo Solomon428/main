@@ -15,7 +15,7 @@ import {
   DocumentQualityMetrics,
   ProcessingException,
 } from "./types";
-import { auditLogger } from "../audit-logger";
+import { auditLogger } from "../utils/audit-logger";
 import { FraudScorer } from "@/logic-engine/risk/fraud-scorer";
 import { VATValidator } from "@/logic-engine/compliance/vat-validator";
 import { DuplicateDetector } from "@/logic-engine/duplicates/advanced-duplicate-detector";

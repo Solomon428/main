@@ -13,28 +13,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       totalSuppliers,
       recentInvoices,
     ] = await Promise.all([
-      prisma.invoices.count(),
-      prisma.invoices.count({
+      prisma.invoice.count(),
+      prisma.invoice.count({
         where: {
           status: {
             in: ["PENDING_EXTRACTION", "PENDING_APPROVAL", "UNDER_REVIEW"],
           },
         },
       }),
-      prisma.invoices.count({
+      prisma.invoice.count({
         where: { status: "APPROVED" },
       }),
-      prisma.invoices.count({
+      prisma.invoice.count({
         where: { status: "PAID" },
       }),
-      prisma.invoices.count({
+      prisma.invoice.count({
         where: {
           status: { notIn: ["PAID", "CANCELLED"] },
           dueDate: { lt: new Date() },
         },
       }),
-      prisma.suppliers.count(),
-      prisma.invoices.findMany({
+      prisma.supplier.count(),
+      prisma.invoice.findMany({
         orderBy: { createdAt: "desc" },
         take: 5,
         select: {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     ]);
 
     // Calculate total amounts
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       select: { totalAmount: true, status: true },
     });
 

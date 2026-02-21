@@ -25,14 +25,14 @@ import type {
   FraudEscalationPath,
   FraudConfidenceInterval,
   FraudMitigationAction,
-} from "../types";
+} from "./types";
 import {
   RISK_WEIGHTS,
   RISK_THRESHOLDS,
   CONFIDENCE_INTERVALS,
   ALERT_PRIORITIES,
   MITIGATION_ACTIONS,
-} from "../constants";
+} from "./constants";
 
 /**
  * Aggregate weighted risk scores from all dimensions

@@ -48,8 +48,8 @@ export async function calculatePerformanceScore(
 
     // Calculate on-time delivery rate
     const onTimeDeliveries = invoices.filter((inv) => {
-      if (!inv.dueDate || !inv.paidAt) return false;
-      return new Date(inv.paidAt) <= new Date(inv.dueDate);
+      if (!inv.dueDate || !inv.paidDate) return false;
+      return new Date(inv.paidDate) <= new Date(inv.dueDate);
     }).length;
     const onTimeDeliveryRate =
       totalInvoices > 0 ? (onTimeDeliveries / totalInvoices) * 100 : 0;
@@ -149,34 +149,33 @@ export async function updatePerformanceMetrics(
   metrics: PerformanceMetrics,
 ): Promise<void> {
   try {
+    const period = new Date().toISOString().slice(0, 7); // YYYY-MM
+    
     await prisma.supplierPerformance.upsert({
       where: {
-        supplierId: supplierId,
+        supplierId_period: {
+          supplierId: supplierId,
+          period: period,
+        },
       },
       create: {
         id: generateId(),
         supplierId: supplierId,
-        onTimeDeliveryRate: metrics.onTimeDeliveryRate,
+        period: period,
+        onTimeDelivery: metrics.onTimeDeliveryRate,
         qualityScore: metrics.qualityScore,
-        invoiceAccuracyRate: metrics.invoiceAccuracyRate,
-        responseTimeHours: metrics.responseTimeHours,
-        disputeRate: metrics.disputeRate,
-        totalInvoices: metrics.totalInvoices,
+        serviceLevel: metrics.invoiceAccuracyRate,
+        invoiceCount: metrics.totalInvoices,
         totalAmount: metrics.totalAmount,
-        periodStart: new Date(),
-        periodEnd: new Date(),
+        avgProcessingDays: metrics.responseTimeHours,
       },
       update: {
-        onTimeDeliveryRate: metrics.onTimeDeliveryRate,
+        onTimeDelivery: metrics.onTimeDeliveryRate,
         qualityScore: metrics.qualityScore,
-        invoiceAccuracyRate: metrics.invoiceAccuracyRate,
-        responseTimeHours: metrics.responseTimeHours,
-        disputeRate: metrics.disputeRate,
-        totalInvoices: metrics.totalInvoices,
+        serviceLevel: metrics.invoiceAccuracyRate,
+        invoiceCount: metrics.totalInvoices,
         totalAmount: metrics.totalAmount,
-        periodStart: new Date(),
-        periodEnd: new Date(),
-        updatedAt: new Date(),
+        avgProcessingDays: metrics.responseTimeHours,
       },
     });
 
@@ -195,14 +194,21 @@ export async function updatePerformanceMetrics(
  */
 export async function getPerformanceReport(supplierId: string) {
   try {
+    const period = new Date().toISOString().slice(0, 7); // YYYY-MM
+    
     const performance = await prisma.supplierPerformance.findUnique({
-      where: { supplierId },
+      where: { 
+        supplierId_period: {
+          supplierId,
+          period,
+        },
+      },
       include: {
         supplier: {
           select: {
             id: true,
             name: true,
-            code: true,
+            supplierCode: true,
             status: true,
           },
         },
@@ -235,7 +241,7 @@ export async function getPerformanceComparison(supplierIds: string[]) {
           select: {
             id: true,
             name: true,
-            code: true,
+            supplierCode: true,
           },
         },
       },

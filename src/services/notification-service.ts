@@ -49,7 +49,7 @@ export class NotificationService {
     } = input;
 
     // Create notification record
-    const notification = await prisma.notifications.create({
+    const notification = await prisma.notification.create({
       data: {
         userId,
         type,
@@ -65,7 +65,7 @@ export class NotificationService {
     });
 
     // Get user preferences
-    const user = await prisma.User.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
@@ -84,7 +84,7 @@ export class NotificationService {
     const { userId, invoiceId, type } = input;
 
     // Get invoice details
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
 
@@ -158,7 +158,7 @@ export class NotificationService {
    * Mark notification as read
    */
   static async markAsRead(notificationId: string) {
-    return prisma.notifications.update({
+    return prisma.notification.update({
       where: { id: notificationId },
       data: {
         isRead: true,
@@ -171,7 +171,7 @@ export class NotificationService {
    * Mark all notifications as read for a user
    */
   static async markAllAsRead(userId: string) {
-    return prisma.notifications.updateMany({
+    return prisma.notification.updateMany({
       where: {
         userId,
         isRead: false,
@@ -203,14 +203,14 @@ export class NotificationService {
     }
 
     const [notifications, total, unreadCount] = await Promise.all([
-      prisma.notifications.findMany({
+      prisma.notification.findMany({
         where,
         skip,
         take: pageSize,
         orderBy: { createdAt: "desc" },
       }),
-      prisma.notifications.count({ where }),
-      prisma.notifications.count({
+      prisma.notification.count({ where }),
+      prisma.notification.count({
         where: { userId, isRead: false },
       }),
     ]);
@@ -231,7 +231,7 @@ export class NotificationService {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-    return prisma.notifications.deleteMany({
+    return prisma.notification.deleteMany({
       where: {
         createdAt: {
           lt: cutoffDate,

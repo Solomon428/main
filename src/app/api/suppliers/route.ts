@@ -19,10 +19,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get total count
-    const total = await prisma.suppliers.count({ where });
+    const total = await prisma.supplier.count({ where });
 
     // Get paginated suppliers
-    const suppliers = await prisma.suppliers.findMany({
+    const suppliers = await prisma.supplier.findMany({
       where,
       orderBy: { name: "asc" },
       skip: (page - 1) * pageSize,

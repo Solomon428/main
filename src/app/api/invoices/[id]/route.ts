@@ -86,7 +86,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.invoices.update({
+    await prisma.invoice.update({
       where: { id: params.id },
       data: {
         status: "CANCELLED",

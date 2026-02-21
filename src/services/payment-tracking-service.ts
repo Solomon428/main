@@ -29,7 +29,7 @@ export class PaymentTrackingService {
     userId: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const invoice = await prisma.invoices.findUnique({
+      const invoice = await prisma.invoice.findUnique({
         where: { id: data.invoiceId },
       });
 
@@ -52,7 +52,7 @@ export class PaymentTrackingService {
         newStatus = "PARTIALLY_PAID";
       }
 
-      await prisma.invoices.update({
+      await prisma.invoice.update({
         where: { id: data.invoiceId },
         data: {
           amountPaid: newAmountPaid,
@@ -103,24 +103,24 @@ export class PaymentTrackingService {
 
       const [paidInvoices, pendingInvoices, overdueInvoices, upcomingInvoices] =
         await Promise.all([
-          prisma.invoices.findMany({
+          prisma.invoice.findMany({
             where: { status: "PAID" },
             select: { totalAmount: true, amountPaid: true },
           }),
-          prisma.invoices.findMany({
+          prisma.invoice.findMany({
             where: {
               status: { in: ["APPROVED", "READY_FOR_PAYMENT"] },
             },
             select: { totalAmount: true },
           }),
-          prisma.invoices.findMany({
+          prisma.invoice.findMany({
             where: {
               status: { notIn: ["PAID", "CANCELLED", "REJECTED"] },
               dueDate: { lt: today },
             },
             select: { totalAmount: true },
           }),
-          prisma.invoices.count({
+          prisma.invoice.count({
             where: {
               status: { in: ["APPROVED", "READY_FOR_PAYMENT"] },
               dueDate: {
@@ -170,7 +170,7 @@ export class PaymentTrackingService {
     const today = new Date();
     const futureDate = new Date(today.getTime() + days * 24 * 60 * 60 * 1000);
 
-    return prisma.invoices.findMany({
+    return prisma.invoice.findMany({
       where: {
         status: { in: ["APPROVED", "READY_FOR_PAYMENT"] },
         dueDate: {

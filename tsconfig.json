@@ -8,7 +8,7 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "commonjs",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -17,7 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "exactOptionalPropertyTypes": false,
     "downlevelIteration": true,
-    "types": ["jest", "@testing-library/jest-dom"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["node"],
     "plugins": [
       {
         "name": "next"
@@ -25,8 +26,16 @@
     ],
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "baseUrl": "."
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "jest.setup.js"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "jest.setup.js",
+    "src/types/**/*.d.ts"
+  ],
   "exclude": ["node_modules"]
 }

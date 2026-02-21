@@ -98,7 +98,7 @@ export class AuditLogger {
         auditData.metadata = JSON.stringify(metadataObj);
       }
 
-      await prisma.audit_logs.create({
+      await prisma.auditLog.create({
         data: auditData,
       });
     } catch (error) {
@@ -111,7 +111,7 @@ export class AuditLogger {
     entityId: string,
     limit: number = 100,
   ) {
-    return prisma.audit_logs.findMany({
+    return prisma.auditLog.findMany({
       where: {
         entityType,
         entityId,
@@ -124,7 +124,7 @@ export class AuditLogger {
   }
 
   static async getAuditTrailByUser(userId: string, limit: number = 100) {
-    return prisma.audit_logs.findMany({
+    return prisma.auditLog.findMany({
       where: {
         userId,
       },
@@ -136,7 +136,7 @@ export class AuditLogger {
   }
 
   static async getAuditTrailByAction(action: AuditAction, limit: number = 100) {
-    return prisma.audit_logs.findMany({
+    return prisma.auditLog.findMany({
       where: {
         action,
       },
@@ -151,7 +151,7 @@ export class AuditLogger {
     severity: LogSeverity,
     limit: number = 100,
   ) {
-    return prisma.audit_logs.findMany({
+    return prisma.auditLog.findMany({
       where: {
         severity,
       },
@@ -173,7 +173,7 @@ export class AuditLogger {
       : {};
 
     const [total] = await Promise.all([
-      prisma.audit_logs.count({ where: whereClause }),
+      prisma.auditLog.count({ where: whereClause }),
     ]);
 
     return {

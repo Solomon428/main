@@ -1,4 +1,5 @@
 import { DateTime, Duration, Interval } from "luxon";
+import type { DateTime as DateTimeType } from "luxon";
 
 // ==================== DOMAIN TYPES ====================
 export interface BusinessHoursConfig {
@@ -30,7 +31,7 @@ export interface Holiday {
 }
 
 export interface SLACalculationResult {
-  targetDateTime: DateTime;
+  targetDateTime: ReturnType<typeof DateTime.fromISO>;
   elapsedBusinessMinutes: number;
   elapsedCalendarMinutes: number;
   businessDaysSkipped: number;
@@ -39,7 +40,7 @@ export interface SLACalculationResult {
   remainingMinutes: number;
   meta: {
     calculationId: string;
-    timestamp: DateTime;
+    timestamp: ReturnType<typeof DateTime.fromISO>;
     timezone: string;
   };
 }
@@ -108,7 +109,7 @@ export class HolidayCalendarService {
     return this.partialHolidays.has(date.toISODate() as string);
   }
 
-  getPartialHours(date: DateTime): { start: DateTime; end: DateTime } | null {
+  getPartialHours(date: DateTime): { start: ReturnType<typeof DateTime.fromISO>; end: DateTime } | null {
     const holiday = this.getHoliday(date);
     if (!holiday?.isPartial || !holiday.partialHours) return null;
 

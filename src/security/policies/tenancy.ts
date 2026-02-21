@@ -11,7 +11,7 @@ export async function enforceTenantAccess(
   userId: string,
   organizationId: string,
 ): Promise<boolean> {
-  const membership = await prisma.users.findFirst({
+  const membership = await prisma.user.findFirst({
     where: {
       id: userId,
       organizations: {
@@ -32,7 +32,7 @@ export async function enforceTenantAccess(
 export async function getUserPrimaryOrganization(
   userId: string,
 ): Promise<string | null> {
-  const user = await prisma.users.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { primaryOrganizationId: true },
   });
@@ -44,7 +44,7 @@ export async function getUserPrimaryOrganization(
  * Get all organizations for a user
  */
 export async function getUserOrganizations(userId: string): Promise<string[]> {
-  const user = await prisma.users.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
       organizations: {
@@ -53,7 +53,7 @@ export async function getUserOrganizations(userId: string): Promise<string[]> {
     },
   });
 
-  return user?.organizations.map((o) => o.id) || [];
+  return user?.organizations.map((o: { id: string }) => o.id) || [];
 }
 
 /**
@@ -88,7 +88,7 @@ export async function canAccessEntity(
   // This would need to be implemented based on entity type
   switch (entityType) {
     case "INVOICE":
-      const invoice = await prisma.invoices.findFirst({
+      const invoice = await prisma.invoice.findFirst({
         where: { id: entityId, organizationId },
       });
       return !!invoice;

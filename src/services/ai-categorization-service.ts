@@ -258,7 +258,7 @@ export class AICategorizationService {
 
     for (const invoiceId of invoiceIds) {
       try {
-        const invoice = await prisma.invoices.findUnique({
+        const invoice = await prisma.invoice.findUnique({
           where: { id: invoiceId },
           include: { supplier: true, lineItems: true },
         });
@@ -332,7 +332,7 @@ export class AICategorizationService {
     const amount = Number(invoice.totalAmount);
 
     // Get historical average for this supplier
-    const historicalInvoices = await prisma.invoices.findMany({
+    const historicalInvoices = await prisma.invoice.findMany({
       where: {
         supplierId: invoice.supplierId,
         id: { not: invoice.id },
@@ -363,7 +363,7 @@ export class AICategorizationService {
     }
 
     // Check for duplicate patterns
-    const similarInvoices = await prisma.invoices.findMany({
+    const similarInvoices = await prisma.invoice.findMany({
       where: {
         supplierId: invoice.supplierId,
         totalAmount: {

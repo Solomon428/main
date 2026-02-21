@@ -14,7 +14,7 @@ export async function runTask(
   info("Starting risk assessment task", { taskId: task.id });
 
   // Get invoices pending risk assessment
-  const invoices = await prisma.invoices.findMany({
+  const invoices = await prisma.invoice.findMany({
     where: {
       status: { in: [InvoiceStatus.SUBMITTED, InvoiceStatus.PROCESSING] },
       riskLevel: RiskLevel.UNKNOWN,
@@ -50,7 +50,7 @@ export async function runTask(
       }
 
       // Duplicate check risk
-      const duplicates = await prisma.invoices.count({
+      const duplicates = await prisma.invoice.count({
         where: {
           supplierId: invoice.supplierId,
           invoiceNumber: invoice.invoiceNumber,
@@ -83,7 +83,7 @@ export async function runTask(
       });
 
       // Update invoice risk level
-      await prisma.invoices.update({
+      await prisma.invoice.update({
         where: { id: invoice.id },
         data: { riskLevel },
       });

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         year: "numeric",
       });
 
-      const invoiceCount = await prisma.invoices.count({
+      const invoiceCount = await prisma.invoice.count({
         where: {
           createdAt: {
             gte: date,
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         },
       });
 
-      const approvedCount = await prisma.invoices.count({
+      const approvedCount = await prisma.invoice.count({
         where: {
           status: "APPROVED",
           approvedDate: {
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         },
       });
 
-      const rejectedCount = await prisma.invoices.count({
+      const rejectedCount = await prisma.invoice.count({
         where: {
           status: "REJECTED",
           updatedAt: {
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         },
       });
 
-      const totalAmount = await prisma.invoices.aggregate({
+      const totalAmount = await prisma.invoice.aggregate({
         where: {
           createdAt: {
             gte: date,

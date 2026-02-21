@@ -7,21 +7,13 @@
  * Prisma generates its own enum types in node_modules/.prisma/client.
  * The domain layer maintains parallel enum definitions in src/domain/enums/.
  * TypeScript's nominal type system treats them as incompatible even though
- * the string values are identical. These utilities bridge that gap at Prisma
- * call sites without modifying domain logic.
- *
- * PLACEMENT: src/lib/prisma-cast.ts
+ * the string values are identical.
  *
  * USAGE:
  * Instead of:   currency: data.currency
  * Use:          currency: toPrismaCurrency(data.currency)
  *
- * Only apply at Prisma call sites (create/update/where clauses).
- * Do NOT use inside pure domain logic or service layer business rules.
- *
- * JSON FIELDS — separate pattern:
- * Instead of:   metadata: data.metadata || {}
- * Use:          metadata: (data.metadata || {}) as Prisma.InputJsonValue
+ * At Prisma call sites only. Do NOT use inside pure domain logic.
  */
 
 import type {
@@ -44,63 +36,24 @@ import type {
   ApprovalDecision as PrismaApprovalDecision,
   RiskLevel as PrismaRiskLevel,
   UserRole as PrismaUserRole,
-} from "@prisma/client";
+} from '@prisma/client';
 
-export const toPrismaCurrency = (v: string): PrismaCurrency =>
-  v as PrismaCurrency;
-
-export const toPrismaInvoiceStatus = (v: string): PrismaInvoiceStatus =>
-  v as PrismaInvoiceStatus;
-
-export const toPrismaSupplierStatus = (v: string): PrismaSupplierStatus =>
-  v as PrismaSupplierStatus;
-
-export const toPrismaApprovalStatus = (v: string): PrismaApprovalStatus =>
-  v as PrismaApprovalStatus;
-
-export const toPrismaNotificationType = (v: string): PrismaNotificationType =>
-  v as PrismaNotificationType;
-
-export const toPrismaNotificationChannel = (
-  v: string,
-): PrismaNotificationChannel => v as PrismaNotificationChannel;
-
-export const toPrismaNotificationPriority = (
-  v: string,
-): PrismaNotificationPriority => v as PrismaNotificationPriority;
-
-export const toPrismaEntityType = (v: string): PrismaEntityType =>
-  v as PrismaEntityType;
-
-export const toPrismaAuditAction = (v: string): PrismaAuditAction =>
-  v as PrismaAuditAction;
-
-export const toPrismaLogSeverity = (v: string): PrismaLogSeverity =>
-  v as PrismaLogSeverity;
-
-export const toPrismaStorageProvider = (v: string): PrismaStorageProvider =>
-  v as PrismaStorageProvider;
-
-export const toPrismaSyncStatus = (v: string): PrismaSyncStatus =>
-  v as PrismaSyncStatus;
-
-export const toPrismaTransactionType = (v: string): PrismaTransactionType =>
-  v as PrismaTransactionType;
-
-export const toPrismaBankAccountType = (v: string): PrismaBankAccountType =>
-  v as PrismaBankAccountType;
-
-export const toPrismaSupplierCategory = (v: string): PrismaSupplierCategory =>
-  v as PrismaSupplierCategory;
-
-export const toPrismaApprovalChainType = (v: string): PrismaApprovalChainType =>
-  v as PrismaApprovalChainType;
-
-export const toPrismaApprovalDecision = (v: string): PrismaApprovalDecision =>
-  v as PrismaApprovalDecision;
-
-export const toPrismaRiskLevel = (v: string): PrismaRiskLevel =>
-  v as PrismaRiskLevel;
-
-export const toPrismaUserRole = (v: string): PrismaUserRole =>
-  v as PrismaUserRole;
+export const toPrismaCurrency = (v: string): PrismaCurrency => v as PrismaCurrency;
+export const toPrismaInvoiceStatus = (v: string): PrismaInvoiceStatus => v as PrismaInvoiceStatus;
+export const toPrismaSupplierStatus = (v: string): PrismaSupplierStatus => v as PrismaSupplierStatus;
+export const toPrismaApprovalStatus = (v: string): PrismaApprovalStatus => v as PrismaApprovalStatus;
+export const toPrismaNotificationType = (v: string): PrismaNotificationType => v as PrismaNotificationType;
+export const toPrismaNotificationChannel = (v: string): PrismaNotificationChannel => v as PrismaNotificationChannel;
+export const toPrismaNotificationPriority = (v: string): PrismaNotificationPriority => v as PrismaNotificationPriority;
+export const toPrismaEntityType = (v: string): PrismaEntityType => v as PrismaEntityType;
+export const toPrismaAuditAction = (v: string): PrismaAuditAction => v as PrismaAuditAction;
+export const toPrismaLogSeverity = (v: string): PrismaLogSeverity => v as PrismaLogSeverity;
+export const toPrismaStorageProvider = (v: string): PrismaStorageProvider => v as PrismaStorageProvider;
+export const toPrismaSyncStatus = (v: string): PrismaSyncStatus => v as PrismaSyncStatus;
+export const toPrismaTransactionType = (v: string): PrismaTransactionType => v as PrismaTransactionType;
+export const toPrismaBankAccountType = (v: string): PrismaBankAccountType => v as PrismaBankAccountType;
+export const toPrismaSupplierCategory = (v: string): PrismaSupplierCategory => v as PrismaSupplierCategory;
+export const toPrismaApprovalChainType = (v: string): PrismaApprovalChainType => v as PrismaApprovalChainType;
+export const toPrismaApprovalDecision = (v: string): PrismaApprovalDecision => v as PrismaApprovalDecision;
+export const toPrismaRiskLevel = (v: string): PrismaRiskLevel => v as PrismaRiskLevel;
+export const toPrismaUserRole = (v: string): PrismaUserRole => v as PrismaUserRole;

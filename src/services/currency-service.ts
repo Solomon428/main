@@ -149,7 +149,7 @@ export class CurrencyService {
   static async processInvoiceCurrency(
     invoiceId: string,
   ): Promise<MultiCurrencyInvoice | null> {
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: { supplier: true },
     });
@@ -177,7 +177,7 @@ export class CurrencyService {
     );
 
     // Update invoice with conversion data
-    await prisma.invoices.update({
+    await prisma.invoice.update({
       where: { id: invoiceId },
       data: {
         // Store conversion metadata in a JSON field or separate table
@@ -297,7 +297,7 @@ export class CurrencyService {
       if (filters.endDate) where.invoiceDate.lte = filters.endDate;
     }
 
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where,
       select: {
         currency: true,

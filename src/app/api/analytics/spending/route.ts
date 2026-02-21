@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const endDate = endDateStr ? new Date(endDateStr) : new Date();
 
     // Get spending data (without relations to avoid Prisma client issues)
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         invoiceDate: {
           gte: startDate,

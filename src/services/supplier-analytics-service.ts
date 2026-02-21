@@ -43,7 +43,7 @@ export class SupplierAnalyticsService {
     startDate?: Date,
     endDate?: Date,
   ): Promise<SupplierPerformanceMetrics | null> {
-    const supplier = await prisma.suppliers.findUnique({
+    const supplier = await prisma.supplier.findUnique({
       where: { id: supplierId },
     });
 
@@ -53,7 +53,7 @@ export class SupplierAnalyticsService {
     if (startDate) dateFilter.gte = startDate;
     if (endDate) dateFilter.lte = endDate;
 
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         supplierId,
         ...(Object.keys(dateFilter).length > 0 && { invoiceDate: dateFilter }),
@@ -159,14 +159,14 @@ export class SupplierAnalyticsService {
     category: string,
     limit: number = 10,
   ): Promise<SupplierComparison> {
-    const suppliers = await prisma.suppliers.findMany({
+    const suppliers = await prisma.supplier.findMany({
       where: { category },
       take: limit,
     });
 
     const comparisonData = await Promise.all(
       suppliers.map(async (supplier) => {
-        const invoices = await prisma.invoices.findMany({
+        const invoices = await prisma.invoice.findMany({
           where: { supplierId: supplier.id },
           include: { approvals: true },
         });
@@ -217,7 +217,7 @@ export class SupplierAnalyticsService {
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - months);
 
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         supplierId,
         invoiceDate: { gte: startDate },
@@ -277,14 +277,14 @@ export class SupplierAnalyticsService {
       avgAmount: number;
     }>
   > {
-    const suppliers = await prisma.suppliers.findMany({
+    const suppliers = await prisma.supplier.findMany({
       where: { isActive: true },
       take: 50, // Get more to calculate metrics
     });
 
     const performers = await Promise.all(
       suppliers.map(async (supplier) => {
-        const invoices = await prisma.invoices.findMany({
+        const invoices = await prisma.invoice.findMany({
           where: { supplierId: supplier.id },
         });
 
@@ -335,20 +335,20 @@ export class SupplierAnalyticsService {
       recommendation: string;
     }>
   > {
-    const categories = await prisma.suppliers.groupBy({
+    const categories = await prisma.supplier.groupBy({
       by: ["category"],
       _count: { id: true },
     });
 
     const opportunities = await Promise.all(
       categories.map(async (cat) => {
-        const suppliers = await prisma.suppliers.findMany({
+        const suppliers = await prisma.supplier.findMany({
           where: { category: cat.category },
         });
 
         let totalSpend = 0;
         for (const supplier of suppliers) {
-          const invoices = await prisma.invoices.findMany({
+          const invoices = await prisma.invoice.findMany({
             where: { supplierId: supplier.id },
           });
           totalSpend += invoices.reduce(
@@ -390,7 +390,7 @@ export class SupplierAnalyticsService {
       mitigations: string[];
     }>
   > {
-    const highRiskSuppliers = await prisma.suppliers.findMany({
+    const highRiskSuppliers = await prisma.supplier.findMany({
       where: {
         riskLevel: { in: ["HIGH", "CRITICAL"] },
       },
@@ -402,7 +402,7 @@ export class SupplierAnalyticsService {
         const mitigations: string[] = [];
 
         // Check for late deliveries
-        const invoices = await prisma.invoices.findMany({
+        const invoices = await prisma.invoice.findMany({
           where: { supplierId: supplier.id },
         });
 

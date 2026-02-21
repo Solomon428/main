@@ -169,7 +169,7 @@ export async function createApprovalChain(data: CreateApprovalChainInput) {
       minAmount: data.minAmount || 0,
       maxAmount: data.maxAmount,
       currency: data.currency || Currency.ZAR,
-      levels: data.levels,
+      levels: data.levels as any,
       approverRoles: data.approverRoles || [],
       specificApprovers: data.specificApprovers || [],
       alternateApprovers: data.alternateApprovers || [],
@@ -178,8 +178,8 @@ export async function createApprovalChain(data: CreateApprovalChainInput) {
       reminderHours: data.reminderHours || 12,
       allowDelegation: data.allowDelegation ?? true,
       requireAllApprovers: data.requireAllApprovers ?? false,
-      conditions: data.conditions || {},
-      rules: data.rules || {},
+      conditions: (data.conditions || {}) as any,
+      rules: (data.rules || {}) as any,
       priority: data.priority || 0,
       isActive: true,
     },
@@ -193,12 +193,24 @@ export async function updateApprovalChain(
   id: string,
   data: UpdateApprovalChainInput,
 ) {
+  const updateData: any = {
+    ...data,
+    updatedAt: new Date(),
+  };
+  
+  if (data.levels) {
+    updateData.levels = data.levels;
+  }
+  if (data.conditions) {
+    updateData.conditions = data.conditions;
+  }
+  if (data.rules) {
+    updateData.rules = data.rules;
+  }
+
   return prisma.approvalChain.update({
     where: { id },
-    data: {
-      ...data,
-      updatedAt: new Date(),
-    },
+    data: updateData,
   });
 }
 
@@ -282,13 +294,13 @@ export async function addApprovalLevel(chainId: string, level: ApprovalLevel) {
     throw new Error("Approval chain not found");
   }
 
-  const currentLevels = chain.levels as ApprovalLevel[];
+  const currentLevels = chain.levels as unknown as ApprovalLevel[];
   const newLevels = [...currentLevels, level].sort((a, b) => a.level - b.level);
 
   return prisma.approvalChain.update({
     where: { id: chainId },
     data: {
-      levels: newLevels,
+      levels: newLevels as any,
       updatedAt: new Date(),
     },
   });
@@ -310,13 +322,13 @@ export async function removeApprovalLevel(
     throw new Error("Approval chain not found");
   }
 
-  const currentLevels = chain.levels as ApprovalLevel[];
+  const currentLevels = chain.levels as unknown as ApprovalLevel[];
   const newLevels = currentLevels.filter((l) => l.level !== levelNumber);
 
   return prisma.approvalChain.update({
     where: { id: chainId },
     data: {
-      levels: newLevels,
+      levels: newLevels as any,
       updatedAt: new Date(),
     },
   });
@@ -375,6 +387,10 @@ export async function cloneApprovalChain(chainId: string, newName: string) {
   return prisma.approvalChain.create({
     data: {
       ...chainData,
+      levels: chainData.levels as any,
+      conditions: chainData.conditions as any,
+      rules: chainData.rules as any,
+      metadata: chainData.metadata as any,
       name: newName,
       isActive: true,
     },

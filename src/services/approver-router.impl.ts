@@ -93,7 +93,7 @@ export interface ApprovalRoutingResult {
   saComplianceHold?: boolean;
   saComplianceHoldReason?: string;
   routingTimestamp: DateTime;
-  meta {
+  meta: {
     routingStrategy: string;
     saComplianceRules: {
       sarsApprovalLimitsEnforced: boolean;
@@ -307,7 +307,7 @@ export class ApproverRouter {
         requiresEscalation: escalationLevel !== EscalationLevel.LEVEL_1,
         requiresDelegation: stages.some(s => !!s.approver.delegatedTo),
         routingTimestamp: DateTime.now(),
-        meta {
+        meta: {
           routingStrategy: 'risk_amount_sars_hybrid',
           saComplianceRules: {
             sarsApprovalLimitsEnforced: true,

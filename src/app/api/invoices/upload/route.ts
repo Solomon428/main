@@ -3,7 +3,6 @@ import { writeFile, readFile, stat } from "fs/promises";
 import { join, normalize, resolve } from "path";
 import { mkdir } from "fs/promises";
 import { existsSync } from "fs";
-import { PDFExtractor } from "@/lib/pdf-processor";
 import { prisma } from "@/lib/prisma";
 import { InvoiceStatus, PriorityLevel } from "@/types";
 import { AuditLogger } from "@/lib/utils/audit-logger";
@@ -154,6 +153,7 @@ export async function POST(request: NextRequest) {
     // Extract data from PDF
     let extractionResult;
     if (file.type === "application/pdf") {
+      const { PDFExtractor } = await import("@/lib/pdf-processor");
       extractionResult = await PDFExtractor.extractInvoiceData(filepath);
     } else {
       extractionResult = {

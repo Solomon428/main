@@ -15,7 +15,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "10");
 

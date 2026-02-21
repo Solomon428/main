@@ -179,3 +179,27 @@ export function generateSlug(text: string): string {
     .replace(/[\s_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+/**
+ * Create a CUID
+ */
+export function createCuid(): string {
+  return generateId();
+}
+
+/**
+ * Parse a CUID to extract timestamp
+ */
+export function parseCuid(cuid: string): { timestamp: Date | null; random: string } {
+  return {
+    timestamp: extractTimestampFromCuid(cuid),
+    random: cuid.slice(9),
+  };
+}
+
+/**
+ * Validate a CUID format
+ */
+export function validateCuid(cuid: string): boolean {
+  return /^c[0-9a-z]{24}$/i.test(cuid);
+}

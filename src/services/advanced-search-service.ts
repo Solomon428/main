@@ -114,7 +114,7 @@ export class AdvancedSearchService {
 
     // Execute search
     const [invoices, total] = await Promise.all([
-      prisma.invoices.findMany({
+      prisma.invoice.findMany({
         where,
         include: {
           supplier: {
@@ -137,7 +137,7 @@ export class AdvancedSearchService {
         skip,
         take: pageSize,
       }),
-      prisma.invoices.count({ where }),
+      prisma.invoice.count({ where }),
     ]);
 
     // Transform results
@@ -210,7 +210,7 @@ export class AdvancedSearchService {
     }> = [];
 
     // Search invoices
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         OR: [
           { invoiceNumber: { contains: query, mode: "insensitive" } },
@@ -324,7 +324,7 @@ export class AdvancedSearchService {
     const suggestions: string[] = [];
 
     if (!field || field === "invoiceNumber") {
-      const invoices = await prisma.invoices.findMany({
+      const invoices = await prisma.invoice.findMany({
         where: {
           invoiceNumber: { startsWith: partialQuery, mode: "insensitive" },
         },
@@ -526,7 +526,7 @@ export class AdvancedSearchService {
     const facets: FacetResult[] = [];
 
     // Status facet
-    const statusCounts = await prisma.invoices.groupBy({
+    const statusCounts = await prisma.invoice.groupBy({
       by: ["status"],
       where: baseWhere,
       _count: { status: true },
@@ -542,7 +542,7 @@ export class AdvancedSearchService {
     });
 
     // Priority facet
-    const priorityCounts = await prisma.invoices.groupBy({
+    const priorityCounts = await prisma.invoice.groupBy({
       by: ["priority"],
       where: baseWhere,
       _count: { priority: true },
@@ -558,7 +558,7 @@ export class AdvancedSearchService {
     });
 
     // Supplier facet (top 10)
-    const supplierCounts = await prisma.invoices.groupBy({
+    const supplierCounts = await prisma.invoice.groupBy({
       by: ["supplierId"],
       where: baseWhere,
       _count: { supplierId: true },

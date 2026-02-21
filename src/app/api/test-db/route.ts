@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Try to count invoices
-    const count = await prisma.invoices.count();
+    const count = await prisma.invoice.count();
 
     return NextResponse.json({
       success: true,

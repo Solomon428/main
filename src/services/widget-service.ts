@@ -81,15 +81,15 @@ export class WidgetService {
       overdueCount,
       avgProcessingTime,
     ] = await Promise.all([
-      prisma.invoices.count(),
-      prisma.invoices.count({
+      prisma.invoice.count(),
+      prisma.invoice.count({
         where: { status: { in: ["PENDING_APPROVAL", "UNDER_REVIEW"] } },
       }),
-      prisma.invoices.aggregate({
+      prisma.invoice.aggregate({
         where: { status: "PAID" },
         _sum: { totalAmount: true },
       }),
-      prisma.invoices.count({
+      prisma.invoice.count({
         where: {
           status: { notIn: ["PAID", "CANCELLED"] },
           dueDate: { lt: new Date() },
@@ -126,8 +126,8 @@ export class WidgetService {
     }
 
     const [count, highPriority, atRisk] = await Promise.all([
-      prisma.invoices.count({ where }),
-      prisma.invoices.count({
+      prisma.invoice.count({ where }),
+      prisma.invoice.count({
         where: { ...where, priority: "HIGH" },
       }),
       prisma.approval.count({
@@ -139,7 +139,7 @@ export class WidgetService {
     ]);
 
     // Get top 5 pending
-    const pending = await prisma.invoices.findMany({
+    const pending = await prisma.invoice.findMany({
       where,
       orderBy: { priority: "desc" },
       take: 5,
@@ -174,7 +174,7 @@ export class WidgetService {
    * Get overdue widget
    */
   static async getOverdueWidget(): Promise<WidgetData> {
-    const overdue = await prisma.invoices.findMany({
+    const overdue = await prisma.invoice.findMany({
       where: {
         status: { notIn: ["PAID", "CANCELLED"] },
         dueDate: { lt: new Date() },
@@ -186,7 +186,7 @@ export class WidgetService {
       },
     });
 
-    const totalOverdue = await prisma.invoices.aggregate({
+    const totalOverdue = await prisma.invoice.aggregate({
       where: {
         status: { notIn: ["PAID", "CANCELLED"] },
         dueDate: { lt: new Date() },
@@ -248,7 +248,7 @@ export class WidgetService {
    * Get top suppliers widget
    */
   static async getTopSuppliersWidget(): Promise<WidgetData> {
-    const suppliers = await prisma.invoices.groupBy({
+    const suppliers = await prisma.invoice.groupBy({
       by: ["supplierId"],
       _count: { id: true },
       _sum: { totalAmount: true },
@@ -256,7 +256,7 @@ export class WidgetService {
       take: 5,
     });
 
-    const supplierDetails = await prisma.suppliers.findMany({
+    const supplierDetails = await prisma.supplier.findMany({
       where: { id: { in: suppliers.map((s) => s.supplierId) } },
       select: { id: true, name: true },
     });
@@ -287,7 +287,7 @@ export class WidgetService {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         createdAt: { gte: sixMonthsAgo },
       },
@@ -335,7 +335,7 @@ export class WidgetService {
    * Get workload widget
    */
   static async getWorkloadWidget(): Promise<WidgetData> {
-    const approvers = await prisma.users.findMany({
+    const approvers = await prisma.user.findMany({
       where: {
         role: { in: ["CREDIT_CLERK", "BRANCH_MANAGER", "FINANCIAL_MANAGER"] },
         isActive: true,
@@ -383,7 +383,7 @@ export class WidgetService {
    * Get currency exposure widget
    */
   static async getCurrencyExposureWidget(): Promise<WidgetData> {
-    const currencies = await prisma.invoices.groupBy({
+    const currencies = await prisma.invoice.groupBy({
       by: ["currency"],
       _count: { id: true },
       _sum: { totalAmount: true },
@@ -411,7 +411,7 @@ export class WidgetService {
   // Private helper methods
 
   private static async calculateAvgProcessingTime(): Promise<number> {
-    const approvedInvoices = await prisma.invoices.findMany({
+    const approvedInvoices = await prisma.invoice.findMany({
       where: {
         status: "APPROVED",
         approvedDate: { not: null },

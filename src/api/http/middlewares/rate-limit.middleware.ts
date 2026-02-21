@@ -99,7 +99,8 @@ function getIdentifier(request: NextRequest): string {
  */
 function cleanupExpired(now: number): void {
   for (const key of Object.keys(store)) {
-    if (store[key].resetTime < now) {
+    const entry = store[key];
+    if (entry && entry.resetTime < now) {
       delete store[key];
     }
   }

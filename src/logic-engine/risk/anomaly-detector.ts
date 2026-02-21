@@ -37,7 +37,7 @@ export class AnomalyDetector {
     currentAmount: number,
   ): Promise<AnomalyResult> {
     // Get historical invoices for this supplier
-    const historicalInvoices = await prisma.invoices.findMany({
+    const historicalInvoices = await prisma.invoice.findMany({
       where: {
         supplierId,
         status: { not: "CANCELLED" },
@@ -109,7 +109,7 @@ export class AnomalyDetector {
     startDate.setDate(startDate.getDate() - lookbackDays);
 
     // Count recent invoices
-    const recentCount = await prisma.invoices.count({
+    const recentCount = await prisma.invoice.count({
       where: {
         supplierId,
         createdAt: {
@@ -122,7 +122,7 @@ export class AnomalyDetector {
     const historicalStart = new Date(startDate);
     historicalStart.setDate(historicalStart.getDate() - 90);
 
-    const historicalCount = await prisma.invoices.count({
+    const historicalCount = await prisma.invoice.count({
       where: {
         supplierId,
         createdAt: {
@@ -237,7 +237,7 @@ export class AnomalyDetector {
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
     // Get recent invoices (last 3 months)
-    const recentInvoices = await prisma.invoices.findMany({
+    const recentInvoices = await prisma.invoice.findMany({
       where: {
         supplierId,
         invoiceDate: {
@@ -247,7 +247,7 @@ export class AnomalyDetector {
     });
 
     // Get older invoices (3-6 months ago)
-    const olderInvoices = await prisma.invoices.findMany({
+    const olderInvoices = await prisma.invoice.findMany({
       where: {
         supplierId,
         invoiceDate: {
@@ -305,7 +305,7 @@ export class AnomalyDetector {
     overallRisk: "LOW" | "MEDIUM" | "HIGH";
     requiresInvestigation: boolean;
   }> {
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
 

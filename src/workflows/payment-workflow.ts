@@ -48,7 +48,7 @@ export class PaymentWorkflow {
     const errors: string[] = [];
 
     // Validate invoices
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         id: { in: invoiceIds },
         status: InvoiceStatus.READY_FOR_PAYMENT,
@@ -95,7 +95,7 @@ export class PaymentWorkflow {
     });
 
     // Update invoices with batch ID
-    await prisma.invoices.updateMany({
+    await prisma.invoice.updateMany({
       where: {
         id: { in: invoices.map((inv) => inv.id) },
       },
@@ -164,7 +164,7 @@ export class PaymentWorkflow {
     });
 
     // Update invoices
-    await prisma.invoices.updateMany({
+    await prisma.invoice.updateMany({
       where: { paymentBatchId: batchId },
       data: {
         status: InvoiceStatus.PAID,
@@ -203,7 +203,7 @@ export class PaymentWorkflow {
     paymentReference: string,
     paidById: string,
   ) {
-    const invoice = await prisma.invoices.update({
+    const invoice = await prisma.invoice.update({
       where: { id: invoiceId },
       data: {
         status: InvoiceStatus.PAID,
@@ -253,7 +253,7 @@ export class PaymentWorkflow {
    * Get invoices ready for payment
    */
   static async getInvoicesReadyForPayment() {
-    return prisma.invoices.findMany({
+    return prisma.invoice.findMany({
       where: {
         status: InvoiceStatus.READY_FOR_PAYMENT,
       },
@@ -277,7 +277,7 @@ export class PaymentWorkflow {
     });
 
     // Revert invoices
-    await prisma.invoices.updateMany({
+    await prisma.invoice.updateMany({
       where: { paymentBatchId: batchId },
       data: {
         status: InvoiceStatus.READY_FOR_PAYMENT,

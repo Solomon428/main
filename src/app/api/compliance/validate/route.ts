@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const userId = request.headers.get("x-user-id") || "system";
 
     // Get invoice with related data
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
         lineItems: true,
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       case "supplier":
         // Validate supplier compliance
         const supplier = invoice.supplierId
-          ? await prisma.suppliers.findUnique({
+          ? await prisma.supplier.findUnique({
               where: { id: invoice.supplierId },
             })
           : null;
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // Update invoice compliance status
     const isCompliant = results.compliant || results.vatCompliant || false;
-    await prisma.invoices.update({
+    await prisma.invoice.update({
       where: { id: invoiceId },
       data: {
         vatCompliant: results.vatCompliant ?? invoice.vatCompliant,
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       select: {
         id: true,

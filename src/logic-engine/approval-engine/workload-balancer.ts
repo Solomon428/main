@@ -33,7 +33,7 @@ export class WorkloadBalancer {
    */
   static async recalculateWorkload(userId: string): Promise<number> {
     // Count pending approvals for this user
-    const pendingCount = await prisma.approvals.count({
+    const pendingCount = await prisma.approval.count({
       where: {
         approverId: userId,
         status: ApprovalStatus.PENDING,
@@ -41,7 +41,7 @@ export class WorkloadBalancer {
     });
 
     // Update user's current workload
-    await prisma.users.update({
+    await prisma.user.update({
       where: { id: userId },
       data: {
         currentWorkload: pendingCount,
@@ -55,7 +55,7 @@ export class WorkloadBalancer {
    * Get workload metrics for all users
    */
   static async getAllWorkloadMetrics(): Promise<WorkloadMetrics[]> {
-    const users = await prisma.users.findMany({
+    const users = await prisma.user.findMany({
       where: {
         isActive: true,
       },
@@ -65,7 +65,7 @@ export class WorkloadBalancer {
 
     for (const user of users) {
       // Get pending approvals
-      const pendingApprovals = await prisma.approvals.count({
+      const pendingApprovals = await prisma.approval.count({
         where: {
           approverId: user.id,
           status: ApprovalStatus.PENDING,
@@ -73,7 +73,7 @@ export class WorkloadBalancer {
       });
 
       // Get completed approvals for processing time calculation
-      const completedApprovals = await prisma.approvals.findMany({
+      const completedApprovals = await prisma.approval.findMany({
         where: {
           approverId: user.id,
           status: { in: [ApprovalStatus.APPROVED, ApprovalStatus.REJECTED] },
@@ -129,7 +129,7 @@ export class WorkloadBalancer {
       whereClause.role = role;
     }
 
-    const users = await prisma.users.findMany({
+    const users = await prisma.user.findMany({
       where: whereClause,
       orderBy: {
         currentWorkload: "asc",
@@ -181,7 +181,7 @@ export class WorkloadBalancer {
 
     for (const overloaded of overloadedUsers) {
       // Get pending approvals for this user
-      const pendingApprovals = await prisma.approvals.findMany({
+      const pendingApprovals = await prisma.approval.findMany({
         where: {
           approverId: overloaded.userId,
           status: ApprovalStatus.PENDING,
@@ -199,7 +199,7 @@ export class WorkloadBalancer {
         const approval = pendingApprovals[i];
 
         // Find a user with the same role who has capacity
-        const originalApprover = await prisma.users.findUnique({
+        const originalApprover = await prisma.user.findUnique({
           where: { id: overloaded.userId },
         });
 
@@ -214,7 +214,7 @@ export class WorkloadBalancer {
         const newAssignee = alternativeUsers[0];
 
         // Reassign the approval
-        await prisma.approvals.update({
+        await prisma.approval.update({
           where: { id: approval.id },
           data: {
             approverId: newAssignee.userId,
@@ -286,7 +286,7 @@ export class WorkloadBalancer {
    * Reset workload for a user (e.g., when they go on leave)
    */
   static async resetUserWorkload(userId: string): Promise<void> {
-    await prisma.users.update({
+    await prisma.user.update({
       where: { id: userId },
       data: {
         currentWorkload: 0,

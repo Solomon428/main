@@ -73,7 +73,7 @@ export class EnhancedNotificationService {
           : null;
 
       // Create in-app notification
-      const inAppNotification = await prisma.notifications.create({
+      const inAppNotification = await prisma.notification.create({
         data: {
           userId: data.userId,
           type: data.type,
@@ -89,7 +89,7 @@ export class EnhancedNotificationService {
 
       // Send email if requested and SMTP is configured
       if (data.sendEmail && data.emailTemplate && SMTPClient.isConfigured()) {
-        const user = await prisma.User.findUnique({
+        const user = await prisma.user.findUnique({
           where: { id: data.userId },
           select: { email: true, name: true },
         });
@@ -262,8 +262,8 @@ export class EnhancedNotificationService {
     approvalId: string,
   ): Promise<{ success: boolean; inAppId?: string; emailSent?: boolean }> {
     const [user, invoice, approval] = await Promise.all([
-      prisma.User.findUnique({ where: { id: userId } }),
-      prisma.invoices.findUnique({
+      prisma.user.findUnique({ where: { id: userId } }),
+      prisma.invoice.findUnique({
         where: { id: invoiceId },
         include: { supplier: true },
       }),
@@ -300,11 +300,11 @@ export class EnhancedNotificationService {
     approverId: string,
   ): Promise<{ success: boolean }> {
     const [invoice, approver] = await Promise.all([
-      prisma.invoices.findUnique({
+      prisma.invoice.findUnique({
         where: { id: invoiceId },
         include: { supplier: true },
       }),
-      prisma.User.findUnique({ where: { id: approverId } }),
+      prisma.user.findUnique({ where: { id: approverId } }),
     ]);
 
     if (!invoice || !approver) {
@@ -314,7 +314,7 @@ export class EnhancedNotificationService {
     // Removed createdById logic as field doesn't exist
     /*
     if (invoice.createdById) {
-      const creator = await prisma.User.findUnique({
+      const creator = await prisma.user.findUnique({
         where: { id: invoice.createdById },
       });
       if (creator) {
@@ -343,7 +343,7 @@ export class EnhancedNotificationService {
   static async sendSLABreachNotification(
     invoiceId: string,
   ): Promise<{ success: boolean; notificationsSent: number }> {
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: { supplier: true, currentApprover: true },
     });
@@ -372,7 +372,7 @@ export class EnhancedNotificationService {
     }
 
     // Notify branch managers
-    const managers = await prisma.User.findMany({
+    const managers = await prisma.user.findMany({
       where: {
         role: { in: ["BRANCH_MANAGER", "FINANCIAL_MANAGER"] },
         isActive: true,
@@ -405,7 +405,7 @@ export class EnhancedNotificationService {
     invoiceId: string,
     fraudScore: number,
   ): Promise<{ success: boolean }> {
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: { supplier: true },
     });
@@ -415,7 +415,7 @@ export class EnhancedNotificationService {
     }
 
     // Notify financial managers
-    const managers = await prisma.User.findMany({
+    const managers = await prisma.user.findMany({
       where: {
         role: { in: ["FINANCIAL_MANAGER", "GROUP_FINANCIAL_MANAGER"] },
         isActive: true,
@@ -456,7 +456,7 @@ export class EnhancedNotificationService {
     dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
 
     // Find invoices due tomorrow or overdue
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         status: {
           in: [InvoiceStatus.APPROVED], // Removed READY_FOR_PAYMENT if invalid, or keep if valid. Checked schema: Status has APPROVED, PAID. READY_FOR_PAYMENT doesn't exist in InvoiceStatus enum.
@@ -477,7 +477,7 @@ export class EnhancedNotificationService {
       );
 
       // Get relevant users (financial managers)
-      const users = await prisma.User.findMany({
+      const users = await prisma.user.findMany({
         where: {
           role: {
             in: ["FINANCIAL_MANAGER", "GROUP_FINANCIAL_MANAGER"],
@@ -528,7 +528,7 @@ export class EnhancedNotificationService {
     success: boolean;
     emailsSent: number;
   }> {
-    const users = await prisma.User.findMany({
+    const users = await prisma.user.findMany({
       where: { isActive: true },
       select: { id: true, email: true, name: true },
     });
@@ -583,7 +583,7 @@ export class EnhancedNotificationService {
         };
 
         // Fetch full user object for template
-        const fullUser = await prisma.User.findUnique({
+        const fullUser = await prisma.user.findUnique({
           where: { id: user.id },
         });
         if (!fullUser) continue;

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     // Get overdue invoices
     const [invoices, total] = await Promise.all([
-      prisma.invoices.findMany({
+      prisma.invoice.findMany({
         where,
         include: {
           lineItems: {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      prisma.invoices.count({ where }),
+      prisma.invoice.count({ where }),
     ]);
 
     // Calculate days overdue and penalties
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
         break;
       case "update_penalty":
         // Recalculate and update penalty
-        const invoice = await prisma.invoices.findUnique({
+        const invoice = await prisma.invoice.findUnique({
           where: { id: invoiceId },
         });
         if (invoice) {
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    const updatedInvoice = await prisma.invoices.update({
+    const updatedInvoice = await prisma.invoice.update({
       where: { id: invoiceId },
       data: updateData,
     });

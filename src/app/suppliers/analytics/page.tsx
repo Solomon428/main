@@ -7,6 +7,8 @@ import {
   BarChartWidget,
 } from '@/components/dashboard/widgets/ChartWidget';
 
+export const dynamic = 'force-dynamic';
+
 interface SupplierMetric {
   supplierId: string;
   supplierName: string;
@@ -54,8 +56,11 @@ export default function SupplierAnalyticsPage({
   }
 
   // Separate suppliers by performance
-  const highPerformers = suppliers.filter((s) => s.qualityScore >= 80);
-  const needsAttention = suppliers.filter((s) => s.qualityScore < 70);
+  const safeSuppliers = suppliers || [];
+  const safeSpendingTrend = spendingTrend || [];
+  const safeTopSuppliers = topSuppliersBySpend || [];
+  const highPerformers = safeSuppliers.filter((s) => s.qualityScore >= 80);
+  const needsAttention = safeSuppliers.filter((s) => s.qualityScore < 70);
 
   return (
     <div className="p-6 space-y-6">
@@ -76,14 +81,14 @@ export default function SupplierAnalyticsPage({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TrendChartWidget
           title="Monthly Spending Trend"
-          data={spendingTrend.map((p) => ({
+          data={safeSpendingTrend.map((p) => ({
             month: p.period,
             value: p.totalSpend,
           }))}
         />
         <BarChartWidget
           title="Top Suppliers by Spend"
-          data={topSuppliersBySpend}
+          data={safeTopSuppliers}
           valuePrefix="R"
         />
       </div>
@@ -153,7 +158,7 @@ export default function SupplierAnalyticsPage({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {suppliers.map((supplier) => (
+              {safeSuppliers.map((supplier) => (
                 <tr key={supplier.supplierId} className="hover:bg-muted/30">
                   <td className="px-4 py-3 font-medium">
                     {supplier.supplierName}

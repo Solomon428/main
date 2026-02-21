@@ -53,7 +53,7 @@ export class SupplierService {
   static async createSupplier(input: CreateSupplierInput) {
     // Check for duplicate VAT number
     if (input.vatNumber) {
-      const existing = await prisma.suppliers.findFirst({
+      const existing = await prisma.supplier.findFirst({
         where: { vatNumber: input.vatNumber },
       });
       if (existing) {
@@ -65,7 +65,7 @@ export class SupplierService {
     }
 
     // Check for duplicate name
-    const existingName = await prisma.suppliers.findFirst({
+    const existingName = await prisma.supplier.findFirst({
       where: {
         name: {
           equals: input.name,
@@ -81,7 +81,7 @@ export class SupplierService {
     }
 
     // Create supplier
-    const supplier = await prisma.suppliers.create({
+    const supplier = await prisma.supplier.create({
       data: {
         name: input.name,
         tradingName: input.tradingName,
@@ -123,7 +123,7 @@ export class SupplierService {
    * Get supplier by ID
    */
   static async getSupplier(id: string) {
-    return prisma.suppliers.findUnique({
+    return prisma.supplier.findUnique({
       where: { id },
       include: {
         invoices: {
@@ -142,7 +142,7 @@ export class SupplierService {
     input: UpdateSupplierInput,
     userId?: string,
   ) {
-    const supplier = await prisma.suppliers.update({
+    const supplier = await prisma.supplier.update({
       where: { id },
       data: input,
     });
@@ -186,13 +186,13 @@ export class SupplierService {
     }
 
     const [suppliers, total] = await Promise.all([
-      prisma.suppliers.findMany({
+      prisma.supplier.findMany({
         where,
         skip,
         take: pageSize,
         orderBy: { name: "asc" },
       }),
-      prisma.suppliers.count({ where }),
+      prisma.supplier.count({ where }),
     ]);
 
     return {
@@ -208,7 +208,7 @@ export class SupplierService {
    * Verify supplier (mark as active)
    */
   static async verifySupplier(id: string, userId: string) {
-    const supplier = await prisma.suppliers.update({
+    const supplier = await prisma.supplier.update({
       where: { id },
       data: {
         status: "ACTIVE",
@@ -233,7 +233,7 @@ export class SupplierService {
    * Blacklist supplier
    */
   static async blacklistSupplier(id: string, reason: string, userId: string) {
-    const supplier = await prisma.suppliers.update({
+    const supplier = await prisma.supplier.update({
       where: { id },
       data: {
         isBlacklisted: true,
@@ -261,15 +261,15 @@ export class SupplierService {
    */
   static async getSupplierAnalytics(supplierId: string) {
     const [invoices, totalAmount, averageAmount] = await Promise.all([
-      prisma.invoices.findMany({
+      prisma.invoice.findMany({
         where: { supplierId },
         orderBy: { invoiceDate: "desc" },
       }),
-      prisma.invoices.aggregate({
+      prisma.invoice.aggregate({
         where: { supplierId },
         _sum: { totalAmount: true },
       }),
-      prisma.invoices.aggregate({
+      prisma.invoice.aggregate({
         where: { supplierId },
         _avg: { totalAmount: true },
       }),
@@ -296,7 +296,7 @@ export class SupplierService {
    * Find supplier by VAT number
    */
   static async findByVAT(vatNumber: string) {
-    return prisma.suppliers.findFirst({
+    return prisma.supplier.findFirst({
       where: { vatNumber },
     });
   }
@@ -310,7 +310,7 @@ export class SupplierService {
     userId: string,
   ) {
     // Try to find existing supplier
-    let supplier = await prisma.suppliers.findFirst({
+    let supplier = await prisma.supplier.findFirst({
       where: {
         OR: [
           { name: { equals: name, mode: "insensitive" } },

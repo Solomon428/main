@@ -169,7 +169,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Verify password
     console.log("[Login API] Verifying password...");
-    const isValidPassword = await compare(password, user.passwordHash);
+    const isValidPassword = await compare(password, user.passwordHash || "");
 
     if (!isValidPassword) {
       console.log("[Login API] Invalid password for user:", user.id);
@@ -230,9 +230,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       id: user.id,
       email: user.email,
       role: user.role,
-      department: user.department,
+      department: user.department || "FINANCE",
       name: user.name,
-      approvalLimit: Number(user.approvalLimit),
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
@@ -262,7 +261,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             name: user.name,
             role: user.role,
             department: user.department,
-            approvalLimit: Number(user.approvalLimit),
           },
         },
       },

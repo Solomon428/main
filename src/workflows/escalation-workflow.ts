@@ -97,7 +97,7 @@ export class EscalationWorkflow {
 
     // Fetch approver details separately since there's no relation
     const approver = approval.approverId
-      ? await prisma.users.findUnique({
+      ? await prisma.user.findUnique({
           where: { id: approval.approverId },
           select: { id: true, name: true },
         })
@@ -121,7 +121,7 @@ export class EscalationWorkflow {
         : "EXECUTIVE";
 
     // Find approver for next level
-    const nextApprover = await prisma.users.findFirst({
+    const nextApprover = await prisma.user.findFirst({
       where: {
         role: nextRole,
         isActive: true,
@@ -144,7 +144,7 @@ export class EscalationWorkflow {
     });
 
     // Update invoice
-    await prisma.invoices.update({
+    await prisma.invoice.update({
       where: { id: approval.invoiceId },
       data: {
         isEscalated: true,
@@ -156,7 +156,7 @@ export class EscalationWorkflow {
     });
 
     // Notify managers
-    const managers = await prisma.users.findMany({
+    const managers = await prisma.user.findMany({
       where: {
         role: { in: ["FINANCIAL_MANAGER", "EXECUTIVE"] },
         isActive: true,
@@ -210,7 +210,7 @@ export class EscalationWorkflow {
     resolverId: string,
     resolution: string,
   ) {
-    const invoice = await prisma.invoices.update({
+    const invoice = await prisma.invoice.update({
       where: { id: invoiceId },
       data: {
         isEscalated: false,
@@ -246,7 +246,7 @@ export class EscalationWorkflow {
    * Get all escalated items
    */
   static async getEscalatedItems() {
-    const invoices = await prisma.invoices.findMany({
+    const invoices = await prisma.invoice.findMany({
       where: {
         isEscalated: true,
       },
@@ -270,7 +270,7 @@ export class EscalationWorkflow {
             invoice.approvals.map((a) => a.approverId).filter(Boolean),
           ),
         ];
-        const approvers = await prisma.users.findMany({
+        const approvers = await prisma.user.findMany({
           where: { id: { in: approverIds } },
           select: { id: true, name: true, email: true },
         });
@@ -309,7 +309,7 @@ export class EscalationWorkflow {
     const approverIds = [
       ...new Set(approvals.map((a) => a.approverId).filter(Boolean)),
     ];
-    const approvers = await prisma.users.findMany({
+    const approvers = await prisma.user.findMany({
       where: { id: { in: approverIds } },
       select: { id: true, name: true },
     });

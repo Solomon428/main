@@ -4,8 +4,8 @@ import { prisma } from "@/db/prisma";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Get VAT compliance stats
-    const totalInvoices = await prisma.invoices.count();
-    const vatCompliant = await prisma.invoices.count({
+    const totalInvoices = await prisma.invoice.count();
+    const vatCompliant = await prisma.invoice.count({
       where: { vatCompliant: true },
     });
     const nonCompliant = totalInvoices - vatCompliant;
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       totalInvoices > 0 ? (vatCompliant / totalInvoices) * 100 : 0;
 
     // Get duplicate rate
-    const duplicateInvoices = await prisma.invoices.count({
+    const duplicateInvoices = await prisma.invoice.count({
       where: { isDuplicate: true },
     });
     const duplicateRate =

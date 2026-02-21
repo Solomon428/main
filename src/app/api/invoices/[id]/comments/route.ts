@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/invoices/[id]/comments - Fetch all comments for an invoice
@@ -12,7 +12,7 @@ export async function GET(
     const invoiceId = params.id;
 
     // Verify invoice exists
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
 
@@ -24,7 +24,7 @@ export async function GET(
     }
 
     // Fetch comments
-    const comments = await prisma.comment.findMany({
+    const comments = await prisma.invoiceComment.findMany({
       where: { invoiceId },
       orderBy: { createdAt: "desc" },
     });
@@ -66,7 +66,7 @@ export async function POST(
     }
 
     // Verify invoice exists
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
 
@@ -78,7 +78,7 @@ export async function POST(
     }
 
     // Create comment
-    const comment = await prisma.comment.create({
+    const comment = await prisma.invoiceComment.create({
       data: {
         invoiceId,
         user: userName,

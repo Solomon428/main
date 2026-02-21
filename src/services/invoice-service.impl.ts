@@ -58,7 +58,7 @@ export interface Invoice {
   voidedAt?: DateTime;
   disputeReason?: string;
   disputeFiledAt?: DateTime;
-  meta Record<string, any>;
+  meta: Record<string, any>;
   createdAt: DateTime;
   updatedAt: DateTime;
   version: number; // For optimistic concurrency
@@ -331,7 +331,7 @@ export class InvoiceStateMachine {
       toStatus: targetStatus,
       triggeredBy: userId,
       timestamp: DateTime.now(),
-      meta context
+      metadata: context
     };
     
     // Update invoice
@@ -458,7 +458,7 @@ export class InvoiceService {
       currency: this.config.defaultCurrency,
       paymentTerm: options.paymentTerm || this.config.defaultPaymentTerm,
       customPaymentDays: options.customPaymentDays,
-      meta options.metadata || {},
+      metadata: options.metadata || {},
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
       version: 1

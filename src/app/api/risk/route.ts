@@ -45,26 +45,26 @@ async function getRiskOverview() {
     fraudAlerts,
     totalInvoicesAnalyzed,
   ] = await Promise.all([
-    prisma.invoices.count({
+    prisma.invoice.count({
       where: { riskLevel: "HIGH" },
     }),
-    prisma.invoices.count({
+    prisma.invoice.count({
       where: { riskLevel: "MEDIUM" },
     }),
-    prisma.suppliers.count({
+    prisma.supplier.count({
       where: { riskLevel: "CRITICAL" },
     }),
-    prisma.invoices.count({
+    prisma.invoice.count({
       where: {
         fraudScore: { gte: 60 },
       },
     }),
-    prisma.invoices.count({
+    prisma.invoice.count({
       where: { fraudScore: { not: null } },
     }),
   ]);
 
-  const averageFraudScore = await prisma.invoices.aggregate({
+  const averageFraudScore = await prisma.invoice.aggregate({
     where: { fraudScore: { not: null } },
     _avg: { fraudScore: true },
   });
@@ -81,10 +81,10 @@ async function getRiskOverview() {
         averageFraudScore: averageFraudScore._avg.fraudScore || 0,
       },
       riskDistribution: {
-        low: await prisma.invoices.count({ where: { riskLevel: "LOW" } }),
+        low: await prisma.invoice.count({ where: { riskLevel: "LOW" } }),
         medium: mediumRiskInvoices,
         high: highRiskInvoices,
-        critical: await prisma.invoices.count({
+        critical: await prisma.invoice.count({
           where: { riskLevel: "CRITICAL" },
         }),
       },
@@ -93,7 +93,7 @@ async function getRiskOverview() {
 }
 
 async function getHighRiskInvoices() {
-  const invoices = await prisma.invoices.findMany({
+  const invoices = await prisma.invoice.findMany({
     where: {
       OR: [
         { riskLevel: { in: ["HIGH", "CRITICAL"] } },
@@ -115,7 +115,7 @@ async function getHighRiskInvoices() {
 
 async function getAnomalies() {
   // Get recent invoices and check for anomalies
-  const recentInvoices = await prisma.invoices.findMany({
+  const recentInvoices = await prisma.invoice.findMany({
     where: {
       createdAt: {
         gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "score") {
       // Get invoice with related data
-      const invoice = await prisma.invoices.findUnique({
+      const invoice = await prisma.invoice.findUnique({
         where: { id: invoiceId },
         include: {
           lineItems: true,

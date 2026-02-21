@@ -91,7 +91,7 @@ export class SARSValidator {
     invoiceId: string,
   ): Promise<SanctionsValidationResult> {
     // Use SQLite table name (plural)
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
         supplier: true, // Note: In SQLite schema, this might need to be handled differently
@@ -110,7 +110,7 @@ export class SARSValidator {
 
     // Check supplier country if available
     if (invoice.supplierId) {
-      const supplier = await prisma.suppliers.findUnique({
+      const supplier = await prisma.supplier.findUnique({
         where: { id: invoice.supplierId },
       });
 
@@ -162,7 +162,7 @@ export class SARSValidator {
    * Validate invoice for PEP (Politically Exposed Person) indicators
    */
   static async validatePEP(invoiceId: string): Promise<PEPValidationResult> {
-    const invoice = await prisma.invoices.findUnique({
+    const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
     });
 
@@ -175,7 +175,7 @@ export class SARSValidator {
 
     // Also check supplier record if available
     if (invoice.supplierId) {
-      const supplier = await prisma.suppliers.findUnique({
+      const supplier = await prisma.supplier.findUnique({
         where: { id: invoice.supplierId },
       });
       if (supplier?.name) {
@@ -264,7 +264,7 @@ export class SARSValidator {
       overallRisk === "HIGH" || (!sanctions.isValid && !pep.isValid);
 
     // Update invoice with compliance status
-    await prisma.invoices.update({
+    await prisma.invoice.update({
       where: { id: invoiceId },
       data: {
         requiresAttention: requiresEnhancedDueDiligence,
