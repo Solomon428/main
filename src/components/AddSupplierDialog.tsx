@@ -132,7 +132,7 @@ export function AddSupplierDialog({
             <div>
               <Label htmlFor="category">Category</Label>
               <Select
-                value={formData.category}
+                value={formData.category || undefined}
                 onValueChange={(value) =>
                   setFormData({ ...formData, category: value })
                 }

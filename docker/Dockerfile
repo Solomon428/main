@@ -38,6 +38,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
+# Copy uploads folder for file storage
+COPY --from=builder /app/uploads ./uploads
+
+# Copy .env file (should be provided at build time or via docker-compose)
+COPY --from=builder /app/.env ./
+
 USER nextjs
 
 EXPOSE 3000

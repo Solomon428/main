@@ -17,8 +17,8 @@ import {
 } from "./types";
 import { auditLogger } from "../utils/audit-logger";
 import { FraudScorer } from "@/logic-engine/risk/fraud-scorer";
-import { VATValidator } from "@/logic-engine/compliance/vat-validator";
-import { DuplicateDetector } from "@/logic-engine/duplicates/advanced-duplicate-detector";
+import { VATValidator } from "@/logic-engine/compliance/vat-validator/index";
+import { AdvancedDuplicateDetector } from "@/logic-engine/duplicates/advanced-duplicate-detector/index";
 import { calculateCompletenessScore } from "./utils";
 
 export async function performComprehensiveValidation(
@@ -105,16 +105,20 @@ export async function performComprehensiveValidation(
       },
     };
   } catch (error) {
-    await auditLogger.log(
-      "VALIDATION_FAILED",
-      "invoice",
-      processingId,
-      "WARNING",
-      {
-        processingId,
-        error: error instanceof Error ? error.message : String(error),
-      },
-    );
+    try {
+      await auditLogger.log({
+        action: "UPDATE",
+        entityType: "INVOICE",
+        entityId: processingId,
+        severity: "WARNING",
+        metadata: {
+          processingId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    } catch (e) {
+      console.error("Audit logging failed:", e);
+    }
 
     return {
       documentValidation: {
@@ -303,19 +307,31 @@ async function validateCompliance(
     structuredData.structuredData.vatAmount &&
     structuredData.structuredData.subtotalExclVAT
   ) {
-    const vatValidator = new VATValidator();
-    const vatResult = vatValidator.validateVAT(
-      structuredData.structuredData.subtotalExclVAT,
-      structuredData.structuredData.vatAmount,
-      0.15,
-    );
+    try {
+      const vatValidator = new VATValidator();
+      const vatResult = vatValidator.validateVAT({
+        subtotalExclVAT: structuredData.structuredData.subtotalExclVAT || 0,
+        vatAmount: structuredData.structuredData.vatAmount || 0,
+        totalAmount: structuredData.structuredData.totalAmount || 0,
+        vatRate: 0.15,
+      });
 
-    if (!vatResult.isValid) {
-      errors.push({
+      if (vatResult.complianceStatus === "NON_COMPLIANT") {
+        const errorMsg = vatResult.errors?.[0]?.errorMessage || "VAT calculation non-compliant";
+        errors.push({
+          field: "vatAmount",
+          errorCode: "VAT_NON_COMPLIANT",
+          errorMessage: errorMsg,
+          severity: "ERROR",
+          timestamp: new Date(),
+        });
+      }
+    } catch (error) {
+      warnings.push({
         field: "vatAmount",
-        errorCode: "VAT_NON_COMPLIANT",
-        errorMessage: vatResult.message || "VAT calculation non-compliant",
-        severity: "ERROR",
+        warningCode: "VAT_VALIDATION_FAILED",
+        warningMessage: "VAT validation could not be completed",
+        severity: "WARNING",
         timestamp: new Date(),
       });
     }
@@ -372,13 +388,12 @@ async function validateDuplicates(
   const warnings: ValidationWarning[] = [];
 
   try {
-    const duplicateDetector = new DuplicateDetector();
-    const duplicateResult = await duplicateDetector.checkForDuplicates(
-      structuredData.structuredData.invoiceNumber || "",
-      structuredData.structuredData.supplierName || "",
-      structuredData.structuredData.totalAmount || 0,
-      structuredData.structuredData.invoiceDate,
-    );
+    const duplicateResult = await AdvancedDuplicateDetector.checkForDuplicates({
+      invoiceNumber: structuredData.structuredData.invoiceNumber || "",
+      supplierName: structuredData.structuredData.supplierName || "",
+      totalAmount: structuredData.structuredData.totalAmount || 0,
+      invoiceDate: structuredData.structuredData.invoiceDate,
+    });
 
     if (duplicateResult.isDuplicate) {
       warnings.push({
@@ -420,11 +435,10 @@ async function validateFraudRisk(
   const warnings: ValidationWarning[] = [];
 
   try {
-    const fraudScorer = new FraudScorer();
-    const fraudResult = fraudScorer.calculateScore({
+    const fraudResult = FraudScorer.calculateScore({
       totalAmount: structuredData.structuredData.totalAmount || 0,
       supplierVatNumber: structuredData.structuredData.supplierVAT,
-      invoiceDate: structuredData.structuredData.invoiceDate?.toISOString(),
+      invoiceDate: structuredData.structuredData.invoiceDate,
       vatAmount: structuredData.structuredData.vatAmount,
       subtotal: structuredData.structuredData.subtotalExclVAT,
     });
@@ -492,12 +506,12 @@ async function validateSanctions(
   };
 }
 
-export function calculateQualityScores(
+export async function calculateQualityScores(
   qualityMetrics: DocumentQualityMetrics,
   extractionResult: ExtractionResult,
   validationResults: ValidationResults,
   processingId: string,
-): QualityScoringResults {
+): Promise<QualityScoringResults> {
   try {
     const qualityScore =
       (qualityMetrics.clarityScore * 0.2 +
@@ -543,10 +557,20 @@ export function calculateQualityScores(
       },
     };
   } catch (error) {
-    auditLogger.log("SCORING_FAILED", "invoice", processingId, "WARNING", {
-      processingId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    try {
+      await auditLogger.log({
+        action: "UPDATE",
+        entityType: "INVOICE",
+        entityId: processingId,
+        severity: "WARNING",
+        metadata: {
+          processingId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    } catch (e) {
+      console.error("Audit logging failed:", e);
+    }
 
     return {
       qualityScore: 50,

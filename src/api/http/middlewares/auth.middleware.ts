@@ -30,15 +30,15 @@ export async function authMiddleware(
     }
 
     // Verify token
-    const payload = await verifyToken(token);
+    const payload = await verifyToken(token) as any;
 
-    if (!payload || !payload.userId) {
+    if (!payload || !payload.id) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     // Get user from database
     const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
+      where: { id: payload.id },
       select: {
         id: true,
         email: true,

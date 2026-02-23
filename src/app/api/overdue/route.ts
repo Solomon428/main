@@ -77,13 +77,14 @@ export async function GET(request: NextRequest) {
       // Calculate penalty (1% per week overdue, capped at 10%)
       const weeksOverdue = Math.floor(daysOverdue / 7);
       const penaltyRate = Math.min(weeksOverdue * 0.01, 0.1);
-      const penaltyAmount = invoice.totalAmount * penaltyRate;
+      const totalAmountNum = Number(invoice.totalAmount);
+      const penaltyAmount = totalAmountNum * penaltyRate;
 
       return {
         ...invoice,
         daysOverdue,
         penaltyAmount,
-        totalWithPenalty: invoice.totalAmount + penaltyAmount,
+        totalWithPenalty: totalAmountNum + penaltyAmount,
       };
     });
 
@@ -91,11 +92,11 @@ export async function GET(request: NextRequest) {
     const stats = {
       totalOverdue: total,
       totalAmount: invoicesWithDetails.reduce(
-        (sum, inv) => sum + inv.totalAmount,
+        (sum, inv) => sum + Number(inv.totalAmount),
         0,
       ),
       totalWithPenalty: invoicesWithDetails.reduce(
-        (sum, inv) => sum + inv.totalWithPenalty,
+        (sum, inv) => sum + (inv.totalWithPenalty || 0),
         0,
       ),
       criticalCount: invoicesWithDetails.filter((inv) => inv.daysOverdue > 30)
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
           const weeksOverdue = Math.floor(daysOverdue / 7);
           const penaltyRate = Math.min(weeksOverdue * 0.01, 0.1);
           updateData = {
-            penaltyAmount: invoice.totalAmount * penaltyRate,
+            penaltyAmount: Number(invoice.totalAmount) * penaltyRate,
           };
         }
         break;

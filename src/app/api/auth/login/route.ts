@@ -232,6 +232,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       role: user.role,
       department: user.department || "FINANCE",
       name: user.name,
+      organizationId: user.primaryOrganizationId || 'default-org',
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()

@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { ScheduledTask } from "../../domain/models/ScheduledTask";
 import { ApprovalStatus } from "../../domain/enums/ApprovalStatus";
-import { sendNotification } from "../../modules/notifications/notifications.service";
+import { createNotification } from "../../modules/notifications/notifications.service";
 import { NotificationType } from "../../domain/enums/NotificationType";
 import { info } from "../../observability/logger";
 
@@ -39,13 +39,12 @@ export async function runTask(
   for (const approval of pendingApprovals) {
     if (signal.aborted) return;
 
-    await sendNotification({
-      userId: approval.approverId,
-      type: NotificationType.APPROVAL_REMINDER,
+    await createNotification(approval.approverId, approval.invoice.organizationId, {
+      type: NotificationType.APPROVAL_REQUESTED,
       title: "Approval Reminder",
       message: `Invoice ${approval.invoice.invoiceNumber} from ${approval.invoice.supplier?.name || "Unknown"} is pending your approval. Due: ${approval.slaDueDate.toISOString()}`,
-      priority: "HIGH",
-      entityType: "APPROVAL",
+      priority: "HIGH" as any,
+      entityType: "APPROVAL" as any,
       entityId: approval.id,
     });
 

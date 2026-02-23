@@ -60,11 +60,11 @@ async function runVATCheck(invoice: any) {
     data: {
       invoiceId: invoice.id,
       organizationId: invoice.organizationId,
-      checkType: ComplianceCheckType.VAT_VALIDATION,
-      status: vatValid ? ComplianceStatus.PASSED : ComplianceStatus.FAILED,
+      checkType: "VAT_VALIDATION" as any,
+      status: vatValid ? "PASSED" as any : "FAILED" as any,
       passedChecks: vatValid ? ["VAT calculation correct"] : [],
       errors: vatValid ? [] : ["VAT calculation mismatch"],
-    },
+    } as any,
   });
 }
 
@@ -76,11 +76,11 @@ async function runSupplierCheck(invoice: any) {
     data: {
       invoiceId: invoice.id,
       organizationId: invoice.organizationId,
-      checkType: ComplianceCheckType.SUPPLIER_VERIFICATION,
-      status: supplierValid ? ComplianceStatus.PASSED : ComplianceStatus.FAILED,
+      checkType: "SUPPLIER_VERIFICATION" as any,
+      status: supplierValid ? "PASSED" as any : "FAILED" as any,
       passedChecks: supplierValid ? ["Supplier verified"] : [],
       errors: !supplierValid ? ["Supplier not verified or blacklisted"] : [],
-    },
+    } as any,
   });
 }
 
@@ -99,11 +99,11 @@ async function runDuplicateCheck(invoice: any) {
     data: {
       invoiceId: invoice.id,
       organizationId: invoice.organizationId,
-      checkType: ComplianceCheckType.DUPLICATE_CHECK,
-      status: isDuplicate ? ComplianceStatus.FAILED : ComplianceStatus.PASSED,
+      checkType: "DUPLICATE_CHECK" as any,
+      status: isDuplicate ? "FAILED" as any : "PASSED" as any,
       passedChecks: !isDuplicate ? ["No duplicates found"] : [],
       errors: isDuplicate ? [`Found ${duplicates} duplicate(s)`] : [],
-    },
+    } as any,
   });
 
   if (isDuplicate) {
@@ -121,10 +121,10 @@ async function runAmountCheck(invoice: any) {
     data: {
       invoiceId: invoice.id,
       organizationId: invoice.organizationId,
-      checkType: ComplianceCheckType.AMOUNT_CHECK,
-      status: totalValid ? ComplianceStatus.PASSED : ComplianceStatus.FAILED,
+      checkType: "AMOUNT_CHECK" as any,
+      status: totalValid ? "PASSED" as any : "FAILED" as any,
       passedChecks: totalValid ? ["Amount valid"] : [],
       errors: !totalValid ? ["Invalid amount"] : [],
-    },
+    } as any,
   });
 }

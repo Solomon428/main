@@ -5,7 +5,7 @@
  * External API integration for VAT validation
  */
 
-import type { VATCheckResult } from "../types";
+import type { VATCheckResult } from "./types";
 
 /**
  * SARS eFiling API configuration

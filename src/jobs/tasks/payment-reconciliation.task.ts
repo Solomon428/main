@@ -66,7 +66,7 @@ export async function runTask(
               isReconciled: true,
               reconciledAt: new Date(),
               reconciliationId: reconciliation.id,
-              status: PaymentStatus.COMPLETED,
+              status: "COMPLETED" as any,
             },
           });
 

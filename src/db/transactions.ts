@@ -37,9 +37,9 @@ export async function runInTransaction<T>(
 ): Promise<T> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
-  return prisma.$transaction(async (tx: typeof prisma) => {
-    return fn(tx);
-  }, opts);
+  return prisma.$transaction(async (tx) => {
+    return fn(tx as typeof prisma);
+  }) as Promise<T>;
 }
 
 /**

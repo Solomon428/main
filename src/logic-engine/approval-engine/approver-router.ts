@@ -1,2 +1,2 @@
-export { default } from "./approver-router.impl.ts";
-export * from "./approver-router.impl.ts";
+export { default } from "../../services/approver-router";
+export * from "../../services/approver-router";

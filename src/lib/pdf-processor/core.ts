@@ -12,7 +12,7 @@ import {
   DocumentType,
   ProcessingException,
 } from "./types";
-// TODO: import { auditLogger } from '../audit-logger';
+import { auditLogger } from "../utils/audit-logger";
 import { MAX_FILE_SIZE, SUPPORTED_MIME_TYPES } from "./constants";
 import {
   saveTempFile,
@@ -151,7 +151,7 @@ export class PDFProcessor {
       auditEntries.push(createAuditEntry("VALIDATION_COMPLETED", processingId));
 
       auditEntries.push(createAuditEntry("SCORING_STARTED", processingId));
-      const scoringResults = calculateQualityScores(
+      const scoringResults = await calculateQualityScores(
         qualityMetrics,
         extractionResult,
         validationResults,

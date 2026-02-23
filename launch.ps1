@@ -42,3 +42,8 @@ Write-Host "   URL:  http://localhost:3000" -ForegroundColor Gray
 Write-Host "   User: admin@creditorflow.com" -ForegroundColor Gray
 Write-Host "   Pass: password123" -ForegroundColor Gray
 & npm run dev
+# A. Install Dependencies
+if (-not (Test-Path "node_modules")) {
+    Write-Host "📦 Installing Dependencies..." -ForegroundColor Yellow
+    & npm install
+}

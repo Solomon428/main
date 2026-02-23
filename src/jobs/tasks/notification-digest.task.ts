@@ -2,7 +2,7 @@ import { prisma } from "../../lib/prisma";
 import { ScheduledTask } from "../../domain/models/ScheduledTask";
 import { NotificationStatus } from "../../domain/enums/NotificationStatus";
 import { NotificationChannel } from "../../domain/enums/NotificationChannel";
-import { sendNotification } from "../../modules/notifications/notifications.service";
+import { createNotification } from "../../modules/notifications/notifications.service";
 import { info } from "../../observability/logger";
 
 /**
@@ -45,13 +45,12 @@ export async function runTask(
     if (notificationCount === 0) continue;
 
     // Send digest email
-    await sendNotification({
-      userId: user.id,
-      type: "NOTIFICATION_DIGEST",
+    await createNotification(user.id, null, {
+      type: "SYSTEM_ALERT" as any,
       title: `You have ${notificationCount} new notification${notificationCount > 1 ? "s" : ""}`,
       message: `Summary of your recent notifications:\n\n${user.notifications.map((n) => `- ${n.title}: ${n.message}`).join("\n")}`,
       channel: NotificationChannel.EMAIL,
-      priority: "LOW",
+      priority: "LOW" as any,
     });
   }
 

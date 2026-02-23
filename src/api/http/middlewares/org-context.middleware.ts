@@ -6,7 +6,7 @@ export interface RequestWithOrg extends NextRequest {
   organization?: {
     id: string;
     name: string;
-    settings?: Record<string, unknown>;
+    settings?: Record<string, unknown> | null;
   };
 }
 
@@ -48,7 +48,11 @@ export async function orgContextMiddleware(
     // Attach organization to request
     const reqWithOrg = request as RequestWithOrg;
     reqWithOrg.organizationId = orgId;
-    reqWithOrg.organization = organization;
+    reqWithOrg.organization = {
+      id: organization.id,
+      name: organization.name,
+      settings: organization.settings as Record<string, unknown> | null,
+    };
 
     return reqWithOrg;
   } catch (error) {

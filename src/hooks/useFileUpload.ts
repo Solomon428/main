@@ -95,6 +95,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
           method: "POST",
           body: formData,
           signal: abortControllerRef.current.signal,
+          credentials: "include",
           headers: {
             Accept: "application/json",
           },
@@ -157,6 +158,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
         const response = await fetch("/api/files/invoices/bulk-upload", {
           method: "POST",
           body: formData,
+          credentials: "include",
         });
 
         if (!response.ok) {

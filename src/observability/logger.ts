@@ -152,3 +152,14 @@ export function createChildLogger(defaultMeta: LogMeta) {
       compliance(message, { ...defaultMeta, ...meta }),
   };
 }
+
+/**
+ * System logger for system-level operations
+ */
+export const systemLogger = {
+  debug: (message: string, meta?: LogMeta) => debug(message, { ...meta, subsystem: 'system' }),
+  info: (message: string, meta?: LogMeta) => info(message, { ...meta, subsystem: 'system' }),
+  warn: (message: string, meta?: LogMeta) => warn(message, { ...meta, subsystem: 'system' }),
+  error: (message: string, meta?: LogMeta) => error(message, { ...meta, subsystem: 'system' }),
+  critical: (message: string, meta?: LogMeta) => critical(message, { ...meta, subsystem: 'system' }),
+};

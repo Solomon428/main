@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
           workingHoursEnd: SYSTEM_SETTINGS.workingHoursEnd,
           workingDays: SYSTEM_SETTINGS.workingDays,
         };
+        break;
       case "security":
         settings = {
           enableFraudDetection: SYSTEM_SETTINGS.enableFraudDetection,
@@ -114,7 +115,7 @@ export async function PUT(request: NextRequest) {
 
     await AuditLogger.log({
       action: "UPDATE",
-      entityType: "SYSTEM",
+      entityType: "ORGANIZATION" as any,
       entityId: "SETTINGS",
       entityDescription: `Settings updated for category: ${category}`,
       severity: "INFO",

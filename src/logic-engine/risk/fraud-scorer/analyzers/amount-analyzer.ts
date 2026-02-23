@@ -10,7 +10,7 @@ import type {
   FraudRiskFactor,
   AmountRiskAnalysis,
 } from "../types";
-import { FraudDetectionMethod } from "../types";
+import { FraudDetectionMethod, FraudRiskCategory, FraudSeverityLevel } from "../types";
 import { SA_COMPLIANCE_RULES } from "../constants";
 
 /**
@@ -32,10 +32,10 @@ export function calculateAmountRisk(
     );
     baseScore += deduction;
     riskFactors.push({
-      category: "AMOUNT_ANOMALY",
+      category: FraudRiskCategory.AMOUNT_ANOMALY,
       factor: "HIGH_VALUE_INVOICE",
       description: `Invoice amount R${input.totalAmount.toLocaleString()} exceeds SARS threshold of R${SA_COMPLIANCE_RULES.HIGH_VALUE_THRESHOLD.toLocaleString()}`,
-      severity: "HIGH",
+      severity: FraudSeverityLevel.HIGH,
       scoreImpact: deduction,
       evidence: `totalAmount=${input.totalAmount}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,

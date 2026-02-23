@@ -1,55 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { AuthUtils } from "../auth-utils";
 
-export async function middleware(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+export async function authMiddleware(request: NextRequest) {
+  const cookieToken = request.cookies.get("auth-token")?.value;
+  const headerToken = request.headers
+    .get("authorization")
+    ?.replace("Bearer ", "");
+  const token = cookieToken || headerToken;
 
-  const { pathname } = req.nextUrl;
-
-  // Define public paths that don't require authentication
-  const isPublicPath = pathname === "/login" || pathname.startsWith("/api/auth");
-
-  // Protected paths require a valid token
-  const isProtectedPath = pathname.startsWith("/dashboard") || pathname.startsWith("/api/");
-
-  // If the path is protected and no token, redirect to login
-  if (isProtectedPath && !isPublicPath && !token) {
-    const loginUrl = new URL("/login", req.url);
-    // Preserve the original destination to redirect back after login
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
+  if (!token) {
+    return NextResponse.json(
+      { error: "Unauthorized: No token provided" },
+      { status: 401 }
+    );
   }
 
-  // If user is already authenticated and tries to access login page, redirect to dashboard
-  if (token && pathname === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+  try {
+    const payload = await AuthUtils.verifyToken(token);
+    if (!payload) {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid token" },
+        { status: 401 }
+      );
+    }
+    return null;
+  } catch {
+    return NextResponse.json(
+      { error: "Unauthorized: Token verification failed" },
+      { status: 401 }
+    );
   }
-
-  // Attach user info to headers for downstream API routes / server components
-  const requestHeaders = new Headers(req.headers);
-  if (token) {
-    requestHeaders.set("x-user-id", token.sub as string);
-    requestHeaders.set("x-user-email", token.email as string);
-    requestHeaders.set("x-user-role", token.role as string);
-  }
-
-  return NextResponse.next({
-    request: { headers: requestHeaders },
-  });
 }
-
-export const authMiddleware = middleware;
-
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * Also exclude NextAuth API routes (they handle their own auth)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
-};

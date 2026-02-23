@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ApprovalService } from "@/services/approval-service";
-import { ApprovalDecision } from "@/types";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(
   request: NextRequest,
@@ -20,7 +19,6 @@ export async function POST(
       );
     }
 
-    // Get userId from request headers (set by middleware)
     const userId = request.headers.get("x-user-id");
     if (!userId) {
       return NextResponse.json(
@@ -29,28 +27,40 @@ export async function POST(
       );
     }
 
-    const result = await ApprovalService.submitDecision({
-      approvalId,
-      decision: decision as ApprovalDecision,
-      userId,
-      comments,
-      ipAddress:
-        request.headers.get("x-forwarded-for") || request.ip || undefined,
-      userAgent: request.headers.get("user-agent") || undefined,
+    const approval = await prisma.approval.findUnique({
+      where: { id: approvalId },
+      include: { invoice: true },
     });
 
-    if (!result.success) {
+    if (!approval) {
       return NextResponse.json(
-        { success: false, error: result.message },
-        { status: 400 },
+        { success: false, error: "Approval not found" },
+        { status: 404 },
       );
     }
 
+    const updatedApproval = await prisma.approval.update({
+      where: { id: approvalId },
+      data: {
+        status: decision as any,
+        decisionNotes: comments,
+        decision: decision as any,
+        approvedAt: decision === "APPROVED" ? new Date() : null,
+        rejectedAt: decision === "REJECTED" ? new Date() : null,
+      } as any,
+    });
+
+    const invoiceStatus = decision === "APPROVED" ? "APPROVED" : "REJECTED";
+    await prisma.invoice.update({
+      where: { id: approval.invoiceId },
+      data: {
+        status: invoiceStatus as any,
+      },
+    });
+
     return NextResponse.json({
       success: true,
-      message: result.message,
-      nextStage: result.nextStage,
-      fullyApproved: result.fullyApproved,
+      message: `Invoice ${decision.toLowerCase()} successfully`,
     });
   } catch (error) {
     console.error("Error processing approval:", error);

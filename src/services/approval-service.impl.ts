@@ -2,6 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { DateTime } from 'luxon';
 
 // ==================== DOMAIN TYPES ====================
+type DateTimeType = ReturnType<typeof DateTime.now>;
+
 export enum ApprovalStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
@@ -34,8 +36,8 @@ export interface ApprovalParticipant {
   email: string;
   approvalOrder: number; // 1 = first approver, 2 = second, etc.
   escalationTimeoutMinutes?: number; // Individual timeout override
-  notifiedAt?: DateTime;
-  respondedAt?: DateTime;
+  notifiedAt?: Date;
+  respondedAt?: Date;
   decision?: ApprovalStatus.APPROVED | ApprovalStatus.REJECTED;
   comments?: string;
   metadata?: Record<string, any>;
@@ -71,16 +73,16 @@ export interface ApprovalRequest {
     reason: EscalationReason;
     fromApprover: string;
     toApprover: string;
-    timestamp: DateTime;
+    timestamp: Date;
     comments?: string;
   }[];
   amount?: number;
   currency?: string;
   meta: Record<string, any>;
-  createdAt: DateTime;
-  updatedAt: DateTime;
-  expiresAt?: DateTime;
-  completedAt?: DateTime;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt?: Date;
+  completedAt?: Date;
 }
 
 export interface ApprovalDecision {
@@ -88,7 +90,7 @@ export interface ApprovalDecision {
   approverId: string;
   decision: ApprovalStatus.APPROVED | ApprovalStatus.REJECTED;
   comments?: string;
-  timestamp: DateTime;
+  timestamp: Date;
   metadata?: Record<string, any>;
 }
 
@@ -383,7 +385,7 @@ export class EscalationManager {
 
   async checkTimeouts(
     pendingApprovals: ApprovalRequest[],
-    currentTime: DateTime = DateTime.now()
+    currentTime: Date = new Date()
   ): Promise<ApprovalRequest[]> {
     const escalated: ApprovalRequest[] = [];
     
@@ -431,7 +433,7 @@ export class ApprovalService {
         save: (approval: ApprovalRequest) => Promise<ApprovalRequest>;
         findById: (id: string) => Promise<ApprovalRequest | null>;
         findByRequestId: (requestId: string, type: ApprovalType) => Promise<ApprovalRequest | null>;
-        findPending: (before: DateTime) => Promise<ApprovalRequest[]>;
+        findPending: (before: Date) => Promise<ApprovalRequest[]>;
       };
       policyRepo: {
         findAll: () => Promise<ApprovalPolicy[]>;

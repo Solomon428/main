@@ -3,9 +3,12 @@
  * Redis-based job queue using Bull
  */
 
-import Queue, { Job, QueueOptions, JobOptions } from "bull";
+import Queue from "bull";
+import type { Job, QueueOptions, JobOptions, JobId } from "bull";
 import { auditLogger } from "@/lib/utils/audit-logger";
 import { EntityType, LogSeverity } from "@/types";
+
+type QueueInstance = InstanceType<typeof Queue>;
 
 export enum JobType {
   PROCESS_PDF = "process_pdf",
@@ -62,7 +65,7 @@ export interface RetryConfig {
 }
 
 export class JobQueue {
-  private queues: Map<JobType, Queue>;
+  private queues: Map<JobType, QueueInstance>;
   private static instance: JobQueue;
 
   private constructor() {
@@ -159,8 +162,8 @@ export class JobQueue {
         metadata: {
           jobId: job.id,
           jobType: jobData.type,
-          priority: jobOptions.priority,
-          metadata: jobData.metadata,
+          priority: jobOptions.priority ?? 2,
+          metadata: jobData.metadata ?? undefined,
         },
       });
 

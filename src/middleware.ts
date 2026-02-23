@@ -27,9 +27,12 @@ export async function middleware(request: NextRequest) {
   const publicPaths = [
     "/login",
     "/api/auth/login",
+    "/api/auth/session",
     "/api/auth/register",
     "/api/auth/logout",
-    "/api/debug/cookie", // Required for session check on login page
+    "/api/debug/cookie",
+    "/api/invoices/upload",  // GET for serving files
+    "/uploads",
     "/_next",
     "/favicon.ico",
   ];
@@ -59,12 +62,8 @@ export async function middleware(request: NextRequest) {
   // Verify token (now async)
   const user = await AuthUtils.verifyToken(token);
 
-  if (process.env.NODE_ENV === "development") {
-    console.log(
-      `[Middleware] Token verification:`,
-      user ? `Valid (${user.email})` : "Invalid",
-    );
-  }
+  console.log('[Root Middleware] Token verification:', user ? `Valid (${user.email}, id: ${user.id})` : 'Invalid');
+  console.log('[Root Middleware] Headers to set:', { id: user?.id, org: user?.organizationId });
 
   if (!user) {
     console.log(`[Middleware] Token invalid, clearing cookie and redirecting`);
@@ -87,6 +86,7 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-user-id", user.id);
   requestHeaders.set("x-user-role", user.role);
   requestHeaders.set("x-user-department", user.department);
+  requestHeaders.set("x-user-org", user.organizationId || 'default-org');
 
   return NextResponse.next({
     request: {

@@ -1,13 +1,17 @@
-import { Request, Response, NextFunction } from "express";
 import { z, ZodError, ZodSchema } from "zod";
 import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
+
+// Use any types for Express compatibility
+type ExpressRequest = any;
+type ExpressResponse = any;
+type ExpressNext = any;
 
 /**
  * Middleware to validate request body against a Zod schema
  */
 export function validateBody<T>(schema: ZodSchema<T>) {
-  return (req: Request, _res: Response, next: NextFunction) => {
+  return (req: ExpressRequest, _res: ExpressResponse, next: ExpressNext) => {
     try {
       const result = schema.safeParse(req.body);
 
@@ -41,7 +45,7 @@ export function validateBody<T>(schema: ZodSchema<T>) {
  * Middleware to validate query parameters against a Zod schema
  */
 export function validateQuery<T>(schema: ZodSchema<T>) {
-  return (req: Request, _res: Response, next: NextFunction) => {
+  return (req: ExpressRequest, _res: ExpressResponse, next: ExpressNext) => {
     try {
       const result = schema.safeParse(req.query);
 
@@ -75,7 +79,7 @@ export function validateQuery<T>(schema: ZodSchema<T>) {
  * Middleware to validate route parameters against a Zod schema
  */
 export function validateParams<T>(schema: ZodSchema<T>) {
-  return (req: Request, _res: Response, next: NextFunction) => {
+  return (req: ExpressRequest, _res: ExpressResponse, next: ExpressNext) => {
     try {
       const result = schema.safeParse(req.params);
 
@@ -158,9 +162,9 @@ export function sanitizeString(value: string): string {
  * Middleware to sanitize common fields
  */
 export function sanitizeCommonFields(
-  req: Request,
-  _res: Response,
-  next: NextFunction,
+  req: ExpressRequest,
+  _res: ExpressResponse,
+  next: ExpressNext,
 ) {
   const sanitizeObject = (obj: Record<string, unknown>) => {
     for (const key in obj) {
@@ -173,7 +177,7 @@ export function sanitizeCommonFields(
   };
 
   if (req.body && typeof req.body === "object") {
-    sanitizeObject(req.body);
+    sanitizeObject(req.body as Record<string, unknown>);
   }
 
   next();

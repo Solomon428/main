@@ -34,11 +34,14 @@ export default function InvoicesPage() {
     try {
       const res = await fetch("/api/invoices");
       const data = await res.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setInvoices(data.data);
+      } else {
+        setInvoices([]);
       }
     } catch (error) {
       console.error("Error fetching invoices:", error);
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -119,7 +122,7 @@ export default function InvoicesPage() {
                       </td>
                       <td className="py-3">{invoice.supplier.name}</td>
                       <td className="py-3">
-                        {formatCurrency(Number(invoice.totalAmount), invoice.currency)}
+                        {formatCurrency(Number(invoice.totalAmount))}
                       </td>
                       <td className="py-3">
                         <Badge className={getInvoiceStatusColor(invoice.status)}>

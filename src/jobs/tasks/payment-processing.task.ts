@@ -2,7 +2,7 @@ import { prisma } from "../../lib/prisma";
 import { ScheduledTask } from "../../domain/models/ScheduledTask";
 import { PaymentStatus } from "../../domain/enums/PaymentStatus";
 import { InvoiceStatus } from "../../domain/enums/InvoiceStatus";
-import { sendNotification } from "../../modules/notifications/notifications.service";
+import { createNotification } from "../../modules/notifications/notifications.service";
 import { NotificationType } from "../../domain/enums/NotificationType";
 import { info, error } from "../../observability/logger";
 
@@ -20,7 +20,7 @@ export async function runTask(
     where: {
       status: InvoiceStatus.APPROVED,
       readyForPayment: true,
-      paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID"] },
+      paymentStatus: { in: ["UNPAID", "PARTIALLY_PAID"] as any },
       dueDate: { lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
     },
     include: {
@@ -52,7 +52,7 @@ export async function runTask(
           amount: invoice.amountDue,
           currency: invoice.currency,
           paymentMethod: invoice.paymentMethod || "BANK_TRANSFER",
-          status: PaymentStatus.PENDING,
+          status: "PENDING" as any,
         },
       });
 
@@ -60,7 +60,7 @@ export async function runTask(
       await prisma.invoice.update({
         where: { id: invoice.id },
         data: {
-          paymentStatus: PaymentStatus.SCHEDULED,
+          paymentStatus: "SCHEDULED" as any,
           paidDate: new Date(),
         },
       });
@@ -69,18 +69,17 @@ export async function runTask(
       const users = await prisma.user.findMany({
         where: {
           organizations: { some: { id: invoice.organizationId } },
-          role: { in: ["FINANCE_MANAGER", "ORG_ADMIN"] },
+          role: { in: ["FINANCE_MANAGER", "ADMIN"] as any },
         },
       });
 
       for (const user of users) {
-        await sendNotification({
-          userId: user.id,
-          type: NotificationType.PAYMENT_SCHEDULED,
+        await createNotification(user.id, invoice.organizationId, {
+          type: NotificationType.PAYMENT_PROCESSED,
           title: "Payment Scheduled",
           message: `Payment of ${invoice.amountDue} ${invoice.currency} scheduled for invoice ${invoice.invoiceNumber}`,
-          priority: "MEDIUM",
-          entityType: "PAYMENT",
+          priority: "MEDIUM" as any,
+          entityType: "PAYMENT" as any,
           entityId: payment.id,
         });
       }

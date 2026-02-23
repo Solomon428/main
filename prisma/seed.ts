@@ -187,6 +187,7 @@ async function seedDevelopmentEnvironment() {
           language: "en",
           locale: "en-ZA",
           isActive: true,
+          primaryOrganizationId: organization.id,
           isLocked: false,
           lastLoginAt: null,
           lastLoginIp: null,
@@ -215,8 +216,6 @@ async function seedDevelopmentEnvironment() {
           createdAt: new Date(),
           updatedAt: new Date(),
           deletedAt: null,
-          // 👇 Only SUPER_ADMIN gets primaryOrganizationId
-          primaryOrganizationId: organization.id,
         },
       }),
       // CREDIT_CLERK — Invoice processing role

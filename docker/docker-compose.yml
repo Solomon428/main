@@ -17,6 +17,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - creditorflow-network
 
   redis:
     image: redis:7-alpine
@@ -26,6 +28,8 @@ services:
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+    networks:
+      - creditorflow-network
 
   minio:
     image: minio/minio:latest
@@ -39,8 +43,42 @@ services:
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    networks:
+      - creditorflow-network
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: creditorflow-app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://creditorflow:creditorflow123@postgres:5432/creditorflow_dev
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: creditorflow-uploads
+      NODE_ENV: production
+      JWT_SECRET: creditorflow-jwt-secret-key-min-32-chars
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+    networks:
+      - creditorflow-network
 
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+
+networks:
+  creditorflow-network:
+    driver: bridge

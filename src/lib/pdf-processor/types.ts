@@ -154,7 +154,7 @@ export interface ValidationWarning {
   field: string;
   warningCode: string;
   warningMessage: string;
-  severity: "HIGH" | "MEDIUM" | "LOW";
+  severity: "HIGH" | "MEDIUM" | "LOW" | "WARNING" | "CRITICAL";
   timestamp: Date;
 }
 

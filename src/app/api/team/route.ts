@@ -30,15 +30,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       select: {
         id: true,
         name: true,
+        firstName: true,
+        lastName: true,
         email: true,
         role: true,
         department: true,
-        title: true,
-        phone: true,
+        jobTitle: true,
+        position: true,
+        phoneNumber: true,
+        mobileNumber: true,
         isActive: true,
-        currentWorkload: true,
-        maxWorkload: true,
-        approvalLimit: true,
         createdAt: true
       }
     });

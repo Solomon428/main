@@ -34,11 +34,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         vatNumber: true,
         status: true,
         category: true,
-        rating: true,
         isPreferred: true,
         isBlacklisted: true,
         createdAt: true,
-        // contactCount removed - use separate query if needed
       },
     });
 

@@ -15,6 +15,13 @@ export class BaseService {
     this.organizationId = options.organizationId;
   }
 
+  /**
+   * Get prisma instance for static methods
+   */
+  static getPrisma() {
+    return prisma;
+  }
+
   protected async audit(
     action: string,
     entity: string,

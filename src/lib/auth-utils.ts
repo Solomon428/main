@@ -19,6 +19,7 @@ export interface JWTPayload {
   role: UserRole;
   department: string;
   name?: string;
+  organizationId?: string;
   approvalLimit?: number;
   exp?: number;
   iat?: number;
@@ -76,6 +77,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
       role: (payload as any).role as UserRole,
       department: (payload as any).department as string,
       name: (payload as any).name,
+      organizationId: (payload as any).organizationId,
       approvalLimit: (payload as any).approvalLimit,
       exp: payload.exp,
       iat: payload.iat,

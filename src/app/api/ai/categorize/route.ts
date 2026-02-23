@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
+      include: { supplier: true, lineItems: true },
     });
 
     if (!invoice) {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const insights = await AICategorizationService.generateInsights(invoice);
+    const insights = await AICategorizationService.generateInsights(invoice as any);
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { ScheduledTask } from "../../domain/models/ScheduledTask";
 import { ApprovalStatus } from "../../domain/enums/ApprovalStatus";
-import { sendNotification } from "../../modules/notifications/notifications.service";
+import { createNotification } from "../../modules/notifications/notifications.service";
 import { NotificationType } from "../../domain/enums/NotificationType";
 import { info } from "../../observability/logger";
 
@@ -48,13 +48,12 @@ export async function runTask(
     });
 
     // Notify approver
-    await sendNotification({
-      userId: approval.approverId,
+    await createNotification(approval.approverId, approval.invoice.organizationId, {
       type: NotificationType.SLA_BREACH,
       title: "Approval Escalated - SLA Breach",
       message: `Invoice ${approval.invoice.invoiceNumber} approval has been escalated due to SLA breach.`,
-      priority: "CRITICAL",
-      entityType: "APPROVAL",
+      priority: "CRITICAL" as any,
+      entityType: "APPROVAL" as any,
       entityId: approval.id,
     });
 
@@ -62,18 +61,17 @@ export async function runTask(
     const managers = await prisma.user.findMany({
       where: {
         organizations: { some: { id: approval.invoice.organizationId } },
-        role: { in: ["ORG_ADMIN", "FINANCE_MANAGER"] },
+        role: { in: ["ADMIN", "FINANCE_MANAGER"] as any },
       },
     });
 
     for (const manager of managers) {
-      await sendNotification({
-        userId: manager.id,
+      await createNotification(manager.id, approval.invoice.organizationId, {
         type: NotificationType.APPROVAL_ESCALATED,
         title: "Approval Escalated",
         message: `Approval for invoice ${approval.invoice.invoiceNumber} has been escalated due to SLA breach.`,
-        priority: "HIGH",
-        entityType: "APPROVAL",
+        priority: "HIGH" as any,
+        entityType: "APPROVAL" as any,
         entityId: approval.id,
       });
     }

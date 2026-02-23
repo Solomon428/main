@@ -6,14 +6,6 @@ import { prisma } from "@/db/prisma";
 import { AuditLogger } from "@/lib/utils/audit-logger";
 import { authMiddleware } from "@/lib/middleware/auth";
 
-// Priority mapping from string to integer
-const PRIORITY_MAP: Record<string, number> = {
-  LOW: 1,
-  MEDIUM: 2,
-  HIGH: 3,
-  CRITICAL: 4,
-};
-
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
@@ -114,6 +106,7 @@ async function handleJsonCreate(request: NextRequest): Promise<NextResponse> {
   // Create invoice
   const invoice = await prisma.invoice.create({
     data: {
+      organizationId: "default",
       invoiceNumber: body.invoiceNumber || `INV-${Date.now()}`,
       supplierName: body.supplierName || "Unknown Supplier",
       supplierVAT: body.supplierVAT || null,
@@ -126,12 +119,10 @@ async function handleJsonCreate(request: NextRequest): Promise<NextResponse> {
       totalAmount: body.totalAmount || 0,
       amountDue: body.amountDue || body.totalAmount || 0,
       currency: body.currency || "ZAR",
-      status: body.status || "PENDING_EXTRACTION",
-      riskLevel: body.riskLevel || "MEDIUM",
-      priority: PRIORITY_MAP[body.priority] || 2,
-      createdById: userId,
+      status: (body.status || "PENDING_EXTRACTION") as any,
+      riskLevel: (body.riskLevel || "MEDIUM") as any,
+      creatorId: userId,
       supplierId: body.supplierId || null,
-      description: body.description || null,
     },
   });
 
@@ -159,13 +150,12 @@ async function handleFileUpload(request: NextRequest): Promise<NextResponse> {
   const formData = await request.formData();
   const file = formData.get("file") as File;
   const supplierId = formData.get("supplierId") as string | null;
-  const priorityStr = (formData.get("priority") as string) || "MEDIUM";
-  const priority = PRIORITY_MAP[priorityStr] || 2;
   const notes = formData.get("notes") as string | null;
   const isManualEntry = formData.get("isManualEntry") === "true";
 
   // Get user from headers
   const userId = request.headers.get("x-user-id") || "system";
+  const organizationId = request.headers.get("x-organization-id") || "default";
 
   // If manual entry with optional file, extract form fields
   let manualData: any = {};
@@ -289,9 +279,8 @@ async function handleFileUpload(request: NextRequest): Promise<NextResponse> {
       ocrText: extractedData?.rawText || null,
       extractionConfidence: extractionResult?.confidence || 0,
       status: extractionResult?.success ? "SUBMITTED" : "PENDING_EXTRACTION",
-      priority: priority,
-      createdById: userId,
-      description: manualData.description || notes || null,
+      organizationId: organizationId,
+      creatorId: userId,
     },
   });
 

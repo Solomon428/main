@@ -49,7 +49,7 @@ export function UploadInvoiceDialog({
     open,
     onOpenChange,
     onSuccess,
-    uploadFile,
+    uploadFile as any,
     isUploading,
     result,
     error,
@@ -160,7 +160,7 @@ export function UploadInvoiceDialog({
               <div className="space-y-2">
                 <Label htmlFor="supplier-select">Supplier (optional)</Label>
                 <Select
-                  value={upload.manualForm.supplierId}
+                  value={upload.manualForm.supplierId || undefined}
                   onValueChange={(value) =>
                     upload.updateManualForm({ supplierId: value })
                   }
@@ -169,7 +169,7 @@ export function UploadInvoiceDialog({
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Auto-detect</SelectItem>
+                    <SelectItem value="auto-detect">Auto-detect</SelectItem>
                     {upload.suppliers.map((supplier) => (
                       <SelectItem key={supplier.id} value={supplier.id}>
                         {supplier.name}
@@ -221,7 +221,7 @@ export function UploadInvoiceDialog({
                 <div>
                   <Label htmlFor="supplierId">Supplier *</Label>
                   <Select
-                    value={upload.manualForm.supplierId}
+                    value={upload.manualForm.supplierId || undefined}
                     onValueChange={(value) =>
                       upload.updateManualForm({ supplierId: value })
                     }
@@ -295,13 +295,13 @@ export function UploadInvoiceDialog({
                 <div>
                   <Label htmlFor="currency">Currency</Label>
                   <Select
-                    value={upload.manualForm.currency}
+                    value={upload.manualForm.currency || "ZAR"}
                     onValueChange={(value) =>
                       upload.updateManualForm({ currency: value })
                     }
                   >
                     <SelectTrigger id="currency">
-                      <SelectValue />
+                      <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ZAR">ZAR</SelectItem>

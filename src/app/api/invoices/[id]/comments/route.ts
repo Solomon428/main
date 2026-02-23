@@ -81,10 +81,9 @@ export async function POST(
     const comment = await prisma.invoiceComment.create({
       data: {
         invoiceId,
-        user: userName,
+        userId: userId,
         content: content.trim(),
-        isInternalNote: isInternalNote || false,
-        attachments: "[]", // Empty JSON array as string for SQLite
+        isInternal: isInternalNote || false,
       },
     });
 

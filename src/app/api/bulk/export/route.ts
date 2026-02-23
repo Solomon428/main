@@ -8,7 +8,7 @@ import { z } from "zod";
 
 const bulkExportSchema = z.object({
   invoiceIds: z.array(z.string()).min(1).max(500),
-  format: z.enum(["csv", "xlsx", "pdf"]),
+  format: z.enum(["csv", "excel", "pdf"]),
   includeLineItems: z.boolean().optional().default(true),
   includeApprovals: z.boolean().optional().default(false),
   columns: z.array(z.string()).optional(),

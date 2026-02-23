@@ -26,12 +26,18 @@ export function parseCronExpression(expression: string): CronParts {
     );
   }
 
+  const minutePart = parts[0] ?? '';
+  const hourPart = parts[1] ?? '';
+  const dayOfMonthPart = parts[2] ?? '';
+  const monthPart = parts[3] ?? '';
+  const dayOfWeekPart = parts[4] ?? '';
+
   return {
-    minute: parseCronPart(parts[0], 0, 59),
-    hour: parseCronPart(parts[1], 0, 23),
-    dayOfMonth: parseCronPart(parts[2], 1, 31),
-    month: parseCronPart(parts[3], 1, 12),
-    dayOfWeek: parseCronPart(parts[4], 0, 6),
+    minute: parseCronPart(minutePart, 0, 59),
+    hour: parseCronPart(hourPart, 0, 23),
+    dayOfMonth: parseCronPart(dayOfMonthPart, 1, 31),
+    month: parseCronPart(monthPart, 1, 12),
+    dayOfWeek: parseCronPart(dayOfWeekPart, 0, 6),
   };
 }
 
@@ -47,14 +53,18 @@ function parseCronPart(part: string, min: number, max: number): number[] {
   for (const segment of segments) {
     // Handle ranges (e.g., 1-5)
     if (segment.includes("-")) {
-      const [start, end] = segment.split("-").map(Number);
+      const rangeParts = segment.split("-");
+      const start = Number(rangeParts[0]) ?? min;
+      const end = Number(rangeParts[1]) ?? max;
       for (let i = start; i <= end; i++) {
         if (i >= min && i <= max) values.push(i);
       }
     }
     // Handle steps (e.g., */5)
     else if (segment.includes("/")) {
-      const [range, step] = segment.split("/");
+      const stepParts = segment.split("/");
+      const range = stepParts[0] ?? '*';
+      const step = stepParts[1] ?? '1';
       const stepNum = Number(step);
       const start = range === "*" ? min : Number(range);
       for (let i = start; i <= max; i += stepNum) {

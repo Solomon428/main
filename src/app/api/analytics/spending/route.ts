@@ -3,7 +3,6 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { SupplierAnalyticsService } from "@/services/supplier-analytics-service";
 import { prisma } from "@/db/prisma";
 
 export async function GET(req: NextRequest) {
@@ -73,7 +72,7 @@ export async function GET(req: NextRequest) {
       // By supplier
       const supplierId = invoice.supplierId || "unknown";
       const existing = period.bySupplier.get(supplierId) || {
-        name: invoice.supplierName,
+        name: invoice.supplierName || "Unknown",
         amount: 0,
       };
       existing.amount += amount;

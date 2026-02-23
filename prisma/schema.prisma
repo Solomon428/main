@@ -333,6 +333,7 @@ enum SupplierStatus {
 }
 
 enum EntityType {
+  SYSTEM
   INVOICE
   SUPPLIER
   USER
@@ -344,6 +345,9 @@ enum EntityType {
   FILE_ATTACHMENT
   INTEGRATION
   RISK_SCORE
+  DELEGATED_APPROVAL
+  CONTRACT
+  SUPPLIER_CONTRACT
 }
 
 enum AuditAction {
@@ -514,6 +518,18 @@ model User {
   comments              InvoiceComment[]
   complianceValidations ComplianceCheck[] @relation("ComplianceValidator")
   riskAssessments       RiskScore[]       @relation("RiskAssessor")
+
+  // Supplier Contract Relations
+  createdContracts     SupplierContract[] @relation("SupplierContractCreator")
+  updatedContracts     SupplierContract[] @relation("SupplierContractUpdater")
+
+  // Custom Field Relations
+  createdCustomFields   CustomField[]     @relation("CustomFieldCreatedBy")
+  updatedCustomFields   CustomField[]     @relation("CustomFieldUpdatedBy")
+  deletedCustomFields   CustomField[]     @relation("CustomFieldDeletedBy")
+  
+  // Invoice Activity Relations
+  invoiceActivities     InvoiceActivity[] @relation("InvoiceActivityUser")
 
   // Inverse relation for currentApprover navigation
   invoicesApproving Invoice[] @relation("InvoiceCurrentApprover")
@@ -720,6 +736,7 @@ model Organization {
   customFields     CustomField[]
   tags             Tag[]
   PaymentBatch     PaymentBatch[]
+  contracts        SupplierContract[]
 
   @@index([taxId, isActive])
   @@index([vatNumber])
@@ -915,7 +932,9 @@ model SupplierBankAccount {
 
 model SupplierContract {
   id                String    @id @default(cuid())
+  organizationId    String
   supplierId        String
+  code              String?   @unique
   contractNumber    String?
   contractType      String?
   startDate         DateTime
@@ -930,11 +949,19 @@ model SupplierContract {
   signedAt          DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
-
-  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  deletedAt         DateTime?
+  
+  // Relations
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy  User?    @relation("SupplierContractCreator", fields: [createdById], references: [id])
+  createdById String?
+  updatedBy  User?    @relation("SupplierContractUpdater", fields: [updatedById], references: [id])
+  updatedById String?
 
   @@index([supplierId, status])
   @@index([endDate])
+  @@index([organizationId])
   @@map("supplier_contracts")
 }
 
@@ -1213,6 +1240,7 @@ model InvoiceComment {
   user    User?            @relation(fields: [userId], references: [id])
   parent  InvoiceComment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies InvoiceComment[] @relation("CommentReplies")
+  approvals Approval[]     @relation("ApprovalComments")
 
   @@index([invoiceId, createdAt])
   @@index([userId])
@@ -1222,10 +1250,11 @@ model InvoiceComment {
 model InvoiceActivity {
   id          String   @id @default(cuid())
   invoiceId   String
+  userId      String?
   actorId     String?
   actorType   String   @default("USER")
   actorName   String?
-  action      String
+  action      String   @map("activityType")
   description String?
   oldValue    Json?
   newValue    Json?
@@ -1235,9 +1264,11 @@ model InvoiceActivity {
   createdAt   DateTime @default(now())
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  user    User?   @relation("InvoiceActivityUser", fields: [userId], references: [id])
 
   @@index([invoiceId, createdAt])
   @@index([action])
+  @@index([userId])
   @@map("invoice_activities")
 }
 
@@ -1294,11 +1325,13 @@ model Approval {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  invoice       Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  approvalChain ApprovalChain? @relation(fields: [approvalChainId], references: [id])
-  approver      User           @relation("Approver", fields: [approverId], references: [id])
-  delegatedFrom User?          @relation("DelegatedFrom", fields: [delegatedFromId], references: [id])
-  delegatedTo   User?          @relation("DelegatedTo", fields: [delegatedToId], references: [id])
+  invoice             Invoice            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  approvalChain       ApprovalChain?     @relation(fields: [approvalChainId], references: [id])
+  approver            User               @relation("Approver", fields: [approverId], references: [id])
+  delegatedFrom       User?              @relation("DelegatedFrom", fields: [delegatedFromId], references: [id])
+  delegatedTo         User?              @relation("DelegatedTo", fields: [delegatedToId], references: [id])
+  delegatedApproval   DelegatedApproval? @relation("DelegatedApprovalApprovals", fields: [delegatedToId], references: [id], map: "approval_delegated_approval_fkey")
+  comments            InvoiceComment[]   @relation("ApprovalComments")
 
   @@unique([invoiceId, approverId, level])
   @@index([invoiceId, status])
@@ -1377,11 +1410,13 @@ model DelegatedApproval {
   endDate            DateTime
   isActive           Boolean   @default(true)
   reason             String?
+  notes              String?
   scope              String    @default("ALL")
   specificCategories String[]
   metadata           Json?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
   cancelledAt        DateTime?
   cancelledBy        String?
   cancelReason       String?
@@ -1389,6 +1424,7 @@ model DelegatedApproval {
   approvalChain ApprovalChain? @relation(fields: [approvalChainId], references: [id])
   delegator     User           @relation("Delegator", fields: [delegatorId], references: [id])
   delegatee     User           @relation("Delegatee", fields: [delegateeId], references: [id])
+  approvals     Approval[]     @relation("DelegatedApprovalApprovals")
 
   @@index([delegatorId, isActive])
   @@index([delegateeId, startDate, endDate])
@@ -1418,10 +1454,12 @@ model Payment {
   baseCurrencyAmount Decimal? @db.Decimal(18, 2)
 
   // Method
-  paymentMethod PaymentMethod @default(BANK_TRANSFER)
-  bankReference String?
-  checkNumber   String?
-  transactionId String?
+  paymentMethod   PaymentMethod @default(BANK_TRANSFER)
+  referenceNumber String?       @map("reference_number")
+  bankReference   String?
+  checkNumber     String?
+  transactionId   String?
+ 
 
   // Status
   status        PaymentStatus @default(PENDING)
@@ -1566,6 +1604,7 @@ model Reconciliation {
   organizationId  String
   bankAccountId   String
   statementNumber String?
+  referenceNumber String? @map("reference_number")
 
   // Date Range
   statementDate DateTime
@@ -1618,16 +1657,20 @@ model ReconciliationItem {
   paymentId        String?
 
   // Transaction Details
-  transactionDate DateTime
-  description     String
+  transactionDate  DateTime
+  description      String
   reference       String?
-  amount          Decimal         @db.Decimal(18, 2)
-  currency        Currency        @default(ZAR)
-  transactionType TransactionType
+  referenceNumber  String? @map("reference_number")
+  amount           Decimal         @db.Decimal(18, 2)
+  currency         Currency        @default(ZAR)
+  transactionType  TransactionType
+  matchType        String?
 
   // Matching
   matchedPaymentId String?
   matchedAmount    Decimal? @db.Decimal(18, 2)
+  matchedAt        DateTime?
+  matchedBy        String?
   matchConfidence  Decimal? @db.Decimal(5, 2)
   matchingMethod   String?
 
@@ -1695,8 +1738,8 @@ model RiskScore {
   // Relations
   invoice      Invoice?     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   supplier     Supplier?    @relation(fields: [supplierId], references: [id])
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   assessor     User?        @relation("RiskAssessor", fields: [assessedBy], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
   @@index([supplierId])
@@ -2016,18 +2059,30 @@ model CustomField {
   organizationId String
   entityType     EntityType
   fieldName      String
-  fieldLabel     String
+  fieldLabel     String     @map("label")
   fieldType      String // TEXT, NUMBER, DATE, BOOLEAN, SELECT, MULTI_SELECT
+  description    String?
   options        Json? // For SELECT types
   defaultValue   String?
   isRequired     Boolean    @default(false)
+  isSearchable   Boolean    @default(true)
+  isFilterable   Boolean    @default(true)
   isActive       Boolean    @default(true)
-  order          Int        @default(0)
+  displayOrder   Int        @default(0) @map("order")
   validation     Json? // Regex, min, max, etc.
+  metadata       Json?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deletedAt      DateTime?
+  
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User?       @relation("CustomFieldCreatedBy", fields: [createdById], references: [id])
+  createdById    String?
+  updatedBy      User?       @relation("CustomFieldUpdatedBy", fields: [updatedById], references: [id])
+  updatedById    String?
+  deletedBy      User?       @relation("CustomFieldDeletedBy", fields: [deletedById], references: [id])
+  deletedById    String?
 
   @@unique([organizationId, entityType, fieldName])
   @@index([organizationId, entityType])

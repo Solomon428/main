@@ -99,7 +99,7 @@ async function generateMonthlyReport(organizationId: string) {
     where: {
       organizationId,
       createdAt: { gte: firstDayOfMonth },
-      status: "COMPLETED",
+      status: "COMPLETED" as any,
     },
     _sum: { amount: true },
   });
@@ -112,6 +112,6 @@ async function generateMonthlyReport(organizationId: string) {
   });
 
   info(
-    `Monthly report for ${organizationId}: Total spent: ${totalSpent._sum.amount || 0}, New suppliers: ${supplierCount}`,
+    `Monthly report for ${organizationId}: Total spent: ${totalSpent._sum.amount ?? 0}, New suppliers: ${supplierCount}`,
   );
 }

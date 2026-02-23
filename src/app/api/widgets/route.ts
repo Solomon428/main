@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     // Get all widgets
     const widgets = await WidgetService.getDashboardWidgets(
-      userId || undefined,
+      userId || "",
     );
 
     return NextResponse.json({

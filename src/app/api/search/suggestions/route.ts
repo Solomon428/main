@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     const suggestions = await AdvancedSearchService.getSuggestions(
       query,
-      limit,
+      String(limit),
     );
 
     return NextResponse.json({

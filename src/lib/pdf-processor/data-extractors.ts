@@ -42,42 +42,42 @@ export function extractInvoiceDate(text: string): Date {
 
 export function extractSupplierVAT(text: string): string | undefined {
   const match = text.match(/(?:vat\s*(?:no|number)?|tax\s+no)[:\s]*(4\d{9})/i);
-  return match ? match[1].replace(/\s/g, "") : undefined;
+  return match?.[1] ? match[1].replace(/\s/g, "") : undefined;
 }
 
 export function extractTotalAmount(text: string): number {
   const match = text.match(
     /(?:total\s+amount|amount\s+due|grand\s+total|balance\s+due)[:\s]*R?\s*([\d,]+\.?\d{0,2})/i,
   );
-  return match ? parseFloat(match[1].replace(/,/g, "")) : 0;
+  return match?.[1] ? parseFloat(match[1].replace(/,/g, "")) : 0;
 }
 
 export function extractSubtotalExclVAT(text: string): number | undefined {
   const match = text.match(
     /(?:subtotal|amount\s+exclusive\s+vat|excl\.?\s+vat)[:\s]*R?\s*([\d,]+\.?\d{0,2})/i,
   );
-  return match ? parseFloat(match[1].replace(/,/g, "")) : undefined;
+  return match?.[1] ? parseFloat(match[1].replace(/,/g, "")) : undefined;
 }
 
 export function extractVATAmount(text: string): number | undefined {
   const match = text.match(
     /(?:vat\s*15%|vat\s+amount|vat)[:\s]*R?\s*([\d,]+\.?\d{0,2})/i,
   );
-  return match ? parseFloat(match[1].replace(/,/g, "")) : undefined;
+  return match?.[1] ? parseFloat(match[1].replace(/,/g, "")) : undefined;
 }
 
 export function extractSupplierName(text: string): string {
   const match = text.match(
     /(?:supplier|vendor|from)[:\s]*([A-Z][a-z\s\.\,\&\-]{5,50})/i,
   );
-  return match ? match[1].trim() : "Unknown Supplier";
+  return match?.[1] ? match[1].trim() : "Unknown Supplier";
 }
 
 export function extractDueDate(text: string): Date {
   const match = text.match(
     /(?:due\s+date|payment\s+due)[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i,
   );
-  return match
+  return match?.[1]
     ? new Date(match[1].replace(/-/g, "/"))
     : new Date(Date.now() + 30 * 86400000);
 }

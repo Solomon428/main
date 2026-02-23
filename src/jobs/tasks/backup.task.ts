@@ -56,12 +56,12 @@ export async function runTask(
     // Log backup completion
     await prisma.auditLog.create({
       data: {
-        action: "BACKUP",
-        entityType: "SYSTEM",
+        action: "CREATE",
+        entityType: "AUDIT_LOG",
         entityId: task.id,
         changesSummary: `Backup created: ${filename}`,
         createdAt: new Date(),
-      },
+      } as any,
     });
   } catch (err) {
     error("Backup failed", {

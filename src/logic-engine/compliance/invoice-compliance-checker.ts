@@ -57,14 +57,20 @@ export class InvoiceComplianceChecker {
 
     // 1. VAT Validation
     try {
-      const vatResult = await VATValidator.validateInvoiceVAT(invoiceId);
+      const vatValidator = new VATValidator();
+      const vatResult = vatValidator.validateVAT({
+        subtotalExclVAT: Number(invoice.subtotalExclVAT || 0),
+        vatAmount: Number(invoice.vatAmount || 0),
+        totalAmount: Number(invoice.totalAmount || 0),
+        vatRate: 0.15,
+      });
       checks.push({
         name: "VAT Validation",
-        passed: vatResult.isValid,
-        message: vatResult.isValid
+        passed: vatResult.complianceStatus === "COMPLIANT",
+        message: vatResult.complianceStatus === "COMPLIANT"
           ? "VAT calculation correct"
-          : vatResult.errors.join(", "),
-        severity: vatResult.isValid ? "LOW" : "HIGH",
+          : vatResult.errors?.map((e: any) => e.errorMessage).join(", ") || "VAT validation failed",
+        severity: vatResult.complianceStatus === "COMPLIANT" ? "LOW" : "HIGH",
       });
     } catch (error) {
       checks.push({
@@ -117,17 +123,17 @@ export class InvoiceComplianceChecker {
 
     // 4. Duplicate Check
     try {
-      const duplicateResult = await AdvancedDuplicateDetector.checkDuplicate(
-        invoice.supplierId || "",
-        invoice.invoiceNumber,
-        Number(invoice.totalAmount),
-        invoice.invoiceDate,
-      );
+      const duplicateResult: any = await AdvancedDuplicateDetector.checkForDuplicates({
+        invoiceNumber: invoice.invoiceNumber,
+        supplierName: invoice.supplierName || "",
+        totalAmount: Number(invoice.totalAmount),
+        invoiceDate: invoice.invoiceDate,
+      });
       checks.push({
         name: "Duplicate Check",
         passed: !duplicateResult.isDuplicate,
         message: duplicateResult.isDuplicate
-          ? duplicateResult.reason || "Duplicate detected"
+          ? "Duplicate detected"
           : "No duplicates found",
         severity: duplicateResult.isDuplicate ? "HIGH" : "LOW",
       });
@@ -178,21 +184,18 @@ export class InvoiceComplianceChecker {
 
       const fraudInput = {
         invoiceId: invoice.id,
-        supplierId: invoice.supplierId || "unknown",
+        supplierId: invoice.supplierId || undefined,
         supplierName: invoice.supplierName,
-        invoiceAmount: Number(invoice.totalAmount),
+        totalAmount: Number(invoice.totalAmount),
         invoiceDate: invoice.invoiceDate,
-        supplierRiskLevel: (supplier?.riskLevel as RiskLevel) || "MEDIUM",
+        supplierRiskLevel: invoice.riskLevel as any,
         invoiceCurrency: invoice.currency,
-        lineItems: (invoice.lineItems || []).map((item) => ({
-          lineNumber: item.lineNumber,
+        lineItems: invoice.lineItems.map((item) => ({
           description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          vatRate: item.vatRate,
-          vatAmount: item.vatAmount,
-          lineTotalExclVAT: item.lineTotalExclVAT,
-          lineTotalInclVAT: item.lineTotalInclVAT,
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          lineTotalExclVAT: Number(item.lineTotalExclVAT),
+          lineTotalInclVAT: Number(item.lineTotalInclVAT),
         })),
         hasDuplicatePattern:
           checks.find((c) => c.name === "Duplicate Check")?.passed === false,
@@ -201,23 +204,23 @@ export class InvoiceComplianceChecker {
         extractionConfidence: invoice.extractionConfidence,
       };
 
-      const fraudResult = FraudScorer.calculateScore(fraudInput);
+      const fraudResult: any = FraudScorer.calculateScore(fraudInput as any);
 
       // Update invoice with fraud score
       await prisma.invoice.update({
         where: { id: invoiceId },
         data: {
-          fraudScore: fraudResult.score,
+          fraudScore: fraudResult.overallScore,
           riskLevel: fraudResult.riskLevel,
         },
       });
 
       checks.push({
         name: "Fraud Scoring",
-        passed: !fraudResult.requiresInvestigation,
-        message: fraudResult.requiresInvestigation
-          ? `High fraud risk detected (score: ${fraudResult.score}). Factors: ${fraudResult.riskFactors.map((f) => f.factor).join(", ")}`
-          : `Fraud risk acceptable (score: ${fraudResult.score})`,
+        passed: !fraudResult.requiresAttention,
+        message: fraudResult.requiresAttention
+          ? `High fraud risk detected (score: ${fraudResult.overallScore}). Factors: ${fraudResult.riskFactors?.map((f: any) => f.factor).join(", ") || "N/A"}`
+          : `Fraud risk acceptable (score: ${fraudResult.overallScore})`,
         severity:
           fraudResult.riskLevel === "HIGH"
             ? "HIGH"
@@ -259,13 +262,13 @@ export class InvoiceComplianceChecker {
         requiresAttention: requiresManualReview,
         status: isCompliant
           ? InvoiceStatus.PENDING_APPROVAL
-          : InvoiceStatus.UNDER_VALIDATION,
+          : InvoiceStatus.PROCESSING,
       },
     });
 
     // Log compliance check
     await auditLogger.log({
-      action: "COMPLIANCE_VIOLATION",
+      action: "UPDATE",
       entityType: EntityType.INVOICE,
       entityId: invoiceId,
       entityDescription: `Compliance check: ${checks.filter((c) => c.passed).length}/${checks.length} checks passed`,

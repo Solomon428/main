@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { InvoiceService } from "@/services/invoice-service";
 import { prisma } from "../../../../lib/prisma";
 
 export async function GET(
@@ -7,7 +6,9 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
-    const invoice = await InvoiceService.getInvoiceById(params.id);
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: params.id },
+    });
 
     if (!invoice) {
       return NextResponse.json(
@@ -44,22 +45,17 @@ export async function PUT(
       );
     }
 
-    const success = await InvoiceService.updateInvoiceStatus(
-      params.id,
-      status,
-      userId,
-      reason,
-    );
-
-    if (!success) {
-      return NextResponse.json(
-        { success: false, error: "Failed to update invoice status" },
-        { status: 400 },
-      );
-    }
+    const invoice = await prisma.invoice.update({
+      where: { id: params.id },
+      data: {
+        status: status as any,
+        rejectionReason: reason || null,
+      },
+    });
 
     return NextResponse.json({
       success: true,
+      data: invoice,
       message: "Invoice status updated successfully",
     });
   } catch (error) {
@@ -90,7 +86,6 @@ export async function DELETE(
       where: { id: params.id },
       data: {
         status: "CANCELLED",
-        archivedAt: new Date(),
       },
     });
 

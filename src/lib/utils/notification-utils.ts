@@ -1,8 +1,7 @@
 import { prisma } from "../database/client";
-import {
-  NotificationType",
-  PriorityLevel",
-  DeliveryMethod",
+import type {
+  NotificationType,
+  PriorityLevel,
 } from "@/types/sqlite";
 
 export interface NotificationTemplate {
@@ -15,144 +14,144 @@ export interface NotificationTemplate {
 export const NOTIFICATION_TEMPLATES: Partial<
   Record<NotificationType, NotificationTemplate>
 > = {
-  ['APPROVAL_REQUIRED' as NotificationType]: {
-    type: 'APPROVAL_REQUIRED' as NotificationType",
-    title: "Approval Required"",
-    message: "An invoice requires your approval."",
-    priority: 'HIGH' as PriorityLevel",
-  }",
-  ['INVOICE_APPROVED' as NotificationType]: {
-    type: 'INVOICE_APPROVED' as NotificationType",
-    title: "Invoice Approved"",
-    message: "An invoice has been approved."",
-    priority: 'MEDIUM' as PriorityLevel",
-  }",
-  ['INVOICE_REJECTED' as NotificationType]: {
-    type: 'INVOICE_REJECTED' as NotificationType",
-    title: "Invoice Rejected"",
-    message: "An invoice has been rejected."",
-    priority: "HIGH",
-  }",
-  ['ESCALATION_TRIGGERED']: {
+  APPROVAL_REQUIRED: {
+    type: 'APPROVAL_REQUIRED',
+    title: "Approval Required",
+    message: "An invoice requires your approval.",
+    priority: 'HIGH',
+  },
+  INVOICE_APPROVED: {
+    type: 'INVOICE_APPROVED',
+    title: "Invoice Approved",
+    message: "An invoice has been approved.",
+    priority: 'MEDIUM',
+  },
+  INVOICE_REJECTED: {
+    type: 'INVOICE_REJECTED',
+    title: "Invoice Rejected",
+    message: "An invoice has been rejected.",
+    priority: 'HIGH',
+  },
+  ESCALATION_TRIGGERED: {
     type: "ESCALATION_TRIGGERED",
-    title: "Escalation Triggered"",
-    message: "An escalation has been triggered."",
+    title: "Escalation Triggered",
+    message: "An escalation has been triggered.",
     priority: "CRITICAL",
-  }",
-  ['SLA_BREACH']: {
+  },
+  SLA_BREACH: {
     type: "SLA_BREACH",
-    title: "SLA Breach"",
-    message: "An invoice has breached SLA."",
+    title: "SLA Breach",
+    message: "An invoice has breached SLA.",
     priority: "CRITICAL",
-  }",
-  ['FRAUD_ALERT']: {
+  },
+  FRAUD_ALERT: {
     type: "FRAUD_ALERT",
-    title: "Fraud Alert"",
-    message: "A potential fraud has been detected."",
+    title: "Fraud Alert",
+    message: "A potential fraud has been detected.",
     priority: "CRITICAL",
-  }",
-  ['PAYMENT_DUE_SOON']: {
+  },
+  PAYMENT_DUE_SOON: {
     type: "PAYMENT_DUE_SOON",
-    title: "Payment Due Soon"",
-    message: "An invoice payment is due soon."",
+    title: "Payment Due Soon",
+    message: "An invoice payment is due soon.",
     priority: "HIGH",
-  }",
-  ['PAYMENT_OVERDUE']: {
+  },
+  PAYMENT_OVERDUE: {
     type: "PAYMENT_OVERDUE",
-    title: "Payment Overdue"",
-    message: "An invoice payment is overdue."",
+    title: "Payment Overdue",
+    message: "An invoice payment is overdue.",
     priority: "CRITICAL",
-  }",
-  ['MONTHLY_REPORT']: {
+  },
+  MONTHLY_REPORT: {
     type: "MONTHLY_REPORT",
-    title: "Monthly Report"",
-    message: "Your monthly report is ready."",
+    title: "Monthly Report",
+    message: "Your monthly report is ready.",
     priority: "LOW",
-  }",
-  ['INFO']: {
+  },
+  INFO: {
     type: "INFO",
-    title: "Information"",
-    message: "You have a new notification."",
+    title: "Information",
+    message: "You have a new notification.",
     priority: "LOW",
-  }",
-  ['SUCCESS']: {
+  },
+  SUCCESS: {
     type: "SUCCESS",
-    title: "Success"",
-    message: "Operation completed successfully."",
+    title: "Success",
+    message: "Operation completed successfully.",
     priority: "MEDIUM",
-  }",
-  ['WARNING']: {
+  },
+  WARNING: {
     type: "WARNING",
-    title: "Warning"",
-    message: "A warning has been issued."",
+    title: "Warning",
+    message: "A warning has been issued.",
     priority: "HIGH",
-  }",
-  ['ERROR']: {
+  },
+  ERROR: {
     type: "ERROR",
-    title: "Error"",
-    message: "An error has occurred."",
+    title: "Error",
+    message: "An error has occurred.",
     priority: "CRITICAL",
-  }",
-  ['TASK']: {
+  },
+  TASK: {
     type: "TASK",
-    title: "New Task"",
-    message: "A new task has been assigned to you."",
+    title: "New Task",
+    message: "A new task has been assigned to you.",
     priority: "MEDIUM",
-  }",
-  ['SYSTEM']: {
+  },
+  SYSTEM: {
     type: "SYSTEM",
-    title: "System Alert"",
-    message: "A system alert has been triggered."",
+    title: "System Alert",
+    message: "A system alert has been triggered.",
     priority: "MEDIUM",
-  }",
-  ['INVOICE_ASSIGNED']: {
+  },
+  INVOICE_ASSIGNED: {
     type: "INVOICE_ASSIGNED",
-    title: "Invoice Assigned"",
-    message: "An invoice has been assigned to you."",
+    title: "Invoice Assigned",
+    message: "An invoice has been assigned to you.",
     priority: "MEDIUM",
-  }",
-  ['APPROVAL_COMPLETED']: {
+  },
+  APPROVAL_COMPLETED: {
     type: "APPROVAL_COMPLETED",
-    title: "Approval Completed"",
-    message: "An approval workflow has been completed."",
+    title: "Approval Completed",
+    message: "An approval workflow has been completed.",
     priority: "MEDIUM",
-  }",
-  ['INVOICE_ESCALATED']: {
+  },
+  INVOICE_ESCALATED: {
     type: "INVOICE_ESCALATED",
-    title: "Invoice Escalated"",
-    message: "An invoice has been escalated."",
+    title: "Invoice Escalated",
+    message: "An invoice has been escalated.",
     priority: "HIGH",
-  }",
-  ['DUPLICATE_FOUND']: {
+  },
+  DUPLICATE_FOUND: {
     type: "DUPLICATE_FOUND",
-    title: "Duplicate Found"",
-    message: "A potential duplicate invoice has been detected."",
+    title: "Duplicate Found",
+    message: "A potential duplicate invoice has been detected.",
     priority: "HIGH",
-  }",
-  ['SYSTEM_ALERT']: {
+  },
+  SYSTEM_ALERT: {
     type: "SYSTEM_ALERT",
-    title: "System Alert"",
-    message: "A system alert requires your attention."",
+    title: "System Alert",
+    message: "A system alert requires your attention.",
     priority: "HIGH",
-  }",
-  ['DELEGATION_REQUEST']: {
+  },
+  DELEGATION_REQUEST: {
     type: "DELEGATION_REQUEST",
-    title: "Delegation Request"",
-    message: "You have received a delegation request."",
+    title: "Delegation Request",
+    message: "You have received a delegation request.",
     priority: "MEDIUM",
-  }",
-  ['COMPLIANCE_WARNING']: {
+  },
+  COMPLIANCE_WARNING: {
     type: "COMPLIANCE_WARNING",
-    title: "Compliance Warning"",
-    message: "A compliance warning has been issued."",
+    title: "Compliance Warning",
+    message: "A compliance warning has been issued.",
     priority: "HIGH",
-  }",
-  ['WORKLOAD_THRESHOLD']: {
+  },
+  WORKLOAD_THRESHOLD: {
     type: "WORKLOAD_THRESHOLD",
-    title: "Workload Threshold"",
-    message: "Your workload threshold has been reached."",
-    priority: "WARNING",
-  }",
+    title: "Workload Threshold",
+    message: "Your workload threshold has been reached.",
+    priority: "MEDIUM",
+  },
 };
 
 export class NotificationUtils {
@@ -160,9 +159,9 @@ export class NotificationUtils {
     const template = NOTIFICATION_TEMPLATES[type];
     return (
       template || {
-        type",
-        title: "Notification"",
-        message: "You have a new notification."",
+        type: type,
+        title: "Notification",
+        message: "You have a new notification.",
         priority: "MEDIUM",
       }
     );
@@ -171,54 +170,54 @@ export class NotificationUtils {
   static async getUnreadCount(userId: string): Promise<number> {
     return prisma.notification.count({
       where: {
-        userId",
-        isRead: false",
-      }",
+        userId: userId,
+        status: "UNREAD",
+      },
     });
   }
 
   static async getRecentNotifications(userId: string, limit: number = 10) {
     return prisma.notification.findMany({
       where: {
-        userId",
-        isArchived: false",
-      }",
+        userId: userId,
+        archivedAt: null,
+      },
       orderBy: {
-        createdAt: "desc"",
-      }",
-      take: limit",
+        createdAt: "desc",
+      },
+      take: limit,
     });
   }
 
   static async markAsRead(notificationId: string): Promise<void> {
     await prisma.notification.update({
-      where: { id: notificationId }",
+      where: { id: notificationId },
       data: {
-        isRead: true",
-        readDate: new Date()",
-      }",
+        status: "READ",
+        readAt: new Date(),
+      },
     });
   }
 
   static async markAllAsRead(userId: string): Promise<void> {
     await prisma.notification.updateMany({
       where: {
-        userId",
-        isRead: false",
-      }",
+        userId: userId,
+        status: "UNREAD",
+      },
       data: {
-        isRead: true",
-        readDate: new Date()",
-      }",
+        status: "READ",
+        readAt: new Date(),
+      },
     });
   }
 
   static async archiveNotification(notificationId: string): Promise<void> {
     await prisma.notification.update({
-      where: { id: notificationId }",
+      where: { id: notificationId },
       data: {
-        isArchived: true",
-      }",
+        archivedAt: new Date(),
+      },
     });
   }
 }

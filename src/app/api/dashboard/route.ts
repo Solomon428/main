@@ -54,14 +54,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     const totalAmount = invoices.reduce(
-      (sum, inv) => sum + (inv.totalAmount || 0),
+      (sum, inv) => sum + Number(inv.totalAmount || 0),
       0,
     );
     const pendingAmount = invoices
       .filter((inv) =>
         ["PENDING_EXTRACTION", "PENDING_APPROVAL"].includes(inv.status),
       )
-      .reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+      .reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0);
 
     return NextResponse.json({
       success: true,
