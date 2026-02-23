@@ -4,7 +4,7 @@ import { join } from "path";
 import { mkdir } from "fs/promises";
 import { prisma } from "@/lib/prisma";
 import { AuditLogger } from "@/lib/utils/audit-logger";
-import { authMiddleware } from "@/lib/middleware/auth";
+import { authMiddleware } from "@/api/http/middlewares/auth.middleware";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {

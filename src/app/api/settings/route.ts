@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authMiddleware } from "@/lib/middleware/auth";
+import { authMiddleware } from "@/middleware/auth.middleware";
 import { AuditLogger } from "@/lib/utils/audit-logger";
 
 // System settings storage (in production, these should be in database)

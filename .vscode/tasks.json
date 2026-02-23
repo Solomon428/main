@@ -2,11 +2,56 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "typescript",
-      "tsconfig": "tsconfig.json",
-      "problemMatcher": ["$tsc"],
-      "group": "build",
-      "label": "tsc: build - tsconfig.json"
+      "label": "Install dependencies",
+      "type": "shell",
+      "command": "npm ci",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Prisma generate",
+      "type": "shell",
+      "command": "npx prisma generate",
+      "problemMatcher": [],
+      "dependsOn": ["Install dependencies"]
+    },
+    {
+      "label": "DB push",
+      "type": "shell",
+      "command": "npx prisma db push --accept-data-loss",
+      "problemMatcher": [],
+      "dependsOn": ["Prisma generate"]
+    },
+    {
+      "label": "TypeScript check",
+      "type": "shell",
+      "command": "npx tsc --noEmit",
+      "problemMatcher": [],
+      "dependsOn": ["DB push"]
+    },
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "npm run build",
+      "problemMatcher": [],
+      "dependsOn": ["TypeScript check"]
+    },
+    {
+      "label": "Dev server",
+      "type": "shell",
+      "command": "npm run dev",
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "DB 15432 test",
+      "type": "shell",
+      "command": "psql -h localhost -p 15432 -U creditorflow -d creditorflow -c 'SELECT 1;'",
+      "problemMatcher": [],
+      "dependsOn": ["DB push"]
     }
   ]
 }
