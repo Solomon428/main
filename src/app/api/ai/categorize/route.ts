@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { AICategorizationService } from "@/services/ai-categorization-service";
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const categorizeSchema = z.object({

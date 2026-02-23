@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Decimal } from "decimal.js";
 import { isAfter } from "date-fns";
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 import { systemLogger } from "../../../../observability/logger";
 import { metrics } from "../../../../observability/metrics";
 import { generateId } from "../../../../utils/ids";

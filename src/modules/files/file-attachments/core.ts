@@ -1,4 +1,4 @@
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 import { generateId, generateShortId } from "../../../utils/ids";
 import { logAuditEvent } from "../../../observability/audit";
 import { AuditAction } from "../../../domain/enums/AuditAction";

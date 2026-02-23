@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "../../../lib/auth-utils";
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {

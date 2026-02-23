@@ -4,7 +4,7 @@ import { InvoiceService } from "../../invoices/invoices.service";
 import { Currency } from "../../../domain/enums/Currency";
 import { EntityType } from "../../../domain/enums/EntityType";
 import { StorageProvider } from "../../../domain/enums/StorageProvider";
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 import { generateShortId } from "../../../utils/ids";
 import {
   InvoiceUploadInput,

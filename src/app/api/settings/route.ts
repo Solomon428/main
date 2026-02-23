@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 import { authMiddleware } from "@/lib/middleware/auth";
 import { AuditLogger } from "@/lib/utils/audit-logger";
 

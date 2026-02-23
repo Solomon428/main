@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 import { FraudScorer } from "@/logic-engine/risk/fraud-scorer";
 import { AnomalyDetector } from "@/logic-engine/risk/anomaly-detector";
 import { authMiddleware } from "@/lib/middleware/auth";

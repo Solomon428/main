@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { SignJWT } from "jose";
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { rateLimiters } from "@/lib/utils/rate-limiter";
 

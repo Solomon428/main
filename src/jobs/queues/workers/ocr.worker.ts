@@ -1,5 +1,5 @@
 import { Job } from "bullmq";
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 import { createWorker, QUEUE_NAMES } from "../queue";
 import { info, error } from "../../../observability/logger";
 

@@ -29,7 +29,7 @@ import { TextPostprocessor } from "./postprocessing";
 import { FileProcessor } from "./processors/file-processor";
 
 // Import dependencies from project
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 import { systemLogger } from "../../../observability/logger";
 import { metrics } from "../../../observability/metrics";
 import { generateId } from "../../../utils/ids";

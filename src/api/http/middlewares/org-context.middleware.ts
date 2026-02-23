@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/db/prisma";
+import { prisma } from "@/lib/prisma";
 
 export interface RequestWithOrg extends NextRequest {
   organizationId?: string;
