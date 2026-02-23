@@ -64,7 +64,13 @@ import { SA_COMPLIANCE_RULES } from "@/types/index";
 
 // Fallback SLACalculator class if module not found - eslint-disable-next-line
 const SLACalculator = {
-  calculateSLA: (priority: string): number => 48
+  calculateSLA: (priority: string): number => 48,
+  calculateSLAHours: (
+    stage: number,
+    escalationLevel: EscalationLevel,
+    priority: string,
+    routingId: string,
+  ): number => 48,
 };
 
 export class ApproverRouter {
@@ -358,6 +364,7 @@ export class ApproverRouter {
         workloadDistribution,
         slaDeadlines,
         approvalLimit,
+        requiresApproval: approvalChain?.length > 0,
         requiresEscalation: escalationLevel !== "LEVEL_1",
         requiresDelegation: false, // Determined during chain generation
         requiresBackup: true, // Always assign backup approvers
@@ -524,7 +531,11 @@ export class ApproverRouter {
     const catLimit = this.SUPPLIER_CATEGORY_APPROVAL_LIMITS.find(
       (c) => c.category === category,
     );
-    return catLimit ? catLimit.multiplier : 1.0;
+    let mult = 1.0;
+    if (catLimit && typeof catLimit.multiplier === 'number') {
+      mult = catLimit.multiplier;
+    }
+    return mult;
   }
 
   /**
@@ -534,7 +545,11 @@ export class ApproverRouter {
     const riskLimit = this.RISK_LEVEL_APPROVAL_LIMITS.find(
       (r) => r.riskLevel === riskLevel,
     );
-    return riskLimit ? riskLimit.multiplier : 1.0;
+    let mult = 1.0;
+    if (riskLimit && typeof riskLimit.multiplier === 'number') {
+      mult = riskLimit.multiplier;
+    }
+    return mult;
   }
 
   /**
@@ -545,7 +560,7 @@ export class ApproverRouter {
     approvalLimit: number,
     routingId: string,
   ): EscalationLevel {
-    const amount = input.totalAmount ?? input.amount ?? 0;
+    const amount = (input.totalAmount ?? input.amount ?? 0) as number;
     // Check amount-based escalation first
     if (amount > 1000000) return "LEVEL_5"; // R1,000,000+
     if (amount > 500000) return "LEVEL_4"; // R500,000+
@@ -644,7 +659,7 @@ export class ApproverRouter {
       const selectedApprover = WorkloadBalancer.selectApprover(
         availableApprovers,
         routingId,
-      );
+      ) as any;
 
       // Assign backup approver
       const backupApprover = BackupApproverAssigner.assignBackup(
@@ -660,15 +675,17 @@ export class ApproverRouter {
         input.priority,
         routingId,
       );
-      const slaDeadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
+      const slaHoursResolved = (typeof slaHours === 'number' && !Number.isNaN(slaHours)) ? slaHours : this.DEFAULT_SLA_HOURS;
+      const slaDeadline = new Date(Date.now() + slaHoursResolved * 60 * 60 * 1000);
 
       // Create chain entry
       chain.push({
         stage,
         approverId: selectedApprover.id,
         approver: selectedApprover,
+        status: "PENDING",
         role,
-        department: input.department,
+        department: input.department ?? "",
         minAmount:
           stage === 1 ? 0 : (approvalLimit * (stage - 1)) / totalStages,
         maxAmount:
@@ -681,10 +698,8 @@ export class ApproverRouter {
           input,
           routingId,
         ),
-        slaHours,
-        isOptional: false,
-        isParallel: false,
-        backupApproverId: backupApprover?.id,
+        slaHours: slaHoursResolved,
+        backupApproverId: backupApprover ?? null,
         backupApprover,
         delegationChain: [],
         escalationPath: this.generateEscalationPath(
@@ -692,7 +707,7 @@ export class ApproverRouter {
           escalationLevel,
           routingId,
         ),
-        assignedDate: new Date(),
+        assignedAt: new Date(),
         slaDeadline,
         canDelegate: stage < totalStages,
         canEscalate: true,
@@ -770,19 +785,15 @@ export class ApproverRouter {
     const conditions: ApprovalCondition[] = [];
 
     // Amount condition
+    const totalAmount = (input.totalAmount ?? 0) as number;
+    const totalStages = (input.totalStages ?? 1) as number;
     conditions.push({
       type: "AMOUNT_RANGE",
       field: "totalAmount",
       operator: "BETWEEN",
       value: {
-        min:
-          stage === 1
-            ? 0
-            : (input.totalAmount * (stage - 1)) / input.totalStages,
-        max:
-          stage === input.totalStages
-            ? Infinity
-            : (input.totalAmount * stage) / input.totalStages,
+        min: stage === 1 ? 0 : (totalAmount * (stage - 1)) / totalStages,
+        max: stage === totalStages ? Infinity : (totalAmount * stage) / totalStages,
       },
       description: `Amount must be between stage ${stage - 1} and stage ${stage} limits`,
     });
@@ -1036,17 +1047,16 @@ export class ApproverRouter {
         },
         role: "SYSTEM",
         department: input.department,
+        status: "PENDING",
         minAmount: 0,
         maxAmount: Infinity,
         conditions: [],
         slaHours: 24,
-        isOptional: false,
-        isParallel: false,
         backupApproverId: null,
         backupApprover: null,
         delegationChain: [],
         escalationPath: ["SYSTEM_ADMIN"],
-        assignedDate: new Date(),
+        assignedAt: new Date(),
         slaDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
         canDelegate: false,
         canEscalate: true,
@@ -1084,6 +1094,7 @@ export class ApproverRouter {
         },
       ],
       approvalLimit: this.MAX_APPROVAL_LIMIT,
+      requiresApproval: false,
       requiresEscalation: false,
       requiresDelegation: false,
       requiresBackup: false,

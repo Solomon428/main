@@ -14,6 +14,11 @@ declare module 'sharp' {
   export default sharp;
 }
 
+declare module 'pdf-poppler' {
+  export function pdfToText(path: string, options?: any): Promise<string>;
+  export function pdfToImages(path: string, options?: any): Promise<string[]>;
+}
+
 declare module 'file-type' {
   function fileType(buffer: Buffer): Promise<{ ext: string; mime: string } | undefined>;
   export = fileType;

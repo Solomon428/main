@@ -617,8 +617,8 @@ export class OcrService {
     if (errors.length > 0) {
       throw new OcrProcessingError(
         "File validation failed",
-        "VALIDATION_ERROR",
         {
+          code: "VALIDATION_ERROR",
           fileName,
           mimeType,
           fileSize: fileBuffer.length,

@@ -11,7 +11,7 @@ import type {
   SupplierAgeRiskAnalysis,
   SupplierRiskProfileAnalysis,
 } from "../types";
-import { FraudDetectionMethod } from "../types";
+import { FraudDetectionMethod, FraudRiskCategory, FraudSeverityLevel } from "../types";
 import { SA_COMPLIANCE_RULES } from "../constants";
 
 /**
@@ -30,10 +30,10 @@ export function calculateSupplierAgeRisk(
   if (supplierAgeDays < SA_COMPLIANCE_RULES.SUPPLIER_PROBATION_DAYS) {
     baseScore += 25;
     riskFactors.push({
-      category: "SUPPLIER_RISK",
+      category: FraudRiskCategory.SUPPLIER_RISK,
       factor: "NEW_SUPPLIER_PROBATION",
       description: `Supplier is within SARS 90-day probation period (${supplierAgeDays} days old)`,
-      severity: "HIGH",
+      severity: FraudSeverityLevel.HIGH,
       scoreImpact: 25,
       evidence: `supplierAgeDays=${supplierAgeDays}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,
@@ -43,10 +43,10 @@ export function calculateSupplierAgeRisk(
   } else if (supplierAgeDays < 365) {
     baseScore += 10;
     riskFactors.push({
-      category: "SUPPLIER_RISK",
+      category: FraudRiskCategory.SUPPLIER_RISK,
       factor: "YOUNG_SUPPLIER",
       description: `Supplier is less than 1 year old (${supplierAgeDays} days)`,
-      severity: "MEDIUM",
+      severity: FraudSeverityLevel.MEDIUM,
       scoreImpact: 10,
       evidence: `supplierAgeDays=${supplierAgeDays}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,

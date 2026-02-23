@@ -2,7 +2,7 @@
 // API Router - Mounts all module routes
 // ============================================================================
 
-import { Application, Router } from "express";
+import * as express from "express";
 
 // Import route modules
 import iamRoutes from "../../modules/iam/iam.routes";
@@ -23,8 +23,8 @@ import integrationRoutes from "../../modules/integrations/integrations.routes";
 /**
  * Setup all API routes
  */
-export function setupRouter(app: Application): void {
-  const apiRouter = Router();
+export function setupRouter(app: express.Application): void {
+  const apiRouter = express.Router();
 
   // Mount module routes
   apiRouter.use("/iam", iamRoutes);
@@ -43,7 +43,8 @@ export function setupRouter(app: Application): void {
   apiRouter.use("/integrations", integrationRoutes);
 
   // Mount API router
-  app.use("/api/v1", apiRouter);
+  // Cast to any to accommodate potential typing limitations in the Express Application type
+  (app as any).use("/api/v1", apiRouter);
 }
 
 // Route configuration for documentation

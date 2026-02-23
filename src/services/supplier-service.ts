@@ -212,8 +212,8 @@ export class SupplierService {
       where: { id },
       data: {
         status: "ACTIVE",
-        verifiedById: userId,
-        verifiedDate: new Date(),
+        verifiedBy: userId,
+        verifiedAt: new Date(),
       },
     });
 

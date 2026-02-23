@@ -18,8 +18,29 @@ export class OcrValidationError extends OcrServiceError {
 }
 
 export class OcrProcessingError extends OcrServiceError {
-  constructor(message: string, context?: Record<string, any>, cause?: Error) {
-    super(message, "PROCESSING_ERROR", context, cause);
+  constructor(
+    message: string,
+    codeOrContext?: string | Record<string, any>,
+    contextOrCause?: Record<string, any> | Error,
+    cause?: Error,
+  ) {
+    let code = "PROCESSING_ERROR";
+    let context: Record<string, any> | undefined;
+    let finalCause: Error | undefined;
+    
+    if (typeof codeOrContext === "string") {
+      code = codeOrContext;
+      if (contextOrCause && contextOrCause instanceof Error) {
+        finalCause = contextOrCause;
+      } else {
+        context = contextOrCause as Record<string, any> | undefined;
+      }
+    } else if (codeOrContext) {
+      context = codeOrContext;
+      finalCause = contextOrCause as Error | undefined;
+    }
+    
+    super(message, code, context, finalCause ?? cause);
     this.name = "OcrProcessingError";
   }
 }

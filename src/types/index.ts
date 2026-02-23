@@ -30,6 +30,10 @@ import {
   WebhookStatus,
 } from "@prisma/client";
 
+// Bridge Prisma enums to domain-friendly aliases
+import type { InvoiceStatus as PrismaInvoiceStatus } from './prisma-enums';
+export type InvoiceStatus = PrismaInvoiceStatus;
+
 // Re-export all Prisma types for consistency
 export * from "@prisma/client";
 
@@ -41,6 +45,7 @@ export interface DuplicateCheckResult {
   matchedInvoiceId?: string;
   matchReasons: string[];
   checkTimestamp?: Date;
+  inputHash?: string;
 }
 
 export interface DuplicateAuditTrail {
@@ -50,11 +55,12 @@ export interface DuplicateAuditTrail {
   action: string;
   eventType?: string;
   eventDescription?: string;
+  ipAddress?: string;
   timestamp: Date;
   metadata: Record<string, any>;
 }
 
-export type DuplicateRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type DuplicateRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | "SEVERE";
 
 export type DuplicateType = 
   | "EXACT"
@@ -337,13 +343,21 @@ export type ApprovalRoutingResult = {
   routingTimestamp?: Date;
   inputHash?: string;
   strategy?: string;
-  stages: ApprovalStage[];
+  stages?: ApprovalStage[];
   requiresApproval: boolean;
   reason?: string;
   escalationLevel?: string;
   totalStages?: number;
+  approvalLimit?: number;
   approvalChain?: any;
   workloadDistribution?: any;
+  slaDeadlines?: SLADeadline[];
+  requiresEscalation?: boolean;
+  requiresDelegation?: boolean;
+  requiresBackup?: boolean;
+  routingDurationMs?: number;
+  auditTrail?: any[];
+  metadata?: any;
 };
 
 export type ApprovalStage = {
@@ -361,6 +375,17 @@ export type SLAConfig = {
   hours: number;
   escalationHours?: number;
   warningThresholdPercent?: number;
+};
+
+// SLA deadline representation for approval routing
+export type SLADeadline = {
+  stage: number;
+  approverId: string;
+  slaDeadline: Date;
+  slaHours: number;
+  isBusinessHoursOnly: boolean;
+  holidayAdjusted: boolean;
+  escalationTime: Date;
 };
 
 export type DuplicateCheckInput = {
@@ -398,6 +423,9 @@ export type ExtractedInvoiceData = {
   supplierVATNumber?: string;
   lineItems?: ExtractedLineItem[];
   confidence: number;
+  // Backwards-compatible OCR extraction confidence fields used across the codebase
+  extractionConfidence?: number;
+  rawText?: string;
 };
 
 export type ExtractedLineItem = {
@@ -431,23 +459,36 @@ export type EscalationLevel = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "LEVEL_4" | "L
 
 export type WorkloadDistribution = {
   approverId: string;
-  currentLoad: number;
-  maxCapacity: number;
-  availableSlots: number;
+  currentWorkload: number;
+  maxWorkload: number;
+  capacity: number;
+  stageCount: number;
 };
 
 export type ApprovalChainEntry = {
-  chainId: string;
-  sequence: number;
-  approverId: string;
+  chainId?: string;
+  sequence?: number;
+  approverId?: string;
   approver?: any;
   role?: string;
   status: ApprovalStatus;
-  assignedAt: Date;
+  assignedAt?: Date;
   completedAt?: Date;
   stage?: number;
   description?: string;
   slaHours?: number;
+  department?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  conditions?: ApprovalCondition[];
+  backupApproverId?: string | null;
+  backupApprover?: any;
+  delegationChain?: any[];
+  escalationPath?: string[];
+  slaDeadline?: Date;
+  canDelegate?: boolean;
+  canEscalate?: boolean;
+  requiresComment?: boolean;
 };
 
 export type ApprovalCondition = {
@@ -475,7 +516,7 @@ export type RoutingRule = {
 
 export type RoutingRuleType = "AMOUNT_THRESHOLD" | "DEPARTMENT_MATCH" | "SUPPLIER_CATEGORY" | "RISK_LEVEL" | "CUSTOM";
 
-export type RoutingRuleOperator = "EQUALS" | "NOT_EQUALS" | "GREATER_THAN" | "LESS_THAN" | "CONTAINS" | "IN";
+export type RoutingRuleOperator = "EQUALS" | "NOT_EQUALS" | "GREATER_THAN" | "LESS_THAN" | "CONTAINS" | "IN" | "BETWEEN";
 
 export type RoutingRuleAction = "ROUTE_TO_APPROVER" | "ROUTE_TO_ROLE" | "ROUTE_TO_DEPARTMENT" | "ESCALATE" | "BLOCK" | "FLAG";
 
@@ -498,13 +539,16 @@ export type ApprovalLimitType = "AMOUNT" | "PERCENTAGE" | "CATEGORY_AMOUNT";
 export type ApprovalLimitScope = "INDIVIDUAL" | "DEPARTMENT" | "ROLE" | "ORGANIZATION";
 
 export type RoutingAuditTrail = {
-  id: string;
+  id?: string;
   auditId?: string;
-  routingId: string;
-  decision: string;
-  approvers: string[];
-  timestamp: Date;
+  routingId?: string;
+  userId?: string;
+  decision?: string;
+  approvers?: string[];
+  timestamp?: Date;
   metadata?: Record<string, any>;
+  eventType?: string;
+  eventDescription?: string;
 };
 
 export type RoutingMetadata = {

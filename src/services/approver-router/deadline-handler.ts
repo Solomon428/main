@@ -27,8 +27,7 @@ export async function verifyDelegationCertificates(
     
     try {
       const valid = await repositories.approverRepo.verifySarsDelegationCertificate(
-        stage.approverId,
-        stage.approver.saDelegationCertificate
+        stage.approverId
       );
       if (!valid) {
         opts.auditLogger?.('INVALID_SARS_DELEGATION_CERT', 'approver', stage.approverId, 'error', {

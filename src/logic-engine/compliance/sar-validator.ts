@@ -139,7 +139,7 @@ export class SARSValidator {
 
     // Log sanctions check
     await auditLogger.log({
-      action: "COMPLIANCE_VIOLATION",
+      action: "CONFIG_CHANGE",
       entityType: EntityType.INVOICE,
       entityId: invoiceId,
       entityDescription: `Sanctions check: ${violations.length === 0 ? "PASSED" : violations.join(", ")}`,
@@ -193,7 +193,7 @@ export class SARSValidator {
 
     // Log PEP check
     await auditLogger.log({
-      action: "COMPLIANCE_VIOLATION",
+      action: "CONFIG_CHANGE",
       entityType: EntityType.INVOICE,
       entityId: invoiceId,
       entityDescription: `PEP check: ${matches.length === 0 ? "No matches" : `Found: ${matches.join(", ")}`}`,

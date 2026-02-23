@@ -180,14 +180,15 @@ Important:
 
       // Add raw text for reference
       extractedData.rawText = rawText;
-      extractedData.extractionConfidence = 0.85; // LLM extraction has high confidence
+      // Align with ExtractedInvoiceData surface: use 'confidence'
+      extractedData.confidence = 0.85; // LLM extraction has high confidence
 
       return extractedData;
     } catch (error) {
       console.error("Ollama extraction failed:", error);
       return {
         rawText,
-        extractionConfidence: 0,
+        confidence: 0,
       };
     }
   }

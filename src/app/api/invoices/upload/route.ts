@@ -1,165 +1,70 @@
-
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, readFile, stat } from 'fs/promises';
-import { join, normalize, resolve } from 'path';
-import { mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import { PDFExtractor } from '@/lib/pdf-processor';
+import { writeFile, mkdir, readFile, stat } from 'fs/promises';
+import path, { join, normalize, resolve } from 'path';
+import { randomUUID } from 'crypto';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { InvoiceStatus, PriorityLevel } from '@/types';
+import { extractTextFromInvoice } from '@/modules/files/ocr/services/hybrid-extractor';
+import { InvoiceParser } from '@/modules/invoices/services/invoice-parser.service';
 import { AuditLogger } from '@/lib/utils/audit-logger';
 
 /**
- * GET handler to serve PDF files from the uploads directory
- * GET /api/invoices/upload?path=/uploads/invoices/filename.pdf
+ * Minimal upload endpoint with duplicate handling and proper organization linking
+ * POST /api/invoices/upload
  */
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    const { searchParams } = new URL(request.url);
-    const filePath = searchParams.get('path');
-
-    if (!filePath) {
-      return NextResponse.json(
-        { success: false, error: 'File path is required' },
-        { status: 400 }
-      );
-    }
-
-    // Security: Normalize and validate the path to prevent directory traversal
-    const uploadsDir = resolve(process.cwd(), 'uploads', 'invoices');
-
-    // Extract filename from path (handles /uploads/invoices/filename.pdf format)
-    const filename = filePath
-      .replace(/^\/uploads\/invoices\//, '')
-      .replace(/^uploads\/invoices\//, '');
-
-    // Validate filename - only allow alphanumeric, hyphens, underscores, and dots
-    if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid file path' },
-        { status: 400 }
-      );
-    }
-
-    const fullPath = normalize(join(uploadsDir, filename));
-
-    // Ensure the resolved path is still within the uploads directory
-    if (!fullPath.startsWith(uploadsDir)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid file path' },
-        { status: 400 }
-      );
-    }
-
-    // Check if file exists
-    if (!existsSync(fullPath)) {
-      return NextResponse.json(
-        { success: false, error: 'File not found' },
-        { status: 404 }
-      );
-    }
-
-    // Get file stats
-    const fileStats = await stat(fullPath);
-
-    // Read file
-    const fileBuffer = await readFile(fullPath);
-
-    // Determine content type based on extension
-    const ext = filename.split('.').pop()?.toLowerCase();
-    let contentType = 'application/octet-stream';
-    if (ext === 'pdf') {
-      contentType = 'application/pdf';
-    } else if (ext === 'png') {
-      contentType = 'image/png';
-    } else if (ext === 'jpg' || ext === 'jpeg') {
-      contentType = 'image/jpeg';
-    }
-
-    // Return file with appropriate headers
-    return new NextResponse(fileBuffer, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Content-Length': fileStats.size.toString(),
-        'Content-Disposition': `inline; filename="${filename}"`,
-        'Cache-Control': 'private, max-age=3600',
-        'X-Content-Type-Options': 'nosniff',
-      },
-    });
-  } catch (error) {
-    console.error('[PDF Upload API] Error serving file:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to serve file' },
-      { status: 500 }
-    );
-  }
-}
-
 export async function POST(request: NextRequest) {
-  // Auth is handled by root middleware
-  const userId = request.headers.get('x-user-id');
-  const userOrg = request.headers.get('x-user-org');
-  
-  if (!userId) {
-    return NextResponse.json(
-      { success: false, error: 'Authentication required' },
-      { status: 401 }
-    );
-  }
-
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('invoice') as File;
     const supplierId = formData.get('supplierId') as string | null;
+    const organizationId = formData.get('organizationId') as string | null;
+    const autoProcess = formData.get('autoProcess') !== 'false';
 
-    // Validate file
     if (!file) {
-      return NextResponse.json(
-        { success: false, error: 'No file provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
+    // Validate file type and size
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg'];
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid file type. Only PDF, PNG, and JPEG are allowed.',
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid file type. Only PDF, PNG, and JPEG are allowed.' }, { status: 400 });
     }
-
-    // Validate file size (10MB max)
     const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { success: false, error: 'File too large. Maximum size is 10MB.' },
-        { status: 400 }
-      );
+    if ((file.size ?? 0) > maxSize) {
+      return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 400 });
     }
 
-    // Create uploads directory if it doesn't exist
+    // Save file
     const uploadsDir = join(process.cwd(), 'uploads', 'invoices');
     await mkdir(uploadsDir, { recursive: true });
-
-    // Generate unique filename
     const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const safeName = (file.name ?? 'invoice').replace(/[^a-zA-Z0-9.-]/g, '_');
     const filename = `${timestamp}-${safeName}`;
     const filepath = join(uploadsDir, filename);
 
-    // Save file
     const bytes = await file.arrayBuffer();
     await writeFile(filepath, Buffer.from(bytes));
 
-    // Extract data from PDF
-    let extractionResult;
+    // Extract data from PDF if applicable
+    let extractionResult: any;
     if (file.type === 'application/pdf') {
-      extractionResult = await PDFExtractor.extractInvoiceData(filepath);
+      const pdfBuffer = await readFile(filepath);
+      const { text, method } = await extractTextFromInvoice(pdfBuffer);
+      const parsed = InvoiceParser.parse(text ?? '');
+      extractionResult = {
+        success: !!text && text!.trim().length > 0,
+        data: parsed,
+        text: text ?? '',
+        method,
+        confidence: 0.8,
+        rawText: text ?? ''
+      };
     } else {
       extractionResult = {
         success: false,
@@ -177,58 +82,68 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Get user from headers
-    const userId = request.headers.get('x-user-id') || 'system';
-    const organizationId = request.headers.get('x-user-org') || 'dev-org-001';
-    
+    // Determine user context for auditing
+    const userId = session.user?.id ?? 'system';
+    const organizationCtx = organizationId ?? 'dev-org-001';
     console.log('[Upload] User ID:', userId);
-    console.log('[Upload] Org ID:', organizationId);
+    console.log('[Upload] Org ID:', organizationCtx);
 
-    // Create invoice record
+    // Decide base invoice number to avoid collisions
     const extractedData = extractionResult.data;
-    const invoice = await prisma.invoice.create({
-      data: {
-        organizationId,
-        invoiceNumber: extractedData?.invoiceNumber || `TEMP-${timestamp}`,
-        supplierId: supplierId || null,
-        supplierName: extractedData?.supplierName || 'Unknown Supplier',
-        supplierEmail: extractedData?.supplierEmail || null,
-        supplierPhone: extractedData?.supplierPhone || null,
-        supplierAddress: extractedData?.supplierAddress || null,
-        supplierVAT: extractedData?.supplierVAT || null,
-        invoiceDate: extractedData?.invoiceDate || new Date(),
-        dueDate:
-          extractedData?.dueDate ||
-          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        subtotalExclVAT: extractedData?.subtotalExclVAT || 0,
-        vatAmount: extractedData?.vatAmount || 0,
-        vatRate: (extractedData as any)?.vatRate || 15.0,
-        totalAmount: extractedData?.totalAmount || 0,
-        amountDue: extractedData?.amountDue || extractedData?.totalAmount || 0,
-        currency: extractedData?.currency || 'ZAR',
-        pdfUrl: `/uploads/invoices/${filename}`,
-        ocrText: extractedData?.rawText || null,
-        extractionConfidence: extractionResult.confidence,
-        status: extractionResult.success
-          ? InvoiceStatus.SUBMITTED
-          : InvoiceStatus.PENDING_EXTRACTION,
+    const baseInvoiceNumber = extractedData?.invoiceNumber || `TEMP-${timestamp}`;
+    let invoiceNumber = baseInvoiceNumber;
+    let counter = 1;
+    // Ensure uniqueness within the organization
+    while (true) {
+      const existing = await prisma.invoice.findFirst({
+        where: {
+          organizationId: organizationCtx,
+          invoiceNumber,
+        },
+      });
+      if (!existing) break;
+      invoiceNumber = `${baseInvoiceNumber}-${counter++}`;
+    }
 
-        creatorId: userId,
-      },
-    });
+    // Build invoice data with organization reference
+    const invoiceData: any = {
+      organizationId: organizationCtx,
+      invoiceNumber,
+      supplierId: supplierId ?? null,
+      supplierName: extractedData?.supplierName ?? 'Unknown Supplier',
+      supplierEmail: extractedData?.supplierEmail ?? null,
+      supplierPhone: extractedData?.supplierPhone ?? null,
+      supplierAddress: extractedData?.supplierAddress ?? null,
+      supplierVAT: extractedData?.supplierVAT ?? null,
+      invoiceDate: extractedData?.invoiceDate ?? new Date(),
+      dueDate: extractedData?.dueDate ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      subtotalExclVAT: extractedData?.subtotalExclVAT ?? 0,
+      vatAmount: extractedData?.vatAmount ?? 0,
+      vatRate: (extractedData as any)?.vatRate ?? 15.0,
+      totalAmount: extractedData?.totalAmount ?? 0,
+      amountDue: extractedData?.amountDue ?? (extractedData?.totalAmount ?? 0),
+      currency: extractedData?.currency ?? 'ZAR',
+      pdfUrl: `/uploads/invoices/${filename}`,
+      ocrText: extractionResult?.text ?? null,
+      extractionConfidence: extractionResult?.confidence ?? 0,
+      status: extractionResult?.success ? 'SUBMITTED' : 'PENDING_EXTRACTION',
+      creatorId: userId,
+    };
 
-    // Create line items if extracted
+    const invoice = await prisma.invoice.create({ data: invoiceData });
+
+    // Create line items if present
     if (extractedData?.lineItems && extractedData.lineItems.length > 0) {
       await prisma.invoiceLineItem.createMany({
         data: extractedData.lineItems.map((item: any, index: number) => ({
           invoiceId: invoice.id,
-          lineNumber: item.lineNumber || index + 1,
+          lineNumber: item.lineNumber ?? index + 1,
           description: item.description,
-          productCode: item.productCode || null,
-          unitOfMeasure: item.unitOfMeasure || null,
+          productCode: item.productCode ?? null,
+          unitOfMeasure: item.unitOfMeasure ?? null,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          vatRate: item.vatRate || 15.0,
+          vatRate: item.vatRate ?? 15.0,
           vatAmount: item.vatAmount,
           lineTotalExclVAT: item.lineTotalExclVAT,
           lineTotalInclVAT: item.lineTotalInclVAT,
@@ -236,18 +151,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Log audit event
+    // Audit log for upload
     await AuditLogger.log({
       action: 'CREATE',
       entityType: 'INVOICE',
       entityId: invoice.id,
       entityDescription: `Invoice ${invoice.invoiceNumber} uploaded`,
-      severity: 'INFO',
+      severity: 'INFO' as const,
       userId,
       metadata: {
         extractionSuccess: extractionResult.success,
-        confidence: extractionResult.confidence,
-        strategy: extractionResult.strategy,
+        confidence: extractionResult?.confidence ?? 0,
+        strategy: extractionResult?.strategy ?? 'NONE',
       },
     });
 
@@ -257,22 +172,15 @@ export async function POST(request: NextRequest) {
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
         extractionSuccess: extractionResult.success,
-        confidence: extractionResult.confidence,
-        warnings: extractionResult.warnings,
-        errors: extractionResult.errors,
+        confidence: extractionResult?.confidence ?? 0,
       },
     });
   } catch (error) {
-    console.error('Error uploading invoice:', error);
+    console.error('[UPLOAD] Error:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to upload invoice', details: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to upload invoice', details: errorMessage }, { status: 500 });
   }
 }
 
-// App Router uses export const runtime and other segment configs
-// Body parsing is handled automatically based on request type
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

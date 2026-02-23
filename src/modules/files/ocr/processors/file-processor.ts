@@ -95,6 +95,10 @@ export class FileProcessor {
           });
 
           const imageBuffer = pageImages[pageIndex];
+          if (!imageBuffer) {
+            errors.push(`Failed to get image buffer for page ${pageIndex + 1}`);
+            continue;
+          }
           const pageResult = await this.processImageWithProvider(
             imageBuffer,
             `${fileName}_page_${pageIndex + 1}.png`,

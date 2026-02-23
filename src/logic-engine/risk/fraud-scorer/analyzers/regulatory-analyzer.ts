@@ -10,7 +10,7 @@ import type {
   FraudRiskFactor,
   RegulatoryRiskAnalysis,
 } from "../types";
-import { FraudDetectionMethod } from "../types";
+import { FraudDetectionMethod, FraudRiskCategory, FraudSeverityLevel } from "../types";
 import { SA_COMPLIANCE_RULES } from "../constants";
 
 /**
@@ -30,10 +30,10 @@ export function calculateRegulatoryRisk(
   if (SA_COMPLIANCE_RULES.PEP_SCREENING_REQUIRED && input.supplierIsPep) {
     baseScore += 50;
     riskFactors.push({
-      category: "REGULATORY_VIOLATION",
+      category: FraudRiskCategory.REGULATORY_VIOLATION,
       factor: "POLITICALLY_EXPOSED_PERSON",
       description: "Supplier is a Politically Exposed Person (PEP)",
-      severity: "CRITICAL",
+      severity: FraudSeverityLevel.CRITICAL,
       scoreImpact: 50,
       evidence: `supplierIsPep=${input.supplierIsPep}`,
       detectionMethod: FraudDetectionMethod.EXTERNAL_DATA,

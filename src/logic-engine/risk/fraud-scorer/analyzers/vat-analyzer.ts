@@ -10,7 +10,7 @@ import type {
   FraudRiskFactor,
   VATComplianceRiskAnalysis,
 } from "../types";
-import { FraudDetectionMethod } from "../types";
+import { FraudDetectionMethod, FraudRiskCategory, FraudSeverityLevel } from "../types";
 import { SA_COMPLIANCE_RULES } from "../constants";
 
 /**

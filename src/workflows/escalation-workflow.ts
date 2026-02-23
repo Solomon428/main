@@ -150,7 +150,7 @@ export class EscalationWorkflow {
         isEscalated: true,
         escalationReason: `SLA breach - escalated from ${approver?.name || "previous approver"}`,
         escalatedBy: approval.approverId,
-        escalatedDate: new Date(),
+        escalatedAt: new Date(),
         status: InvoiceStatus.ESCALATED,
       },
     });

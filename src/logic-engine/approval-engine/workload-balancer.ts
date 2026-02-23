@@ -293,6 +293,22 @@ export class WorkloadBalancer {
       },
     });
   }
+  /**
+   * Select the best approver from a list based on current workload.
+   */
+  static selectApprover(availableApprovers: any[], routingId: string): any {
+    const getLoad = (u: any) => u?.currentLoad ?? u?.currentWorkload ?? 0;
+    let best = availableApprovers[0];
+    let bestLoad = getLoad(best);
+    for (const a of availableApprovers) {
+      const load = getLoad(a);
+      if (load < bestLoad) {
+        best = a;
+        bestLoad = load;
+      }
+    }
+    return best;
+  }
 }
 
 export default WorkloadBalancer;

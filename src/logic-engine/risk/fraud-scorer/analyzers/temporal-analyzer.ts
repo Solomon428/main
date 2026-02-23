@@ -10,7 +10,7 @@ import type {
   FraudRiskFactor,
   TemporalAnomalyRiskAnalysis,
 } from "../types";
-import { FraudDetectionMethod } from "../types";
+import { FraudDetectionMethod, FraudRiskCategory, FraudSeverityLevel } from "../types";
 
 /**
  * Calculate risk score based on temporal anomaly detection
@@ -29,10 +29,10 @@ export function calculateTemporalAnomalyRisk(
   if (input.invoiceDate && new Date(input.invoiceDate) > new Date()) {
     baseScore += 25;
     riskFactors.push({
-      category: "TEMPORAL_ANOMALY",
+      category: FraudRiskCategory.TEMPORAL_ANOMALY,
       factor: "FUTURE_INVOICE_DATE",
       description: "Invoice date is in the future",
-      severity: "HIGH",
+      severity: FraudSeverityLevel.HIGH,
       scoreImpact: 25,
       evidence: `invoiceDate=${input.invoiceDate}, currentDate=${new Date().toISOString()}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,

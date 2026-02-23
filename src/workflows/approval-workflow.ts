@@ -253,7 +253,7 @@ export class ApprovalWorkflow {
         where: { id: nextApproval.id },
         data: {
           status: ApprovalStatus.PENDING,
-          assignedDate: new Date(),
+          assignedAt: new Date(),
         },
       });
 

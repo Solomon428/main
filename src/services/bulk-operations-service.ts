@@ -88,7 +88,7 @@ export class BulkOperationsService {
           where: { id: invoice.approvals[0].id },
           data: {
             decision: Decision.APPROVE,
-            actionDate: new Date(),
+            actionedAt: new Date(),
             comments: input.comments,
             status: ApprovalStatus.APPROVED,
           },
@@ -168,7 +168,7 @@ export class BulkOperationsService {
             where: { invoiceId, status: "PENDING" },
             data: {
               decision: Decision.REJECT,
-              actionDate: new Date(),
+              actionedAt: new Date(),
               comments: input.reason,
               status: ApprovalStatus.REJECTED,
             },
@@ -370,7 +370,7 @@ export class BulkOperationsService {
     const invoices = await prisma.invoice.findMany({
       where: { id: { in: input.invoiceIds } },
       include: {
-        line_items: input.includeLineItems,
+        lineItems: input.includeLineItems,
         approvals: input.includeApprovals,
       },
     });

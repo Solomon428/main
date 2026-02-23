@@ -39,6 +39,9 @@ export interface AuthRequest extends Request {
   };
   file?: any;
   files?: any;
+  body?: any;
+  query?: any;
+  params?: any;
 }
 
 export interface ApiResponse extends Response {
@@ -240,7 +243,7 @@ router.post(
   requireAuth,
   uploadSingle("file"),
   handleMulterError,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
@@ -319,7 +322,7 @@ router.post(
   requireAuth,
   uploadMultiple("files", 10),
   handleMulterError,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
@@ -421,7 +424,7 @@ router.post(
   "/:fileId/process",
   authenticate,
   requireAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
@@ -446,7 +449,7 @@ router.post(
       // Update status to processing
       await prisma.fileAttachment.update({
         where: { id: fileId },
-        data: { status: FileStatus.PROCESSING },
+        data: { processingStatus: "PROCESSING" },
       });
 
       // Start processing
@@ -479,7 +482,7 @@ router.post(
   authenticate,
   requireAuth,
   validateBody(retryProcessingSchema),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
@@ -514,7 +517,7 @@ router.post(
   "/bulk-retry",
   authenticate,
   requireAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
@@ -556,7 +559,7 @@ router.get(
   "/:fileId/extraction",
   authenticate,
   requireAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const { fileId } = req.params;
@@ -584,7 +587,7 @@ router.get(
   "/:fileId/progress",
   authenticate,
   requireAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const { fileId } = req.params;
@@ -592,7 +595,7 @@ router.get(
       // Verify file access
       const fileAttachment = await prisma.fileAttachment.findUnique({
         where: { id: fileId },
-        select: { organizationId: true, status: true },
+        select: { organizationId: true, processingStatus: true },
       });
 
       if (!fileAttachment) {
@@ -612,7 +615,7 @@ router.get(
 
       // Send initial status
       res.write(
-        `data: ${JSON.stringify({ type: "connected", fileId, status: fileAttachment.status })}\n\n`,
+        `data: ${JSON.stringify({ type: "connected", fileId, status: fileAttachment.processingStatus })}\n\n`,
       );
 
       // Store connection for updates
@@ -672,7 +675,7 @@ router.get(
   "/",
   authenticate,
   requireAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const {
@@ -746,7 +749,7 @@ router.get(
   "/:fileId",
   authenticate,
   requireAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const { fileId } = req.params;
@@ -754,7 +757,7 @@ router.get(
       const file = await prisma.fileAttachment.findUnique({
         where: { id: fileId },
         include: {
-          uploadedBy: {
+          uploader: {
             select: { id: true, name: true, email: true },
           },
         },
@@ -786,7 +789,7 @@ router.delete(
   "/:fileId",
   authenticate,
   requireAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;

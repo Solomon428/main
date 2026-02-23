@@ -90,7 +90,13 @@ export type ApprovalRoutingException = {
   details?: Record<string, any>;
 };
 
-export type EscalationLevel = "LEVEL_1" | "LEVEL_2" | "LEVEL_3" | "LEVEL_4" | "LEVEL_5";
+export enum EscalationLevel {
+  LEVEL_1 = "LEVEL_1",
+  LEVEL_2 = "LEVEL_2",
+  LEVEL_3 = "LEVEL_3",
+  LEVEL_4 = "LEVEL_4",
+  LEVEL_5 = "LEVEL_5",
+}
 
 export type RoutingStrategy = "AMOUNT_BASED" | "DEPARTMENT_BASED" | "SUPPLIER_BASED" | "RISK_BASED" | "HYBRID";
 

@@ -14,7 +14,9 @@ export function generateToken(payload: object): string {
 export function verifyToken(token: string): object {
   try {
     const decoded = Buffer.from(token, "base64url").toString("utf8");
-    const [data, signature] = decoded.split(".");
+    const parts = decoded.split(".");
+    const data = parts[0] ?? '';
+    const signature = parts[1] ?? '';
 
     const expectedSignature = crypto
       .createHmac("sha256", TOKEN_SECRET)

@@ -219,7 +219,7 @@ export async function processApprovalDecision(
             ? ApprovalStatus.APPROVED
             : ApprovalStatus.REJECTED,
         actionedAt: new Date(),
-        approvedAt: decision === ApprovalDecision.APPROVED ? new Date() : null,
+        approvedDate: decision === ApprovalDecision.APPROVED ? new Date() : null,
         rejectedAt: decision === ApprovalDecision.REJECTED ? new Date() : null,
       },
     });
@@ -281,7 +281,7 @@ export async function processApprovalDecision(
       data: {
         status: "APPROVED",
         currentApproverId: null,
-        approvedAt: new Date(),
+        approvedDate: new Date(),
       },
     });
 

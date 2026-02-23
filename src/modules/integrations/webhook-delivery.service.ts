@@ -129,8 +129,8 @@ export async function recordAttempt(
     where: { id: deliveryId },
     data: {
       status: attemptData.status,
-      httpStatusCode: attemptData.httpStatusCode,
-      responseBody: attemptData.responseBody,
+      statusCode: attemptData.httpStatusCode,
+      response: attemptData.responseBody,
       errorMessage: attemptData.errorMessage,
       attemptCount,
       lastAttemptAt: new Date(),

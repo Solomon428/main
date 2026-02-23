@@ -233,19 +233,19 @@ function parseLineItemMatch(
     let totalAmount = new Decimal(0);
 
     if (match.length >= 6) {
-      quantity = new Decimal(match[3].replace(",", "."));
-      description = match[2].trim();
-      unitPrice = new Decimal(match[4].replace(",", "."));
-      totalAmount = new Decimal(match[5].replace(",", "."));
+      quantity = new Decimal((match[3] ?? '').replace(",", "."));
+      description = (match[2] ?? '').trim();
+      unitPrice = new Decimal((match[4] ?? '').replace(",", "."));
+      totalAmount = new Decimal((match[5] ?? '').replace(",", "."));
     } else if (match.length >= 5) {
-      description = match[1].trim();
-      quantity = new Decimal(match[2]);
-      unitPrice = new Decimal(match[3].replace(",", "."));
-      totalAmount = new Decimal(match[4].replace(",", "."));
+      description = (match[1] ?? '').trim();
+      quantity = new Decimal(match[2] ?? '0');
+      unitPrice = new Decimal((match[3] ?? '').replace(",", "."));
+      totalAmount = new Decimal((match[4] ?? '').replace(",", "."));
     } else if (match.length >= 4) {
-      description = match[2].trim();
-      unitPrice = new Decimal(match[3].replace(",", "."));
-      totalAmount = new Decimal(match[4].replace(",", "."));
+      description = (match[2] ?? '').trim();
+      unitPrice = new Decimal((match[3] ?? '').replace(",", "."));
+      totalAmount = new Decimal((match[4] ?? '').replace(",", "."));
       if (!unitPrice.equals(0)) {
         quantity = totalAmount.dividedBy(unitPrice);
       }

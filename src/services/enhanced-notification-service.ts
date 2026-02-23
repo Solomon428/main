@@ -555,14 +555,14 @@ export class EnhancedNotificationService {
               where: {
                 approverId: user.id,
                 status: "APPROVED",
-                actionDate: { gte: today }, // Fix: decisionDate -> actionDate
+                actionedAt: { gte: today },
               },
             }),
             prisma.approval.count({
               where: {
                 approverId: user.id,
                 status: "REJECTED",
-                actionDate: { gte: today }, // Fix: decisionDate -> actionDate
+                actionedAt: { gte: today },
               },
             }),
             prisma.approval.count({

@@ -1,5 +1,5 @@
-import { DateTime, Duration, Interval } from "luxon";
-import type { DateTime as DateTimeType } from "luxon";
+import { DateTimeType, Duration, Interval } from "luxon";
+import type { DateTimeType as DateTimeTypeType } from "luxon";
 
 // ==================== DOMAIN TYPES ====================
 export interface BusinessHoursConfig {
@@ -31,7 +31,7 @@ export interface Holiday {
 }
 
 export interface SLACalculationResult {
-  targetDateTime: ReturnType<typeof DateTime.fromISO>;
+  targetDateTimeType: ReturnType<typeof DateTimeType.fromISO>;
   elapsedBusinessMinutes: number;
   elapsedCalendarMinutes: number;
   businessDaysSkipped: number;
@@ -40,7 +40,7 @@ export interface SLACalculationResult {
   remainingMinutes: number;
   meta: {
     calculationId: string;
-    timestamp: ReturnType<typeof DateTime.fromISO>;
+    timestamp: ReturnType<typeof DateTimeType.fromISO>;
     timezone: string;
   };
 }
@@ -97,19 +97,19 @@ export class HolidayCalendarService {
     }
   }
 
-  isHoliday(date: DateTime): boolean {
+  isHoliday(date: DateTimeType): boolean {
     return this.holidaysByDate.has(date.toISODate() as string);
   }
 
-  getHoliday(date: DateTime): Holiday | undefined {
+  getHoliday(date: DateTimeType): Holiday | undefined {
     return this.holidaysByDate.get(date.toISODate() as string);
   }
 
-  isPartialHoliday(date: DateTime): boolean {
+  isPartialHoliday(date: DateTimeType): boolean {
     return this.partialHolidays.has(date.toISODate() as string);
   }
 
-  getPartialHours(date: DateTime): { start: ReturnType<typeof DateTime.fromISO>; end: DateTime } | null {
+  getPartialHours(date: DateTimeType): { start: import("luxon").DateTime; end: DateTimeType } | null {
     const holiday = this.getHoliday(date);
     if (!holiday?.isPartial || !holiday.partialHours) return null;
 
@@ -139,7 +139,7 @@ export class HolidayCalendarService {
     return "UTC";
   }
 
-  getNextBusinessDay(fromDate: DateTime): DateTime {
+  getNextBusinessDay(fromDate: DateTimeType): DateTimeType {
     let candidate = fromDate.plus({ days: 1 });
     while (this.isHoliday(candidate) || this.isWeekend(candidate)) {
       candidate = candidate.plus({ days: 1 });
@@ -147,7 +147,7 @@ export class HolidayCalendarService {
     return candidate.startOf("day");
   }
 
-  private isWeekend(date: DateTime): boolean {
+  private isWeekend(date: DateTimeType): boolean {
     const dow = date.weekday; // 1=Mon, 7=Sun
     return dow === 6 || dow === 7;
   }
@@ -187,7 +187,7 @@ export class BusinessHoursEngine {
     });
   }
 
-  isBusinessHour(dateTime: DateTime): boolean {
+  isBusinessHour(dateTime: DateTimeType): boolean {
     if (this.holidayService.isHoliday(dateTime)) return false;
     if (this.isOutsideWorkWeek(dateTime)) return false;
 
@@ -204,7 +204,7 @@ export class BusinessHoursEngine {
     return true;
   }
 
-  private isOutsideWorkWeek(dateTime: DateTime): boolean {
+  private isOutsideWorkWeek(dateTime: DateTimeType): boolean {
     const dow = dateTime.weekday;
     const { startDay, endDay } = this.config.workWeek;
 
@@ -216,7 +216,7 @@ export class BusinessHoursEngine {
     }
   }
 
-  getNextBusinessStart(fromTime: DateTime): DateTime {
+  getNextBusinessStart(fromTime: DateTimeType): DateTimeType {
     let candidate = fromTime;
     const [startHour, startMin] = (this.config.dailyHours.start || "09:00")
       .split(":")
@@ -252,7 +252,7 @@ export class BusinessHoursEngine {
     return candidate;
   }
 
-  getBusinessMinutesBetween(start: DateTime, end: DateTime): number {
+  getBusinessMinutesBetween(start: DateTimeType, end: DateTimeType): number {
     if (end <= start) return 0;
 
     let totalMinutes = 0;
@@ -269,7 +269,7 @@ export class BusinessHoursEngine {
     return totalMinutes;
   }
 
-  getBusinessDuration(start: DateTime, targetMinutes: number): DateTime {
+  getBusinessDuration(start: DateTimeType, targetMinutes: number): DateTimeType {
     if (targetMinutes <= 0) return start;
 
     let remaining = targetMinutes;
@@ -303,7 +303,7 @@ export class SLACalculatorService {
         msg: string,
         meta?: any,
       ) => void;
-      clock?: () => DateTime;
+      clock?: () => DateTimeType;
       observabilityHook?: (event: string, data: any) => void;
     } = {},
   ) {
@@ -319,7 +319,7 @@ export class SLACalculatorService {
   }
 
   calculateResponseDeadline(
-    ticketCreated: DateTime,
+    ticketCreated: DateTimeType,
     priorityLevel: string = "standard",
   ): SLACalculationResult {
     const priorityConfig = this.slaPolicy.priorityLevels[priorityLevel] ||
@@ -341,7 +341,7 @@ export class SLACalculatorService {
   }
 
   calculateResolutionDeadline(
-    ticketCreated: DateTime,
+    ticketCreated: DateTimeType,
     priorityLevel: string = "standard",
   ): SLACalculationResult {
     const priorityConfig = this.slaPolicy.priorityLevels[priorityLevel] ||
@@ -363,24 +363,24 @@ export class SLACalculatorService {
   }
 
   private calculateDeadline(
-    start: DateTime,
+    start: DateTimeType,
     targetMinutes: number,
     slaType: "response" | "resolution",
     priorityLevel: string,
   ): SLACalculationResult {
     if (!start.isValid) {
-      throw new SLACalculationError("Invalid start DateTime", "INVALID_DT");
+      throw new SLACalculationError("Invalid start DateTimeType", "INVALID_DT");
     }
 
     const deadline = this.businessHoursEngine.getBusinessDuration(
       start,
       targetMinutes,
     );
-    const now = (this.opts.clock || (() => DateTime.now()))();
+    const now = (this.opts.clock || (() => DateTimeType.now()))();
 
     // Collect holidays encountered
     const holidaysEncountered: Holiday[] = [];
-    const interval = Interval.fromDateTimes(start, deadline);
+    const interval = Interval.fromDateTimeTypes(start, deadline);
     const daysInRange = Math.ceil(interval.length("days"));
 
     for (let i = 0; i <= daysInRange; i++) {
@@ -395,7 +395,7 @@ export class SLACalculatorService {
     const businessDaysSkipped = this.countBusinessDaysSkipped(start, deadline);
 
     const result: SLACalculationResult = {
-      targetDateTime: deadline,
+      targetDateTimeType: deadline,
       elapsedBusinessMinutes,
       elapsedCalendarMinutes,
       businessDaysSkipped,
@@ -403,8 +403,8 @@ export class SLACalculatorService {
       breached: now > deadline,
       remainingMinutes: Math.max(0, targetMinutes - elapsedBusinessMinutes),
       meta: {
-        calculationId: `sla-${DateTime.now().toMillis()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: DateTime.now(),
+        calculationId: `sla-${DateTimeType.now().toMillis()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: DateTimeType.now(),
         timezone: this.slaPolicy.businessHoursConfig.timezone,
       },
     };
@@ -428,7 +428,7 @@ export class SLACalculatorService {
     return result;
   }
 
-  private countBusinessDaysSkipped(start: DateTime, end: DateTime): number {
+  private countBusinessDaysSkipped(start: DateTimeType, end: DateTimeType): number {
     if (end <= start) return 0;
 
     let count = 0;
@@ -448,8 +448,8 @@ export class SLACalculatorService {
   }
 
   isWithinSLA(
-    ticketCreated: DateTime,
-    currentTime: DateTime = DateTime.now(),
+    ticketCreated: DateTimeType,
+    currentTime: DateTimeType = DateTimeType.now(),
     priorityLevel: string = "standard",
   ): { responseWithinSLA: boolean; resolutionWithinSLA: boolean } {
     const response = this.calculateResponseDeadline(
@@ -462,8 +462,8 @@ export class SLACalculatorService {
     );
 
     return {
-      responseWithinSLA: currentTime <= response.targetDateTime,
-      resolutionWithinSLA: currentTime <= resolution.targetDateTime,
+      responseWithinSLA: currentTime <= response.targetDateTimeType,
+      resolutionWithinSLA: currentTime <= resolution.targetDateTimeType,
     };
   }
 
@@ -472,10 +472,10 @@ export class SLACalculatorService {
   }
 
   getActiveHolidays(): Holiday[] {
-    const now = DateTime.now();
+    const now = DateTimeType.now();
     return Array.from(this.holidayService["holidaysByDate"].values()).filter(
       (h) => {
-        const date = DateTime.fromISO(h.observedDate || h.date);
+        const date = DateTimeType.fromISO(h.observedDate || h.date);
         return (
           date >= now.minus({ days: 30 }) && date <= now.plus({ days: 365 })
         );
@@ -601,7 +601,7 @@ export function isSLACalculationResult(
   return (
     typeof obj === "object" &&
     obj !== null &&
-    "targetDateTime" in obj &&
+    "targetDateTimeType" in obj &&
     "elapsedBusinessMinutes" in obj &&
     "breached" in obj
   );
@@ -611,12 +611,12 @@ export function isSLACalculationResult(
 /*
 const slaService = SLACalculatorFactory.createDefaultEnterpriseSLA('America/New_York');
 
-const ticketCreated = DateTime.fromISO('2026-02-06T10:30:00', { zone: 'America/New_York' });
+const ticketCreated = DateTimeType.fromISO('2026-02-06T10:30:00', { zone: 'America/New_York' });
 const responseSLA = slaService.calculateResponseDeadline(ticketCreated, 'high');
 const resolutionSLA = slaService.calculateResolutionDeadline(ticketCreated, 'high');
 
-console.log('Response Deadline:', responseSLA.targetDateTime.toISO());
-console.log('Resolution Deadline:', resolutionSLA.targetDateTime.toISO());
+console.log('Response Deadline:', responseSLA.targetDateTimeType.toISO());
+console.log('Resolution Deadline:', resolutionSLA.targetDateTimeType.toISO());
 console.log('Breached?', responseSLA.breached ? 'YES' : 'NO');
 console.log('Holidays in period:', responseSLA.holidaysEncountered.map(h => h.name));
 */

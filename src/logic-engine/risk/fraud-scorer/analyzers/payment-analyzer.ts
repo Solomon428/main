@@ -10,7 +10,7 @@ import type {
   FraudRiskFactor,
   PaymentPatternRiskAnalysis,
 } from "../types";
-import { FraudDetectionMethod } from "../types";
+import { FraudDetectionMethod, FraudRiskCategory, FraudSeverityLevel } from "../types";
 
 /**
  * Calculate risk score based on payment pattern analysis
@@ -32,10 +32,10 @@ export function calculatePaymentPatternRisk(
       // Weekend
       baseScore += 10;
       riskFactors.push({
-        category: "TEMPORAL_ANOMALY",
+        category: FraudRiskCategory.TEMPORAL_ANOMALY,
         factor: "WEEKEND_SUBMISSION",
         description: "Invoice submitted on weekend",
-        severity: "LOW",
+        severity: FraudSeverityLevel.LOW,
         scoreImpact: 10,
         evidence: `dayOfWeek=${date.getDay()}`,
         detectionMethod: FraudDetectionMethod.RULE_BASED,

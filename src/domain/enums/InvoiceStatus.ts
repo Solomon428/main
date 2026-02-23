@@ -1,6 +1,18 @@
-/**
- * Re-exports Prisma-generated enum from @prisma/client.
- * Original local definition replaced to eliminate dual-enum type incompatibility.
- * All string values are identical to the previous local definition.
- */
-export { InvoiceStatus as InvoiceStatus } from "@prisma/client";
+export enum InvoiceStatus {
+  DRAFT = "DRAFT",
+  SUBMITTED = "SUBMITTED",
+  PROCESSING = "PROCESSING",
+  VALIDATED = "VALIDATED",
+  PENDING_APPROVAL = "PENDING_APPROVAL",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+  PAID = "PAID",
+  PARTIALLY_PAID = "PARTIALLY_PAID",
+  CANCELLED = "CANCELLED",
+  DISPUTED = "DISPUTED",
+  ARCHIVED = "ARCHIVED",
+  PENDING_EXTRACTION = "PENDING_EXTRACTION",
+  UNDER_REVIEW = "UNDER_REVIEW",
+}
+
+export const INVOICE_STATUS_VALUES: InvoiceStatus[] = Object.values(InvoiceStatus);

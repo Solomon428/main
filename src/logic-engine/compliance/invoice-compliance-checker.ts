@@ -261,8 +261,8 @@ export class InvoiceComplianceChecker {
         termsCompliant: isCompliant,
         requiresAttention: requiresManualReview,
         status: isCompliant
-          ? InvoiceStatus.PENDING_APPROVAL
-          : InvoiceStatus.PROCESSING,
+          ? "PENDING_APPROVAL"
+          : "PROCESSING",
       },
     });
 

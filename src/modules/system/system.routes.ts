@@ -45,7 +45,7 @@ router.put("/settings/:key", async (req: any, res: any) => {
 // Scheduled tasks routes
 router.get("/tasks", async (req: any, res: any) => {
   try {
-    const tasks = await scheduledTasksService.listScheduledTasks();
+    const tasks = await scheduledTasksService.listScheduledTasks(req.organizationId || null);
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch scheduled tasks" });
@@ -54,7 +54,11 @@ router.get("/tasks", async (req: any, res: any) => {
 
 router.post("/tasks", async (req: any, res: any) => {
   try {
-    const task = await scheduledTasksService.scheduleTask(req.body);
+    const task = await scheduledTasksService.createScheduledTask(
+      req.organizationId || null,
+      req.body,
+      "system"
+    );
     res.status(201).json(task);
   } catch (error) {
     res.status(500).json({ error: "Failed to schedule task" });
@@ -63,7 +67,7 @@ router.post("/tasks", async (req: any, res: any) => {
 
 router.post("/tasks/:id/run", async (req: any, res: any) => {
   try {
-    const result = await scheduledTasksService.runTask(req.params.id);
+    const result = await scheduledTasksService.triggerTask(req.params.id, "system");
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: "Failed to run task" });

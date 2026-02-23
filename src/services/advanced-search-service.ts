@@ -214,7 +214,7 @@ export class AdvancedSearchService {
       where: {
         OR: [
           { invoiceNumber: { contains: query, mode: "insensitive" } },
-          { purchaseOrderNo: { contains: query, mode: "insensitive" } },
+          { purchaseOrderNumber: { contains: query, mode: "insensitive" } },
           { referenceNo: { contains: query, mode: "insensitive" } },
         ],
       },

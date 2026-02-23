@@ -10,7 +10,7 @@ import type {
   FraudRiskFactor,
   GeographicRiskAnalysis,
 } from "../types";
-import { FraudDetectionMethod } from "../types";
+import { FraudDetectionMethod, FraudRiskCategory, FraudSeverityLevel } from "../types";
 
 /**
  * Calculate risk score based on geographic risk assessment
@@ -29,10 +29,10 @@ export function calculateGeographicRisk(
   if (input.supplierCountry && ["ZA"].indexOf(input.supplierCountry) === -1) {
     baseScore += 15;
     riskFactors.push({
-      category: "GEOGRAPHIC_RISK",
+      category: FraudRiskCategory.GEOGRAPHIC_RISK,
       factor: "NON_LOCAL_JURISDICTION",
       description: `Supplier located outside South Africa (${input.supplierCountry})`,
-      severity: "MEDIUM",
+      severity: FraudSeverityLevel.MEDIUM,
       scoreImpact: 15,
       evidence: `supplierCountry=${input.supplierCountry}`,
       detectionMethod: FraudDetectionMethod.RULE_BASED,

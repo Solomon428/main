@@ -52,10 +52,10 @@ export function calculateAmountRisk(
   ) {
     baseScore += 15;
     riskFactors.push({
-      category: "AMOUNT_ANOMALY",
+      category: FraudRiskCategory.AMOUNT_ANOMALY,
       factor: "ROUND_AMOUNT_DETECTED",
       description: `Suspicious round amount detected: R${input.totalAmount.toLocaleString()}`,
-      severity: "MEDIUM",
+      severity: FraudSeverityLevel.MEDIUM,
       scoreImpact: 15,
       evidence: `fractionalPart=${fractionalPart}`,
       detectionMethod: FraudDetectionMethod.STATISTICAL,
@@ -79,10 +79,10 @@ export function calculateAmountRisk(
     if (input.totalAmount > avgAmount + 3 * stdDev) {
       baseScore += 20;
       riskFactors.push({
-        category: "AMOUNT_ANOMALY",
+        category: FraudRiskCategory.AMOUNT_ANOMALY,
         factor: "AMOUNT_VELOCITY_SPIKE",
         description: `Invoice amount significantly exceeds historical average (3+ standard deviations)`,
-        severity: "HIGH",
+        severity: FraudSeverityLevel.HIGH,
         scoreImpact: 20,
         evidence: `avgAmount=${avgAmount}, stdDev=${stdDev}, currentAmount=${input.totalAmount}`,
         detectionMethod: FraudDetectionMethod.STATISTICAL,

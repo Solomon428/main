@@ -20,15 +20,14 @@ export class OllamaEngine {
     // and use a vision-capable model like llava or similar
     throw new OcrProcessingError(
       "Ollama OCR not yet implemented",
-      "OLLAMA_NOT_IMPLEMENTED",
+      { code: "OLLAMA_NOT_IMPLEMENTED" },
     );
   }
 
   async process(_imageBuffer: Buffer, fileName: string): Promise<OcrResult> {
     throw new OcrProcessingError(
       "Ollama OCR not yet implemented",
-      "OLLAMA_NOT_IMPLEMENTED",
-      { fileName },
+      { code: "OLLAMA_NOT_IMPLEMENTED", fileName },
     );
   }
 
