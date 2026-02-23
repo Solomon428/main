@@ -299,11 +299,19 @@ export type ApprovalRoutingInput = {
   currency: string;
   supplierId?: string;
   requestedBy: string;
+  totalAmount?: number;
+  supplierName?: string;
+  department?: string;
+  requesterRole?: string;
+  supplierCategory?: string;
+  riskLevel?: string;
 };
 
 export type ApprovalRoutingResult = {
   chainId?: string;
   routingId?: string;
+  routingTimestamp?: Date;
+  inputHash?: string;
   stages: ApprovalStage[];
   requiresApproval: boolean;
   reason?: string;
@@ -416,10 +424,10 @@ export type RoutingRule = {
   id?: string;
   ruleId?: string;
   name?: string;
-  type: RoutingRuleType;
+  type?: RoutingRuleType;
   ruleType?: string;
   conditions?: ApprovalCondition[];
-  action: RoutingRuleAction;
+  action?: RoutingRuleAction;
   ruleAction?: string;
   priority: number;
   isActive: boolean;

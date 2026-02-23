@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { InvoiceWithSupplier } from "@/types";
+import type { InvoiceWithSupplier } from "@/lib/services/invoice-service";
 
 interface UseInvoicesOptions {
   status?: string;
