@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authMiddleware } from "@/middleware/auth.middleware";
+import { authMiddleware } from "@/api/http/middlewares/auth.middleware";
 import { AuditLogger } from "@/lib/utils/audit-logger";
 import bcrypt from "bcryptjs";
 
 export async function GET(request: NextRequest) {
   const authResponse = await authMiddleware(request);
-  if (authResponse.status !== 200) {
+  if (authResponse instanceof NextResponse) {
     return authResponse;
   }
 
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const authResponse = await authMiddleware(request);
-  if (authResponse.status !== 200) {
+  if (authResponse instanceof NextResponse) {
     return authResponse;
   }
 

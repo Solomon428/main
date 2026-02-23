@@ -17,7 +17,11 @@ const store: RateLimitStore = {};
 setInterval(() => {
   const now = Date.now();
   Object.keys(store).forEach((key) => {
-    if (store[key]?.resetTime < now) {
+    const entry = store[key];
+    if (entry === undefined) {
+      return;
+    }
+    if (entry.resetTime < now) {
       delete store[key];
     }
   });
@@ -80,7 +84,11 @@ function createRateLimiter(
   setInterval(() => {
     const now = Date.now();
     Object.keys(limiterStore).forEach((key) => {
-      if (limiterStore[key]?.resetTime < now) {
+      const entry = limiterStore[key];
+      if (entry === undefined) {
+        return;
+      }
+      if (entry.resetTime < now) {
         delete limiterStore[key];
       }
     });

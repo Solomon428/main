@@ -380,7 +380,7 @@ export function extractKeyValuePairs(text: string): Record<string, any> {
   const lines = text.split("\n");
   for (const line of lines) {
     const match = line.match(/^([^:]+):\s*(.+)$/);
-    if (match) {
+    if (match && match[1] !== undefined && match[2] !== undefined) {
       const key = match[1].trim().toLowerCase().replace(/\s+/g, "_");
       const value = match[2].trim();
       pairs[key] = value;

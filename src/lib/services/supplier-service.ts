@@ -1,5 +1,5 @@
 import { BaseService } from "./base-service";
-import type { Supplier } from "@prisma/client";
+import type { Supplier, SupplierStatus } from "@prisma/client";
 
 export interface CreateSupplierInput {
   name: string;
@@ -40,9 +40,7 @@ export class SupplierService extends BaseService {
         ...data,
         organizationId: orgId,
         status: "ACTIVE",
-        createdById: userId,
-        updatedById: userId,
-      },
+      } as any,
     });
 
     await this.audit("CREATE", "Supplier", supplier.id, { name: data.name });
@@ -117,14 +115,10 @@ export class SupplierService extends BaseService {
 
   async update(id: string, data: Partial<CreateSupplierInput>) {
     const orgId = this.requireOrg();
-    const userId = this.requireUser();
 
     const supplier = await this.prisma.supplier.update({
       where: { id, organizationId: orgId },
-      data: {
-        ...data,
-        updatedById: userId,
-      },
+      data: data as any,
     });
 
     await this.audit("UPDATE", "Supplier", id, data);
@@ -132,16 +126,14 @@ export class SupplierService extends BaseService {
     return supplier;
   }
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, status: SupplierStatus) {
     const orgId = this.requireOrg();
-    const userId = this.requireUser();
 
     const supplier = await this.prisma.supplier.update({
       where: { id, organizationId: orgId },
       data: {
         status,
-        updatedById: userId,
-      },
+      } as any,
     });
 
     await this.audit("UPDATE_STATUS", "Supplier", id, { status });

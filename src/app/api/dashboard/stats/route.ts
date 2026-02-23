@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authMiddleware } from "@/middleware/auth.middleware";
 
 export async function GET(req: NextRequest) {
-  const authResponse = await authMiddleware(req);
-  if (authResponse.status !== 200) return authResponse;
-
-  // Mock dashboard stats
   const stats = {
     totalInvoices: 1234,
     pendingApprovals: 42,

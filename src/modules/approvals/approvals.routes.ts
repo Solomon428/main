@@ -7,7 +7,7 @@ import * as approvalsService from "./approvals.service";
 
 const router = Router();
 
-router.get("/pending", async (req, res) => {
+router.get("/pending", async (req: any, res: any) => {
   try {
     const approvals = await approvalsService.listPendingApprovals();
     res.json(approvals);
@@ -16,7 +16,7 @@ router.get("/pending", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: any, res: any) => {
   try {
     const approval = await approvalsService.getApproval(req.params.id);
     if (!approval) {
@@ -28,7 +28,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/:id/decision", async (req, res) => {
+router.post("/:id/decision", async (req: any, res: any) => {
   try {
     const approval = await approvalsService.makeDecision(
       req.params.id,
@@ -40,7 +40,7 @@ router.post("/:id/decision", async (req, res) => {
   }
 });
 
-router.get("/chains", async (req, res) => {
+router.get("/chains", async (req: any, res: any) => {
   try {
     const chains = await approvalsService.listApprovalChains();
     res.json(chains);
@@ -49,7 +49,7 @@ router.get("/chains", async (req, res) => {
   }
 });
 
-router.post("/delegate", async (req, res) => {
+router.post("/delegate", async (req: any, res: any) => {
   try {
     const delegation = await approvalsService.delegateApproval(req.body);
     res.status(201).json(delegation);

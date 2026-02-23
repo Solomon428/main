@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
-import { authMiddleware } from "@/middleware/auth.middleware";
+import { authMiddleware } from "@/api/http/middlewares/auth.middleware";
 import { AuditLogger } from "@/lib/utils/audit-logger";
 
 export async function POST(request: NextRequest) {
   const authResponse = await authMiddleware(request);
-  if (!authResponse || authResponse.status !== 200) {
-    return NextResponse.json(
-      { success: false, error: "Authentication failed" },
-      { status: authResponse?.status || 401 }
-    );
+  if (authResponse instanceof NextResponse) {
+    return authResponse;
   }
 
   try {
@@ -97,7 +94,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const authResponse = await authMiddleware(request);
-  if (authResponse.status !== 200) {
+  if (authResponse instanceof NextResponse) {
     return authResponse;
   }
 

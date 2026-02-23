@@ -97,18 +97,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest) {
   // Auth is handled by root middleware
-  // Get user from headers set by middleware
   const userId = request.headers.get('x-user-id');
-  const userRole = request.headers.get('x-user-role');
   const userOrg = request.headers.get('x-user-org');
-  
-  console.log('[Upload] x-user-id:', userId);
-  console.log('[Upload] x-user-role:', userRole);
-  console.log('[Upload] x-user-org:', userOrg);
   
   if (!userId) {
     return NextResponse.json(
-      { success: false, error: 'Authentication required', debug: { userId, userRole, userOrg } },
+      { success: false, error: 'Authentication required' },
       { status: 401 }
     );
   }

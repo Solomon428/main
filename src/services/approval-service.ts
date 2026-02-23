@@ -1,1 +1,1 @@
-export * from "./approval-service.impl.ts";
+export * from "./approval-service";

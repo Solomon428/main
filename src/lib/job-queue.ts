@@ -4,7 +4,7 @@
  */
 
 import Queue from "bull";
-import type { Job, QueueOptions, JobOptions, JobId } from "bull";
+import type { Job, QueueOptions, JobOptions } from "bull";
 import { auditLogger } from "@/lib/utils/audit-logger";
 import { EntityType, LogSeverity } from "@/types";
 
@@ -47,6 +47,7 @@ export interface JobMetadata {
   batchId?: string;
   correlationId?: string;
   attempt?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export enum JobPriority {
@@ -155,7 +156,7 @@ export class JobQueue {
       await auditLogger.log({
         action: "CREATE",
         entityType: EntityType.SYSTEM,
-        entityId: job.id,
+        entityId: String(job.id),
         entityDescription: `Job created: ${jobData.type}`,
         severity: LogSeverity.INFO,
         userId: jobData.userId,
@@ -163,9 +164,9 @@ export class JobQueue {
           jobId: job.id,
           jobType: jobData.type,
           priority: jobOptions.priority ?? 2,
-          metadata: jobData.metadata ?? undefined,
+          metadata: jobData.metadata as unknown as Record<string, unknown> | undefined,
         },
-      });
+      } as any);
 
       console.log(`📥 Job added: ${jobData.type} [${job.id}]`);
       return job;
@@ -205,7 +206,7 @@ export class JobQueue {
 
     return {
       jobId,
-      type: job.data.type,
+      type: (job.data as JobData).type,
       state,
       progress: job.progress(),
       attemptsMade: job.attemptsMade,
@@ -213,7 +214,7 @@ export class JobQueue {
       timestamp: job.timestamp,
       processedOn: job.processedOn,
       finishedOn: job.finishedOn,
-      data: job.data,
+      data: job.data as JobData,
     };
   }
 
@@ -268,9 +269,11 @@ export class JobQueue {
     if (!queue) throw new Error(`No queue found for job type: ${jobType}`);
 
     const cutoff = Date.now() - daysToKeep * 24 * 60 * 60 * 1000;
+    // @ts-expect-error Bull types mismatch
     await queue.clean(cutoff, 1000, "completed");
 
     const failedCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    // @ts-expect-error Bull types mismatch
     await queue.clean(failedCutoff, 100, "failed");
   }
 
@@ -299,7 +302,7 @@ export class JobQueue {
     await auditLogger.log({
       action: "UPDATE",
       entityType: EntityType.SYSTEM,
-      entityId: job.id,
+      entityId: String(job.id),
       entityDescription: `Job completed: ${job.data.type}`,
       severity: LogSeverity.INFO,
       userId: job.data.userId,
@@ -318,7 +321,7 @@ export class JobQueue {
     await auditLogger.log({
       action: "UPDATE",
       entityType: EntityType.SYSTEM,
-      entityId: job.id,
+      entityId: String(job.id),
       entityDescription: `Job failed: ${job.data.type}`,
       severity: LogSeverity.ERROR,
       userId: job.data.userId,
@@ -337,7 +340,7 @@ export class JobQueue {
     await auditLogger.log({
       action: "UPDATE",
       entityType: EntityType.SYSTEM,
-      entityId: job.id,
+      entityId: String(job.id),
       entityDescription: `Job stalled: ${job.data.type}`,
       severity: LogSeverity.WARNING,
       userId: job.data.userId,
@@ -352,7 +355,7 @@ export class JobQueue {
       await auditLogger.log({
         action: "UPDATE",
         entityType: EntityType.SYSTEM,
-        entityId: job.id,
+        entityId: String(job.id),
         entityDescription: `Job progress: ${job.data.type}`,
         severity: LogSeverity.INFO,
         userId: job.data.userId,

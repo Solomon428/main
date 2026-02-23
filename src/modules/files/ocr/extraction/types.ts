@@ -1,6 +1,6 @@
 import { Decimal } from "decimal.js";
-import { Currency } from "../../../domain/enums/Currency";
-import { TaxType } from "../../../domain/enums/TaxType";
+import { Currency } from "../../../../domain/enums/Currency";
+import { TaxType } from "../../../../domain/enums/TaxType";
 
 export interface ExtractedInvoiceData {
   invoiceNumber?: string;

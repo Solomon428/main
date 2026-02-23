@@ -7,7 +7,7 @@ import * as auditLogsService from "./audit-logs.service";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
+router.get("/", async (req: any, res: any) => {
   try {
     const logs = await auditLogsService.queryLogs(req.query);
     res.json(logs);
@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/export", async (req, res) => {
+router.get("/export", async (req: any, res: any) => {
   try {
     const exportData = await auditLogsService.exportLogs(req.query);
     res.setHeader("Content-Type", "application/json");
@@ -30,7 +30,7 @@ router.get("/export", async (req, res) => {
   }
 });
 
-router.post("/archive", async (req, res) => {
+router.post("/archive", async (req: any, res: any) => {
   try {
     const result = await auditLogsService.archiveLogs(req.body);
     res.json(result);

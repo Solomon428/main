@@ -275,6 +275,23 @@ export class AuditLogger {
     }
     await this.log(entry);
   }
+
+  static async logSimple(
+    action: string,
+    entityType: string,
+    entityId: string,
+    severity: string = "INFO",
+    metadata?: Record<string, JsonValue>,
+  ): Promise<void> {
+    await this.log({
+      action: action as AuditAction,
+      entityType: entityType as EntityType,
+      entityId,
+      entityDescription: `${action} on ${entityType}`,
+      severity: severity as LogSeverity,
+      metadata,
+    });
+  }
 }
 
 export const auditLogger = AuditLogger;

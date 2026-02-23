@@ -428,8 +428,11 @@ export class EnhancedExtractor {
     actualTotal: number;
     difference: number;
   } {
-    const expectedTotal = data.subtotalExclVAT + data.vatAmount;
-    const actualTotal = data.totalAmount;
+    const subtotal = data.subtotalExclVAT ?? 0;
+    const vat = data.vatAmount ?? 0;
+    const total = data.totalAmount ?? 0;
+    const expectedTotal = subtotal + vat;
+    const actualTotal = total;
     const difference = Math.abs(expectedTotal - actualTotal);
 
     return {
@@ -448,10 +451,10 @@ export class EnhancedExtractor {
       score++;
     if (data.supplierName && data.supplierName !== "Unknown Supplier") score++;
     if (data.invoiceDate && data.invoiceDate.getFullYear() > 2000) score++;
-    if (data.dueDate && data.dueDate > data.invoiceDate) score++;
-    if (data.subtotalExclVAT > 0) score++;
-    if (data.vatAmount > 0) score++;
-    if (data.totalAmount > 0) score++;
+    if (data.dueDate && data.invoiceDate && data.dueDate > data.invoiceDate) score++;
+    if ((data.subtotalExclVAT ?? 0) > 0) score++;
+    if ((data.vatAmount ?? 0) > 0) score++;
+    if ((data.totalAmount ?? 0) > 0) score++;
     if (data.supplierVAT) score++;
     if (data.lineItems && data.lineItems.length > 0) score++;
     if (data.referenceNumber) score++;

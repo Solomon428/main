@@ -91,21 +91,31 @@ export class ApprovalService extends BaseService {
         throw new Error("Invalid decision");
     }
 
+    const approvalUpdateData: any = {
+      status: newApprovalStatus as any,
+      approverId: userId,
+    };
+    
+    if (decision === "APPROVE") {
+      approvalUpdateData.approvedAt = new Date();
+    } else if (decision === "REJECT") {
+      approvalUpdateData.rejectedAt = new Date();
+    }
+    
+    if (notes) {
+      approvalUpdateData.decisionNotes = notes;
+    }
+
     const updatedApproval = await this.prisma.approval.update({
       where: { id: approvalId },
-      data: {
-        status: newApprovalStatus as any,
-        approverId: userId,
-        decisionDate: new Date(),
-        notes: notes || approval.notes,
-      },
+      data: approvalUpdateData,
     });
 
     await this.prisma.invoice.update({
       where: { id: approval.invoiceId },
       data: {
-        status: newInvoiceStatus,
-        updatedById: userId,
+        status: newInvoiceStatus as any,
+        updaterId: userId,
       },
     });
 
@@ -119,7 +129,7 @@ export class ApprovalService extends BaseService {
 
     const [approvals, total] = await Promise.all([
       this.prisma.approval.findMany({
-        where: { organizationId: orgId, status: "PENDING" },
+        where: { status: "PENDING" },
         include: {
           invoice: {
             include: {
@@ -128,22 +138,23 @@ export class ApprovalService extends BaseService {
               },
             },
           },
-          submittedBy: {
-            select: { id: true, firstName: true, lastName: true },
-          },
         },
         orderBy: { createdAt: "asc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.approval.count({
-        where: { organizationId: orgId, status: "PENDING" },
+        where: { status: "PENDING" },
       }),
     ]);
 
+    const filteredApprovals = approvals.filter(
+      (a) => a.invoice?.organizationId === orgId
+    );
+
     return {
-      approvals,
-      total,
+      approvals: filteredApprovals,
+      total: filteredApprovals.length,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
@@ -151,15 +162,10 @@ export class ApprovalService extends BaseService {
   }
 
   async findByInvoice(invoiceId: string) {
-    const orgId = this.requireOrg();
-
     return this.prisma.approval.findMany({
-      where: { invoiceId, organizationId: orgId },
+      where: { invoiceId },
       include: {
         approver: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        submittedBy: {
           select: { id: true, firstName: true, lastName: true },
         },
       },
@@ -170,19 +176,25 @@ export class ApprovalService extends BaseService {
   async getStats() {
     const orgId = this.requireOrg();
 
+    const invoiceIds = await this.prisma.invoice.findMany({
+      where: { organizationId: orgId },
+      select: { id: true },
+    });
+    const invoiceIdList = invoiceIds.map(i => i.id);
+
     const [pendingCount, approvedCount, rejectedCount, escalatedCount] =
       await Promise.all([
         this.prisma.approval.count({
-          where: { organizationId: orgId, status: "PENDING" },
+          where: { invoiceId: { in: invoiceIdList }, status: "PENDING" },
         }),
         this.prisma.approval.count({
-          where: { organizationId: orgId, status: "APPROVED" },
+          where: { invoiceId: { in: invoiceIdList }, status: "APPROVED" },
         }),
         this.prisma.approval.count({
-          where: { organizationId: orgId, status: "REJECTED" },
+          where: { invoiceId: { in: invoiceIdList }, status: "REJECTED" },
         }),
         this.prisma.approval.count({
-          where: { organizationId: orgId, status: "ESCALATED" },
+          where: { invoiceId: { in: invoiceIdList }, status: "ESCALATED" },
         }),
       ]);
 
@@ -204,10 +216,7 @@ export class ApprovalService extends BaseService {
     const [approvals, total] = await Promise.all([
       prisma.approval.findMany({
         where: {
-          OR: [
-            { submittedById: userId },
-            { approverId: userId },
-          ],
+          approverId: userId,
         },
         include: {
           invoice: {
@@ -216,9 +225,6 @@ export class ApprovalService extends BaseService {
                 select: { id: true, name: true },
               },
             },
-          },
-          submittedBy: {
-            select: { id: true, firstName: true, lastName: true, email: true },
           },
           approver: {
             select: { id: true, firstName: true, lastName: true, email: true },
@@ -230,10 +236,7 @@ export class ApprovalService extends BaseService {
       }),
       prisma.approval.count({
         where: {
-          OR: [
-            { submittedById: userId },
-            { approverId: userId },
-          ],
+          approverId: userId,
         },
       }),
     ]);
@@ -255,29 +258,36 @@ export class ApprovalService extends BaseService {
       throw new Error("Approval not found");
     }
 
-    let newStatus: string;
+    let newStatus: "APPROVED" | "REJECTED" | "ESCALATED";
+    const updateData: any = {
+      approverId: userId,
+    };
+    
     switch (decision) {
       case "APPROVE":
         newStatus = "APPROVED";
+        updateData.approvedAt = new Date();
         break;
       case "REJECT":
         newStatus = "REJECTED";
+        updateData.rejectedAt = new Date();
         break;
       case "ESCALATE":
         newStatus = "ESCALATED";
+        updateData.escalatedAt = new Date();
         break;
       default:
         throw new Error("Invalid decision");
     }
+    
+    updateData.status = newStatus;
+    if (notes) {
+      updateData.decisionNotes = notes;
+    }
 
     return prisma.approval.update({
       where: { id: approvalId },
-      data: {
-        status: newStatus,
-        approverId: userId,
-        decisionDate: new Date(),
-        notes,
-      },
+      data: updateData,
     });
   }
 }

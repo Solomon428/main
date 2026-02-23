@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { FraudScorer } from "@/logic-engine/risk/fraud-scorer";
 import { AnomalyDetector } from "@/logic-engine/risk/anomaly-detector";
-import { authMiddleware } from "@/middleware/auth.middleware";
+import { authMiddleware } from "@/lib/middleware/auth";
 import { RiskLevel } from "@/types";
 
 export async function GET(request: NextRequest) {
   const authResponse = await authMiddleware(request);
-  if (authResponse.status !== 200) {
+  if (authResponse instanceof NextResponse) {
     return authResponse;
   }
 
@@ -174,7 +174,7 @@ async function getAnomalies() {
 // POST to run fraud scoring on an invoice
 export async function POST(request: NextRequest) {
   const authResponse = await authMiddleware(request);
-  if (authResponse.status !== 200) {
+  if (authResponse instanceof NextResponse) {
     return authResponse;
   }
 

@@ -17,7 +17,7 @@ import {
   PDFProcessingOptions,
   ProcessingException,
 } from "./types";
-// TODO: import { auditLogger } from '../audit-logger';
+import { auditLogger } from "../utils/audit-logger";
 import {
   SUPPORTED_MIME_TYPES,
   OCR_ENGINES,

@@ -5,5 +5,9 @@
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
   "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",
-  "editor.formatOnSave": false
+  "editor.formatOnSave": false,
+  "DockerRun.DisableDockerrc": true,
+  "DockerRun.Containers": [
+    "3562b644c0ab"
+  ]
 }
