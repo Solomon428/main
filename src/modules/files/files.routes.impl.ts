@@ -29,6 +29,23 @@ import { documentParserService } from "./services/document-parser.service";
 import { fileAttachmentsService } from "./services/file-attachments.service";
 import { UploadedFile } from "./types/file-types";
 
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    name?: string;
+    organizationId: string;
+    role?: string;
+  };
+  file?: any;
+  files?: any;
+}
+
+export interface ApiResponse extends Response {
+  status(code: number): this;
+  json(body: any): this;
+}
+
 const router = Router();
 const ocrService = new OcrService();
 const extractionService = new ExtractionService();
@@ -53,7 +70,7 @@ const uploadProgress = new Map<
 >();
 
 // Helper function to get organizationId from authenticated user
-function getOrgId(req: Request): string {
+function getOrgId(req: AuthRequest): string {
   const orgId = req.user?.organizationId;
   if (!orgId) {
     throw new AppError(
@@ -123,7 +140,7 @@ router.post(
   requireAuth,
   uploadSingle("file"),
   handleMulterError,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: ApiResponse, next: NextFunction) => {
     try {
       const organizationId = getOrgId(req);
       const userId = req.user!.id;
@@ -697,7 +714,7 @@ router.get(
           take: limitNum,
           orderBy: { createdAt: "desc" },
           include: {
-            uploadedBy: {
+            uploader: {
               select: { id: true, name: true, email: true },
             },
           },

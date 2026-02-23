@@ -10,7 +10,7 @@ import * as apiKeysService from "./api-keys.service";
 const router = Router();
 
 // User routes
-router.get("/users", async (req, res) => {
+router.get("/users", async (req: any, res: any) => {
   try {
     const users = await usersService.listUsers();
     res.json(users);
@@ -19,7 +19,7 @@ router.get("/users", async (req, res) => {
   }
 });
 
-router.get("/users/:id", async (req, res) => {
+router.get("/users/:id", async (req: any, res: any) => {
   try {
     const user = await usersService.findUserById(req.params.id);
     if (!user) {
@@ -31,7 +31,7 @@ router.get("/users/:id", async (req, res) => {
   }
 });
 
-router.post("/users", async (req, res) => {
+router.post("/users", async (req: any, res: any) => {
   try {
     const user = await usersService.createUser(req.body);
     res.status(201).json(user);
@@ -40,7 +40,7 @@ router.post("/users", async (req, res) => {
   }
 });
 
-router.put("/users/:id", async (req, res) => {
+router.put("/users/:id", async (req: any, res: any) => {
   try {
     const user = await usersService.updateUser(req.params.id, req.body);
     res.json(user);
@@ -49,7 +49,7 @@ router.put("/users/:id", async (req, res) => {
   }
 });
 
-router.delete("/users/:id", async (req, res) => {
+router.delete("/users/:id", async (req: any, res: any) => {
   try {
     await usersService.deleteUser(req.params.id);
     res.status(204).send();
@@ -59,7 +59,7 @@ router.delete("/users/:id", async (req, res) => {
 });
 
 // Session routes
-router.get("/sessions/:userId", async (req, res) => {
+router.get("/sessions/:userId", async (req: any, res: any) => {
   try {
     const sessions = await sessionsService.findSessionsByUserId(
       req.params.userId,
@@ -70,7 +70,7 @@ router.get("/sessions/:userId", async (req, res) => {
   }
 });
 
-router.delete("/sessions/:id", async (req, res) => {
+router.delete("/sessions/:id", async (req: any, res: any) => {
   try {
     await sessionsService.deleteSession(req.params.id);
     res.status(204).send();
@@ -80,7 +80,7 @@ router.delete("/sessions/:id", async (req, res) => {
 });
 
 // API Key routes
-router.get("/api-keys/:userId", async (req, res) => {
+router.get("/api-keys/:userId", async (req: any, res: any) => {
   try {
     const keys = await apiKeysService.listApiKeys(req.params.userId);
     res.json(keys);
@@ -89,7 +89,7 @@ router.get("/api-keys/:userId", async (req, res) => {
   }
 });
 
-router.post("/api-keys", async (req, res) => {
+router.post("/api-keys", async (req: any, res: any) => {
   try {
     const { userId, organizationId, ...data } = req.body;
     const key = await apiKeysService.generateApiKey(userId, organizationId, data);
@@ -99,7 +99,7 @@ router.post("/api-keys", async (req, res) => {
   }
 });
 
-router.delete("/api-keys/:id", async (req, res) => {
+router.delete("/api-keys/:id", async (req: any, res: any) => {
   try {
     const { userId, reason } = req.body;
     await apiKeysService.revokeApiKey(req.params.id, userId, reason);

@@ -7,7 +7,7 @@ import * as invoicesService from "./invoices.service";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
+router.get("/", async (req: any, res: any) => {
   try {
     const invoices = await invoicesService.listInvoices();
     res.json(invoices);
@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: any, res: any) => {
   try {
     const invoice = await invoicesService.getInvoice(req.params.id);
     if (!invoice) {
@@ -28,7 +28,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: any, res: any) => {
   try {
     const invoice = await invoicesService.createInvoice(req.body);
     res.status(201).json(invoice);
@@ -37,7 +37,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req: any, res: any) => {
   try {
     const invoice = await invoicesService.updateInvoice(
       req.params.id,
@@ -49,7 +49,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.post("/:id/approve", async (req, res) => {
+router.post("/:id/approve", async (req: any, res: any) => {
   try {
     const invoice = await invoicesService.approveInvoice(
       req.params.id,
@@ -61,7 +61,7 @@ router.post("/:id/approve", async (req, res) => {
   }
 });
 
-router.post("/:id/reject", async (req, res) => {
+router.post("/:id/reject", async (req: any, res: any) => {
   try {
     const invoice = await invoicesService.rejectInvoice(
       req.params.id,
@@ -73,7 +73,7 @@ router.post("/:id/reject", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req: any, res: any) => {
   try {
     await invoicesService.deleteInvoice(req.params.id);
     res.status(204).send();

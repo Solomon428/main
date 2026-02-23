@@ -95,7 +95,7 @@ export class FileAttachmentsService {
     const file = await prisma.fileAttachment.findUnique({
       where: { id: fileId },
       include: {
-        uploadedBy: {
+        uploader: {
           select: { id: true, name: true, email: true },
         },
         organization: {
@@ -227,7 +227,7 @@ export class FileAttachmentsService {
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
-          uploadedBy: {
+          uploader: {
             select: { id: true, name: true, email: true },
           },
         },
@@ -259,7 +259,7 @@ export class FileAttachmentsService {
       },
       orderBy: { createdAt: "desc" },
       include: {
-        uploadedBy: {
+        uploader: {
           select: { id: true, name: true, email: true },
         },
       },

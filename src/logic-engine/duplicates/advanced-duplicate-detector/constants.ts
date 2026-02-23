@@ -5,8 +5,8 @@
  * Thresholds, weights, patterns, and configuration constants
  */
 
+import { DuplicateType } from "@/types/sqlite";
 import {
-  DuplicateType,
   DuplicateRiskLevel,
   DuplicateMitigationAction,
   DuplicatePattern,
@@ -32,44 +32,84 @@ export const DUPLICATE_WEIGHTS = {
 
 export const DUPLICATE_PATTERNS: DuplicatePattern[] = [
   {
+    patternId: "exact-invoice",
+    patternName: "EXACT_INVOICE_NUMBER",
+    patternDescription: "Exact invoice number match",
     patternType: "EXACT_INVOICE_NUMBER",
-    description: "Exact invoice number match",
-    severity: "CRITICAL",
+    matchCriteria: {},
+    confidenceThreshold: 1.0,
+    isActive: true,
+    lastUpdated: new Date(),
   },
   {
+    patternId: "fuzzy-invoice",
+    patternName: "FUZZY_INVOICE_NUMBER",
+    patternDescription: "Fuzzy invoice number match",
     patternType: "FUZZY_INVOICE_NUMBER",
-    description: "Fuzzy invoice number match",
-    severity: "HIGH",
+    matchCriteria: {},
+    confidenceThreshold: 0.85,
+    isActive: true,
+    lastUpdated: new Date(),
   },
   {
+    patternId: "same-supplier-amount",
+    patternName: "SAME_SUPPLIER_SAME_AMOUNT",
+    patternDescription: "Same supplier, same amount, different invoice number",
     patternType: "SAME_SUPPLIER_SAME_AMOUNT",
-    description: "Same supplier, same amount, different invoice number",
-    severity: "HIGH",
+    matchCriteria: {},
+    confidenceThreshold: 0.85,
+    isActive: true,
+    lastUpdated: new Date(),
   },
   {
+    patternId: "same-supplier-date",
+    patternName: "SAME_SUPPLIER_SAME_DATE",
+    patternDescription: "Same supplier, same date, different invoice number",
     patternType: "SAME_SUPPLIER_SAME_DATE",
-    description: "Same supplier, same date, different invoice number",
-    severity: "MEDIUM",
+    matchCriteria: {},
+    confidenceThreshold: 0.7,
+    isActive: true,
+    lastUpdated: new Date(),
   },
   {
+    patternId: "cross-supplier",
+    patternName: "CROSS_SUPPLIER_DUPLICATE",
+    patternDescription: "Different suppliers, same invoice details (fraud pattern)",
     patternType: "CROSS_SUPPLIER_DUPLICATE",
-    description: "Different suppliers, same invoice details (fraud pattern)",
-    severity: "CRITICAL",
+    matchCriteria: {},
+    confidenceThreshold: 0.9,
+    isActive: true,
+    lastUpdated: new Date(),
   },
   {
+    patternId: "partial-line-item",
+    patternName: "PARTIAL_LINE_ITEM_MATCH",
+    patternDescription: "Partial line item match across invoices",
     patternType: "PARTIAL_LINE_ITEM_MATCH",
-    description: "Partial line item match across invoices",
-    severity: "LOW",
+    matchCriteria: {},
+    confidenceThreshold: 0.5,
+    isActive: true,
+    lastUpdated: new Date(),
   },
   {
+    patternId: "temporal-cluster",
+    patternName: "TEMPORAL_CLUSTER",
+    patternDescription: "Multiple invoices from same supplier within short timeframe",
     patternType: "TEMPORAL_CLUSTER",
-    description: "Multiple invoices from same supplier within short timeframe",
-    severity: "MEDIUM",
+    matchCriteria: {},
+    confidenceThreshold: 0.7,
+    isActive: true,
+    lastUpdated: new Date(),
   },
   {
+    patternId: "po-reference",
+    patternName: "PO_REFERENCE_DUPLICATE",
+    patternDescription: "Same PO reference across multiple invoices",
     patternType: "PO_REFERENCE_DUPLICATE",
-    description: "Same PO reference across multiple invoices",
-    severity: "HIGH",
+    matchCriteria: {},
+    confidenceThreshold: 0.85,
+    isActive: true,
+    lastUpdated: new Date(),
   },
 ];
 
@@ -79,26 +119,19 @@ export const RISK_LEVELS: Record<DuplicateType, DuplicateRiskLevel> = {
   TEMPORAL: "MEDIUM",
   SUPPLIER_CLUSTER: "HIGH",
   LINE_ITEM: "LOW",
-  CROSS_SUPPLIER: "SEVERE",
+  CROSS_SUPPLIER: "CRITICAL",
   PO_REFERENCE: "HIGH",
   PARTIAL: "LOW",
-  NONE: "LOW",
 };
 
 export const MITIGATION_ACTIONS: Record<
   DuplicateRiskLevel,
   DuplicateMitigationAction[]
 > = {
-  LOW: ["MONITOR", "FLAG_FOR_REVIEW"],
-  MEDIUM: ["MANUAL_REVIEW", "SUPPLIER_VERIFICATION"],
-  HIGH: ["HOLD_PAYMENT", "ESCALATE_TO_MANAGER", "SUPPLIER_CONTACT"],
-  CRITICAL: ["BLOCK_PAYMENT", "IMMEDIATE_ESCALATION", "FRAUD_INVESTIGATION"],
-  SEVERE: [
-    "BLOCK_PAYMENT",
-    "IMMEDIATE_ESCALATION",
-    "REGULATORY_REPORTING",
-    "LAW_ENFORCEMENT",
-  ],
+  LOW: ["ACCEPT"],
+  MEDIUM: ["FLAG_FOR_HUMAN_REVIEW", "REVIEW"],
+  HIGH: ["ESCALATE", "BLOCK", "FLAG_FOR_HUMAN_REVIEW"],
+  CRITICAL: ["BLOCK", "ESCALATE", "FLAG_FOR_HUMAN_REVIEW"],
 };
 
 export const FUZZY_MATCH_SETTINGS = {

@@ -7,7 +7,7 @@ import * as riskScoresService from "./risk-scores.service";
 
 const router = Router();
 
-router.get("/scores", async (req, res) => {
+router.get("/scores", async (req: any, res: any) => {
   try {
     const scores = await riskScoresService.listRiskScores();
     res.json(scores);
@@ -16,7 +16,7 @@ router.get("/scores", async (req, res) => {
   }
 });
 
-router.get("/scores/:entityId", async (req, res) => {
+router.get("/scores/:entityId", async (req: any, res: any) => {
   try {
     const score = await riskScoresService.getRiskScoreByEntity(
       req.params.entityId,
@@ -30,7 +30,7 @@ router.get("/scores/:entityId", async (req, res) => {
   }
 });
 
-router.post("/scores/calculate", async (req, res) => {
+router.post("/scores/calculate", async (req: any, res: any) => {
   try {
     const score = await riskScoresService.calculateRiskScore(req.body);
     res.status(201).json(score);

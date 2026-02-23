@@ -1,7 +1,6 @@
 import {
   UserRole,
   Department,
-  InvoiceStatus,
   ApprovalStatus,
   ApprovalDecision,
   AuditAction,
@@ -36,34 +35,54 @@ export * from "@prisma/client";
 
 // Duplicate detection types
 export interface DuplicateCheckResult {
+  checkId?: string;
   isDuplicate: boolean;
   confidence: number;
   matchedInvoiceId?: string;
   matchReasons: string[];
+  checkTimestamp?: Date;
 }
 
 export interface DuplicateAuditTrail {
-  auditId: string;
+  auditId?: string;
   checkId: string;
   userId: string;
   action: string;
+  eventType?: string;
+  eventDescription?: string;
   timestamp: Date;
   metadata: Record<string, any>;
 }
 
 export type DuplicateRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
+export type DuplicateType = 
+  | "EXACT"
+  | "FUZZY"
+  | "SUPPLIER_MATCH"
+  | "AMOUNT_MATCH"
+  | "DATE_MATCH"
+  | "LINE_ITEM_MATCH"
+  | "OCR_SIMILARITY"
+  | "MANUAL_FLAG";
+
 export type DuplicateMitigationAction =
   | "ACCEPT"
   | "REVIEW"
   | "BLOCK"
   | "ESCALATE"
-  | "FLAG_FOR_HUMAN_REVIEW";
+  | "FLAG_FOR_HUMAN_REVIEW"
+  | "FRAUD_INVESTIGATION"
+  | "REGULATORY_REPORTING"
+  | "PO_VERIFICATION"
+  | "CONTRACT_REVIEW"
+  | "BLOCK_PAYMENT";
 
 export interface DuplicatePattern {
   patternId: string;
   patternName: string;
   patternDescription: string;
+  patternType?: string;
   matchCriteria: Record<string, any>;
   confidenceThreshold: number;
   isActive: boolean;
@@ -75,8 +94,10 @@ export interface DuplicateEvidence {
   checkId: string;
   evidenceType: DuplicateEvidenceType;
   source: DuplicateEvidenceSource;
+  evidenceSource?: DuplicateEvidenceSource;
   confidence: number;
   details: Record<string, any>;
+  description?: string;
   timestamp: Date;
 }
 
@@ -155,7 +176,7 @@ export interface InvoiceWithRelations {
   invoiceDate: Date;
   dueDate: Date;
   totalAmount: number;
-  subtotal: number;
+  subtotalExclVAT: number;
   vatAmount: number;
   currency: string;
   status: InvoiceStatus;
@@ -305,6 +326,9 @@ export type ApprovalRoutingInput = {
   requesterRole?: string;
   supplierCategory?: string;
   riskLevel?: string;
+  supplierAgeDays?: number;
+  priority?: string;
+  totalStages?: number;
 };
 
 export type ApprovalRoutingResult = {
@@ -312,18 +336,25 @@ export type ApprovalRoutingResult = {
   routingId?: string;
   routingTimestamp?: Date;
   inputHash?: string;
+  strategy?: string;
   stages: ApprovalStage[];
   requiresApproval: boolean;
   reason?: string;
+  escalationLevel?: string;
+  totalStages?: number;
+  approvalChain?: any;
+  workloadDistribution?: any;
 };
 
 export type ApprovalStage = {
   sequence: number;
   approverId: string;
-  approverRole: string;
+  approverRole?: string;
+  role?: string;
   limit?: number;
   isBackup?: boolean;
   deadline?: Date;
+  slaHours?: number;
 };
 
 export type SLAConfig = {
@@ -409,15 +440,22 @@ export type ApprovalChainEntry = {
   chainId: string;
   sequence: number;
   approverId: string;
+  approver?: any;
+  role?: string;
   status: ApprovalStatus;
   assignedAt: Date;
   completedAt?: Date;
+  stage?: number;
+  description?: string;
+  slaHours?: number;
 };
 
 export type ApprovalCondition = {
   field: string;
-  operator: RoutingRuleOperator;
+  operator?: RoutingRuleOperator;
   value: any;
+  type?: string;
+  description?: string;
 };
 
 export type RoutingRule = {
@@ -461,6 +499,7 @@ export type ApprovalLimitScope = "INDIVIDUAL" | "DEPARTMENT" | "ROLE" | "ORGANIZ
 
 export type RoutingAuditTrail = {
   id: string;
+  auditId?: string;
   routingId: string;
   decision: string;
   approvers: string[];

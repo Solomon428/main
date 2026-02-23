@@ -623,3 +623,6 @@ console.log('Holidays in period:', responseSLA.holidaysEncountered.map(h => h.na
 
 // ==================== EXPORTS ====================
 // All types are already exported inline above
+
+// Alias for backward compatibility
+export const SLACalculator = SLACalculatorService;

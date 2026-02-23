@@ -3,6 +3,23 @@ import multer, { MulterError, FileFilterCallback } from "multer";
 import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  buffer: Buffer;
+}
+
+interface UploadRequest extends Request {
+  file?: MulterFile;
+  files?: MulterFile | MulterFile[];
+}
+
 // Maximum file size: 50MB
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
@@ -87,7 +104,7 @@ export function uploadFields(
  */
 export function handleMulterError(
   error: Error,
-  _req: Request,
+  _req: UploadRequest,
   _res: Response,
   next: NextFunction,
 ) {
@@ -96,7 +113,7 @@ export function handleMulterError(
 
     switch (error.code) {
       case "LIMIT_FILE_SIZE":
-        return next(
+        return (next as any)(
           new AppError(
             `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`,
             "FILE_TOO_LARGE",
@@ -105,7 +122,7 @@ export function handleMulterError(
         );
 
       case "LIMIT_FILE_COUNT":
-        return next(
+        return (next as any)(
           new AppError(
             "Too many files. Maximum 10 files allowed",
             "TOO_MANY_FILES",
@@ -114,7 +131,7 @@ export function handleMulterError(
         );
 
       case "LIMIT_UNEXPECTED_FILE":
-        return next(
+        return (next as any)(
           new AppError(
             "Unexpected field name in file upload",
             "UNEXPECTED_FIELD",
@@ -123,7 +140,7 @@ export function handleMulterError(
         );
 
       default:
-        return next(
+        return (next as any)(
           new AppError(
             `File upload error: ${error.message}`,
             "UPLOAD_ERROR",
@@ -133,18 +150,18 @@ export function handleMulterError(
     }
   }
 
-  next(error);
+  (next as any)(error);
 }
 
 /**
  * Validate file before processing
  */
-export function validateFile(req: Request, _res: Response, next: NextFunction) {
+export function validateFile(req: UploadRequest, _res: Response, next: NextFunction) {
   if (
     !req.file &&
     (!req.files || (Array.isArray(req.files) && req.files.length === 0))
   ) {
-    return next(new AppError("No file uploaded", "NO_FILE", 400));
+    return (next as any)(new AppError("No file uploaded", "NO_FILE", 400));
   }
 
   // Validate file size
@@ -156,7 +173,7 @@ export function validateFile(req: Request, _res: Response, next: NextFunction) {
 
   for (const file of files) {
     if (file.size > MAX_FILE_SIZE) {
-      return next(
+      return (next as any)(
         new AppError(
           `File "${file.originalname}" is too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`,
           "FILE_TOO_LARGE",
@@ -166,7 +183,7 @@ export function validateFile(req: Request, _res: Response, next: NextFunction) {
     }
 
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      return next(
+      return (next as any)(
         new AppError(
           `File "${file.originalname}" has invalid type: ${file.mimetype}`,
           "INVALID_FILE_TYPE",
@@ -176,7 +193,7 @@ export function validateFile(req: Request, _res: Response, next: NextFunction) {
     }
   }
 
-  next();
+  (next as any)();
 }
 
 export { upload };

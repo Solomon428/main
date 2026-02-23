@@ -9,7 +9,7 @@ import * as webhooksService from "./webhooks.service";
 const router = Router();
 
 // Integration routes
-router.get("/", async (req, res) => {
+router.get("/", async (req: any, res: any) => {
   try {
     const integrations = await integrationsService.listIntegrations();
     res.json(integrations);
@@ -18,7 +18,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: any, res: any) => {
   try {
     const integration = await integrationsService.getIntegration(req.params.id);
     if (!integration) {
@@ -30,7 +30,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: any, res: any) => {
   try {
     const integration = await integrationsService.createIntegration(req.body);
     res.status(201).json(integration);
@@ -39,7 +39,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req: any, res: any) => {
   try {
     const integration = await integrationsService.updateIntegration(
       req.params.id,
@@ -51,7 +51,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req: any, res: any) => {
   try {
     await integrationsService.deleteIntegration(req.params.id);
     res.status(204).send();
@@ -60,7 +60,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.post("/:id/sync", async (req, res) => {
+router.post("/:id/sync", async (req: any, res: any) => {
   try {
     const result = await integrationsService.triggerSync(req.params.id);
     res.json(result);
@@ -70,7 +70,7 @@ router.post("/:id/sync", async (req, res) => {
 });
 
 // Webhook routes
-router.get("/webhooks", async (req, res) => {
+router.get("/webhooks", async (req: any, res: any) => {
   try {
     const webhooks = await webhooksService.listWebhooks();
     res.json(webhooks);
@@ -79,7 +79,7 @@ router.get("/webhooks", async (req, res) => {
   }
 });
 
-router.post("/webhooks", async (req, res) => {
+router.post("/webhooks", async (req: any, res: any) => {
   try {
     const webhook = await webhooksService.createWebhook(req.body);
     res.status(201).json(webhook);

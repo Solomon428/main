@@ -29,7 +29,10 @@ import {
   ProcessingException,
 } from "./types";
 import { auditLogger } from "../utils/audit-logger";
-import { TEMP_DIR, OCR_ENGINES } from "./constants";
+import { TEMP_DIR, 
+
+  
+ } from "./constants";
 
 const pipelineAsync = promisify(pipeline);
 const prisma = new PrismaClient();

@@ -7,7 +7,7 @@ import * as notificationsService from "./notifications.service";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
+router.get("/", async (req: any, res: any) => {
   try {
     const notifications = await notificationsService.listNotifications(
       req.query,
@@ -18,7 +18,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.put("/:id/read", async (req, res) => {
+router.put("/:id/read", async (req: any, res: any) => {
   try {
     const notification = await notificationsService.markAsRead(req.params.id);
     res.json(notification);
@@ -27,7 +27,7 @@ router.put("/:id/read", async (req, res) => {
   }
 });
 
-router.post("/test", async (req, res) => {
+router.post("/test", async (req: any, res: any) => {
   try {
     const result = await notificationsService.sendTestNotification(req.body);
     res.json(result);

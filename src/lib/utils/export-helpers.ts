@@ -16,7 +16,7 @@ interface InvoiceWithRelations {
   supplierName?: string | null;
   invoiceDate: Date | string;
   dueDate: Date | string;
-  subtotal: number;
+  subtotalExclVAT: number;
   vatAmount: number;
   totalAmount: number;
   currency: string;
@@ -111,7 +111,7 @@ export function generateInvoiceCSV(
       escapeCSVField(invoice.supplier.vatNumber),
       escapeCSVField(formatDate(invoice.invoiceDate)),
       escapeCSVField(formatDate(invoice.dueDate)),
-      escapeCSVField(Number(invoice.subtotal).toFixed(2)),
+      escapeCSVField(Number(invoice.subtotalExclVAT).toFixed(2)),
       escapeCSVField(Number(invoice.vatAmount).toFixed(2)),
       escapeCSVField(Number(invoice.totalAmount).toFixed(2)),
       escapeCSVField(invoice.currency),
@@ -250,7 +250,7 @@ export function generateJSONExport(
     },
     invoiceDate: invoice.invoiceDate,
     dueDate: invoice.dueDate,
-    subtotal: Number(invoice.subtotal),
+    subtotal: Number(invoice.subtotalExclVAT),
     vatAmount: Number(invoice.vatAmount),
     totalAmount: Number(invoice.totalAmount),
     currency: invoice.currency,

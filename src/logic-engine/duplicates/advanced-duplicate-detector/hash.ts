@@ -129,8 +129,10 @@ export function calculateHashSimilarity(hash1: string, hash2: string): number {
   let distance = 0;
   for (let i = 0; i < hash1.length; i++) {
     // Convert hex characters to binary and count differing bits
-    const bits1 = parseInt(hash1[i], 16).toString(2).padStart(4, "0");
-    const bits2 = parseInt(hash2[i], 16).toString(2).padStart(4, "0");
+    const char1 = hash1[i] ?? '0';
+    const char2 = hash2[i] ?? '0';
+    const bits1 = parseInt(char1, 16).toString(2).padStart(4, "0");
+    const bits2 = parseInt(char2, 16).toString(2).padStart(4, "0");
 
     for (let j = 0; j < 4; j++) {
       if (bits1[j] !== bits2[j]) {
@@ -295,10 +297,12 @@ export function generateSimHash(input: string): string {
   const hashVector = new Array(64).fill(0);
 
   featureVector.forEach((weight, feature) => {
+    if (!feature) return;
     const featureHash = generateMD5Hash(feature);
 
     for (let i = 0; i < 64; i++) {
-      const bit = parseInt(featureHash[i % 32], 16) & (1 << (i % 4));
+      const char = featureHash[i % 32] ?? '0';
+      const bit = parseInt(char, 16) & (1 << (i % 4));
       hashVector[i] += bit ? weight : -weight;
     }
   });

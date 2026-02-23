@@ -61,7 +61,7 @@ export async function authenticate(
         id: true,
         email: true,
         name: true,
-        organizationId: true,
+        primaryOrganizationId: true,
         role: true,
       },
     });
@@ -78,7 +78,7 @@ export async function authenticate(
       id: user.id,
       email: user.email,
       name: user.name || undefined,
-      organizationId: user.organizationId,
+      organizationId: user.primaryOrganizationId || '',
       role: user.role || undefined,
     };
 
@@ -129,6 +129,8 @@ export function requireRole(allowedRoles: string[], user?: AuthenticatedRequest[
   return null; // success
 }
 
+export const requireAuth = withAuth;
+
 /**
  * Optional authentication for API routes (does not fail if no token)
  */
@@ -164,7 +166,7 @@ export async function optionalAuth(
         id: true,
         email: true,
         name: true,
-        organizationId: true,
+        primaryOrganizationId: true,
         role: true,
       },
     });
@@ -174,7 +176,7 @@ export async function optionalAuth(
         id: user.id,
         email: user.email,
         name: user.name || undefined,
-        organizationId: user.organizationId,
+        organizationId: user.primaryOrganizationId || '',
         role: user.role || undefined,
       };
     }

@@ -7,7 +7,7 @@ import * as organizationsService from "./organizations.service";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
+router.get("/", async (req: any, res: any) => {
   try {
     const organizations = await organizationsService.listOrganizations();
     res.json(organizations);
@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: any, res: any) => {
   try {
     const organization = await organizationsService.getOrganization(
       req.params.id,
@@ -30,7 +30,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: any, res: any) => {
   try {
     const organization = await organizationsService.createOrganization(
       req.body,
@@ -41,7 +41,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req: any, res: any) => {
   try {
     const organization = await organizationsService.updateOrganization(
       req.params.id,
@@ -53,7 +53,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req: any, res: any) => {
   try {
     await organizationsService.deleteOrganization(req.params.id);
     res.status(204).send();

@@ -66,7 +66,7 @@ export class AuditLogger {
         entityType: entry.entityType,
         entityId: entry.entityId,
         severity: entry.severity,
-        complianceFlags: JSON.stringify(entry.complianceFlags || []),
+        complianceFlags: entry.complianceFlags || [],
       };
 
       // Only add optional fields if they are defined

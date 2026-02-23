@@ -198,6 +198,7 @@ export class AdvancedDuplicateDetector {
         supplierClusters,
         lineItemMatches,
         contextualAnalysis,
+        checkId,
       );
       auditTrail.push(
         createAuditEntry("CONFIDENCE_CALCULATION_COMPLETED", checkId, {
@@ -424,12 +425,12 @@ function logDuplicateDetection(
   startTime: number,
   endTime: number,
 ): void {
-  auditLogger.log(
-    "DUPLICATE_DETECTION_COMPLETED",
-    "invoice",
-    result.checkId,
-    "INFO",
-    {
+  auditLogger.log({
+    action: "CREATE" as any,
+    entityType: "invoice" as any,
+    entityId: result.checkId,
+    severity: "INFO" as any,
+    metadata: {
       checkId: result.checkId,
       isDuplicate: result.isDuplicate,
       duplicateType: result.duplicateType,
@@ -438,7 +439,7 @@ function logDuplicateDetection(
       potentialDuplicateCount: result.potentialDuplicates.length,
       checkDurationMs: endTime - startTime,
     },
-  );
+  });
 }
 
 /**
@@ -452,13 +453,19 @@ function logDuplicateDetectionFailure(
   startTime: number,
   endTime: number,
 ): void {
-  auditLogger.log("DUPLICATE_DETECTION_FAILED", "invoice", checkId, "ERROR", {
-    checkId,
-    invoiceNumber: input.invoiceNumber,
-    supplierName: input.supplierName,
-    errorMessage,
-    errorStack,
-    checkDurationMs: endTime - startTime,
+  auditLogger.log({
+    action: "CREATE" as any,
+    entityType: "invoice" as any,
+    entityId: checkId,
+    severity: "ERROR" as any,
+    metadata: {
+      checkId,
+      invoiceNumber: input.invoiceNumber,
+      supplierName: input.supplierName,
+      errorMessage,
+      errorStack,
+      checkDurationMs: endTime - startTime,
+    },
   });
 }
 

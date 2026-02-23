@@ -19,15 +19,14 @@ export class AzureCognitiveEngine {
     // Requires @azure/cognitiveservices-computervision package
     throw new OcrProcessingError(
       "Azure Cognitive Services not yet implemented",
-      "AZURE_NOT_IMPLEMENTED",
+      { code: "AZURE_NOT_IMPLEMENTED" },
     );
   }
 
   async process(_imageBuffer: Buffer, fileName: string): Promise<OcrResult> {
     throw new OcrProcessingError(
       "Azure Cognitive Services not yet implemented",
-      "AZURE_NOT_IMPLEMENTED",
-      { fileName },
+      { code: "AZURE_NOT_IMPLEMENTED", fileName },
     );
   }
 

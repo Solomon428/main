@@ -207,7 +207,7 @@ export class DocumentParserService {
     const file = await prisma.fileAttachment.findUnique({
       where: { id: fileId },
       include: {
-        uploadedBy: {
+        uploader: {
           select: { id: true, name: true, email: true },
         },
         organization: {

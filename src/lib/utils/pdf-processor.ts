@@ -15,6 +15,8 @@ export interface ExtractedInvoiceData {
   status: 'PENDING_APPROVAL' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'PAID';
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   requiresManualReview: boolean;
+  rawText?: string;
+  extractionConfidence?: number;
 }
 
 export interface PDFProcessingResult {
@@ -100,7 +102,7 @@ export class PDFProcessor {
     ];
     for (const pattern of patterns) {
       const match = text.match(pattern);
-      if (match) return match[1].trim();
+      if (match && match[1]) return match[1].trim();
     }
     return null;
   }
@@ -112,7 +114,7 @@ export class PDFProcessor {
     ];
     for (const pattern of patterns) {
       const match = text.match(pattern);
-      if (match) {
+      if (match && match[1]) {
         try {
           const date = new Date(match[1].replace(/[\/.]/g, '-'));
           if (!isNaN(date.getTime())) return date.toISOString();
@@ -129,7 +131,7 @@ export class PDFProcessor {
     ];
     for (const pattern of patterns) {
       const match = text.match(pattern);
-      if (match) {
+      if (match && match[1]) {
         try {
           const date = new Date(match[1].replace(/[\/.]/g, '-'));
           if (!isNaN(date.getTime())) return date.toISOString();
@@ -147,14 +149,14 @@ export class PDFProcessor {
     ];
     for (const pattern of patterns) {
       const match = text.match(pattern);
-      if (match) return match[1].trim();
+      if (match && match[1]) return match[1].trim();
     }
     return null;
   }
 
   private static extractVatNumber(text: string): string | null {
     const match = text.match(/(?:vat\s*(?:no|number)?|tax\s+no)[:\s]*(4\d{9})/i);
-    return match ? match[1].replace(/\s/g, '') : null;
+    return match && match[1] ? match[1].replace(/\s/g, '') : null;
   }
 
   private static extractSubtotal(text: string): number | null {
@@ -164,7 +166,7 @@ export class PDFProcessor {
     ];
     for (const pattern of patterns) {
       const match = text.match(pattern);
-      if (match) {
+      if (match && match[1]) {
         const value = parseFloat(match[1].replace(/,/g, ''));
         if (!isNaN(value)) return value;
       }
@@ -179,7 +181,7 @@ export class PDFProcessor {
     ];
     for (const pattern of patterns) {
       const match = text.match(pattern);
-      if (match) {
+      if (match && match[1]) {
         const value = parseFloat(match[1].replace(/,/g, ''));
         if (!isNaN(value)) return value;
       }
@@ -195,7 +197,7 @@ export class PDFProcessor {
     ];
     for (const pattern of patterns) {
       const match = text.match(pattern);
-      if (match) {
+      if (match && match[1]) {
         const value = parseFloat(match[1].replace(/,/g, ''));
         if (!isNaN(value)) return value;
       }

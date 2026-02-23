@@ -24,15 +24,20 @@ import type {
   FraudAlertPriority,
   FraudEscalationPath,
   FraudConfidenceInterval,
-  FraudMitigationAction,
 } from "./types";
 import {
+  FraudMitigationAction,
   RISK_WEIGHTS,
   RISK_THRESHOLDS,
   CONFIDENCE_INTERVALS,
   ALERT_PRIORITIES,
   MITIGATION_ACTIONS,
 } from "./constants";
+import {
+  RiskLevel as RiskLevelEnum,
+  FraudSeverityLevel as FraudSeverityLevelEnum,
+  FraudEscalationPath as FraudEscalationPathEnum,
+} from "./enums";
 
 /**
  * Aggregate weighted risk scores from all dimensions
@@ -139,17 +144,17 @@ export function determineRiskLevel(
   score: number,
   scoringId?: string,
 ): RiskLevel {
-  if (score >= RISK_THRESHOLDS.BLACKLISTED) return "BLACKLISTED";
-  if (score >= RISK_THRESHOLDS.SEVERE) return "SEVERE";
-  if (score >= RISK_THRESHOLDS.CRITICAL) return "CRITICAL";
-  if (score >= RISK_THRESHOLDS.VERY_HIGH) return "VERY_HIGH";
-  if (score >= RISK_THRESHOLDS.HIGH) return "HIGH";
-  if (score >= RISK_THRESHOLDS.MEDIUM_HIGH) return "MEDIUM_HIGH";
-  if (score >= RISK_THRESHOLDS.MEDIUM) return "MEDIUM";
-  if (score >= RISK_THRESHOLDS.LOW_MEDIUM) return "LOW_MEDIUM";
-  if (score >= RISK_THRESHOLDS.LOW) return "LOW";
-  if (score >= RISK_THRESHOLDS.VERY_LOW) return "VERY_LOW";
-  return "NO_RISK";
+  if (score >= RISK_THRESHOLDS.BLACKLISTED) return RiskLevelEnum.BLACKLISTED;
+  if (score >= RISK_THRESHOLDS.SEVERE) return RiskLevelEnum.SEVERE;
+  if (score >= RISK_THRESHOLDS.CRITICAL) return RiskLevelEnum.CRITICAL;
+  if (score >= RISK_THRESHOLDS.VERY_HIGH) return RiskLevelEnum.VERY_HIGH;
+  if (score >= RISK_THRESHOLDS.HIGH) return RiskLevelEnum.HIGH;
+  if (score >= RISK_THRESHOLDS.MEDIUM_HIGH) return RiskLevelEnum.MEDIUM_HIGH;
+  if (score >= RISK_THRESHOLDS.MEDIUM) return RiskLevelEnum.MEDIUM;
+  if (score >= RISK_THRESHOLDS.LOW_MEDIUM) return RiskLevelEnum.LOW_MEDIUM;
+  if (score >= RISK_THRESHOLDS.LOW) return RiskLevelEnum.LOW;
+  if (score >= RISK_THRESHOLDS.VERY_LOW) return RiskLevelEnum.VERY_LOW;
+  return RiskLevelEnum.NO_RISK;
 }
 
 /**
@@ -161,24 +166,24 @@ export function determineSeverityLevel(
   scoringId?: string,
 ): FraudSeverityLevel {
   switch (riskLevel) {
-    case "BLACKLISTED":
-    case "SEVERE":
-      return "SEVERE";
-    case "CRITICAL":
-      return "CRITICAL";
-    case "VERY_HIGH":
-    case "HIGH":
-      return "HIGH";
-    case "MEDIUM_HIGH":
-    case "MEDIUM":
-      return "MEDIUM";
-    case "LOW_MEDIUM":
-    case "LOW":
-    case "VERY_LOW":
-    case "NO_RISK":
-      return "LOW";
+    case RiskLevelEnum.BLACKLISTED:
+    case RiskLevelEnum.SEVERE:
+      return FraudSeverityLevelEnum.SEVERE;
+    case RiskLevelEnum.CRITICAL:
+      return FraudSeverityLevelEnum.CRITICAL;
+    case RiskLevelEnum.VERY_HIGH:
+    case RiskLevelEnum.HIGH:
+      return FraudSeverityLevelEnum.HIGH;
+    case RiskLevelEnum.MEDIUM_HIGH:
+    case RiskLevelEnum.MEDIUM:
+      return FraudSeverityLevelEnum.MEDIUM;
+    case RiskLevelEnum.LOW_MEDIUM:
+    case RiskLevelEnum.LOW:
+    case RiskLevelEnum.VERY_LOW:
+    case RiskLevelEnum.NO_RISK:
+      return FraudSeverityLevelEnum.LOW;
     default:
-      return "MEDIUM";
+      return FraudSeverityLevelEnum.MEDIUM;
   }
 }
 
@@ -291,28 +296,28 @@ export function determineEscalationPath(
   scoringId?: string,
 ): FraudEscalationPath[] {
   switch (severityLevel) {
-    case "SEVERE":
-    case "CRITICAL":
+    case FraudSeverityLevelEnum.SEVERE:
+    case FraudSeverityLevelEnum.CRITICAL:
       return [
-        "FRAUD_MANAGER",
-        "COMPLIANCE_OFFICER",
-        "CHIEF_FINANCIAL_OFFICER",
-        "CHIEF_EXECUTIVE_OFFICER",
-        "BOARD_OF_DIRECTORS",
-        "REGULATORY_BODY",
+        FraudEscalationPathEnum.FRAUD_MANAGER,
+        FraudEscalationPathEnum.COMPLIANCE_OFFICER,
+        FraudEscalationPathEnum.CHIEF_FINANCIAL_OFFICER,
+        FraudEscalationPathEnum.CHIEF_EXECUTIVE_OFFICER,
+        FraudEscalationPathEnum.BOARD_OF_DIRECTORS,
+        FraudEscalationPathEnum.REGULATORY_BODY,
       ];
-    case "HIGH":
+    case FraudSeverityLevelEnum.HIGH:
       return [
-        "FRAUD_MANAGER",
-        "COMPLIANCE_OFFICER",
-        "RISK_MANAGER",
-        "CHIEF_FINANCIAL_OFFICER",
+        FraudEscalationPathEnum.FRAUD_MANAGER,
+        FraudEscalationPathEnum.COMPLIANCE_OFFICER,
+        FraudEscalationPathEnum.RISK_MANAGER,
+        FraudEscalationPathEnum.CHIEF_FINANCIAL_OFFICER,
       ];
-    case "MEDIUM":
-      return ["FRAUD_ANALYST", "FRAUD_MANAGER", "COMPLIANCE_OFFICER"];
-    case "LOW":
-      return ["FRAUD_ANALYST"];
+    case FraudSeverityLevelEnum.MEDIUM:
+      return [FraudEscalationPathEnum.FRAUD_ANALYST, FraudEscalationPathEnum.FRAUD_MANAGER, FraudEscalationPathEnum.COMPLIANCE_OFFICER];
+    case FraudSeverityLevelEnum.LOW:
+      return [FraudEscalationPathEnum.FRAUD_ANALYST];
     default:
-      return ["FRAUD_ANALYST"];
+      return [FraudEscalationPathEnum.FRAUD_ANALYST];
   }
 }

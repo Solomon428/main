@@ -61,12 +61,6 @@ import { ApproverAvailabilityChecker } from "./approver-availability-checker";
 import { BackupApproverAssigner } from "./backup-approver-assigner";
 import { DelegationChainManager } from "./delegation-chain-manager";
 import { SA_COMPLIANCE_RULES } from "@/types/index";
-import type { 
-  RoutingException, 
-  RoutingErrorCode, 
-  RoutingErrorSeverity, 
-  RoutingErrorAction 
-} from "@/types/index";
 
 // Fallback SLACalculator class if module not found - eslint-disable-next-line
 const SLACalculator = {
@@ -476,7 +470,7 @@ export class ApproverRouter {
     routingId: string,
   ): number {
     // Start with base department limit
-    let baseLimit = this.getDepartmentBaseLimit(input.department);
+    let baseLimit = this.getDepartmentBaseLimit(input.department ?? '');
 
     // Apply role multiplier
     const roleMultiplier = this.getRoleMultiplier(
@@ -551,11 +545,12 @@ export class ApproverRouter {
     approvalLimit: number,
     routingId: string,
   ): EscalationLevel {
+    const amount = input.totalAmount ?? input.amount ?? 0;
     // Check amount-based escalation first
-    if (input.totalAmount > 1000000) return "LEVEL_5"; // R1,000,000+
-    if (input.totalAmount > 500000) return "LEVEL_4"; // R500,000+
-    if (input.totalAmount > 200000) return "LEVEL_3"; // R200,000+
-    if (input.totalAmount > 50000) return "LEVEL_2"; // R50,000+
+    if (amount > 1000000) return "LEVEL_5"; // R1,000,000+
+    if (amount > 500000) return "LEVEL_4"; // R500,000+
+    if (amount > 200000) return "LEVEL_3"; // R200,000+
+    if (amount > 50000) return "LEVEL_2"; // R50,000+
 
     // Check risk-based escalation
     if (input.riskLevel === "CRITICAL" || input.riskLevel === "SEVERE")
@@ -596,7 +591,7 @@ export class ApproverRouter {
     }
 
     // Add additional stage for new suppliers
-    if (input.supplierCategory === "NEW" || input.supplierAgeDays < 90) {
+    if (input.supplierCategory === "NEW" || (input.supplierAgeDays ?? 0) < 90) {
       stages += 1;
     }
 
@@ -624,14 +619,14 @@ export class ApproverRouter {
       const role = this.determineStageRole(
         stage,
         escalationLevel,
-        input.department,
+        input.department ?? '',
         routingId,
       );
 
       // Find available approvers for this role and department
       const availableApprovers = await this.findAvailableApprovers(
         role,
-        input.department,
+        input.department ?? '',
         routingId,
       );
 
@@ -868,7 +863,6 @@ export class ApproverRouter {
     approverMap.forEach((data, approverId) => {
       distribution.push({
         approverId,
-        approver: data.approver,
         currentWorkload: data.workload,
         maxWorkload: data.approver.maxWorkload || 50,
         capacity:
@@ -974,12 +968,12 @@ export class ApproverRouter {
     startTime: number,
     endTime: number,
   ): void {
-    auditLogger.log(
-      "APPROVAL_ROUTING_COMPLETED",
-      "invoice",
-      result.routingId,
-      "INFO",
-      {
+    auditLogger.log({
+      action: "CREATE" as any,
+      entityType: "invoice" as any,
+      entityId: result.routingId,
+      severity: "INFO" as any,
+      metadata: {
         routingId: result.routingId,
         strategy: result.strategy,
         escalationLevel: result.escalationLevel,
@@ -987,12 +981,9 @@ export class ApproverRouter {
         approverCount: result.approvalChain.length,
         routingDurationMs: endTime - startTime,
       },
-    );
+    });
   }
 
-  /**
-   * Log routing failure
-   */
   private static logRoutingFailure(
     routingId: string,
     input: ApprovalRoutingInput,
@@ -1001,13 +992,19 @@ export class ApproverRouter {
     startTime: number,
     endTime: number,
   ): void {
-    auditLogger.log("APPROVAL_ROUTING_FAILED", "invoice", routingId, "ERROR", {
-      routingId,
-      invoiceId: input.invoiceId,
-      totalAmount: input.totalAmount,
-      errorMessage,
-      errorStack,
-      routingDurationMs: endTime - startTime,
+    auditLogger.log({
+      action: "CREATE" as any,
+      entityType: "invoice" as any,
+      entityId: routingId,
+      severity: "ERROR" as any,
+      metadata: {
+        routingId,
+        invoiceId: input.invoiceId,
+        totalAmount: input.totalAmount,
+        errorMessage,
+        errorStack,
+        routingDurationMs: endTime - startTime,
+      }
     });
   }
 

@@ -7,7 +7,7 @@ import * as reconciliationsService from "./reconciliations.service";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
+router.get("/", async (req: any, res: any) => {
   try {
     const reconciliations = await reconciliationsService.listReconciliations();
     res.json(reconciliations);
@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: any, res: any) => {
   try {
     const reconciliation = await reconciliationsService.getReconciliation(
       req.params.id,
@@ -30,7 +30,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: any, res: any) => {
   try {
     const reconciliation = await reconciliationsService.createReconciliation(
       req.body,
@@ -41,7 +41,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.post("/:id/match", async (req, res) => {
+router.post("/:id/match", async (req: any, res: any) => {
   try {
     const result = await reconciliationsService.matchItems(
       req.params.id,
@@ -53,7 +53,7 @@ router.post("/:id/match", async (req, res) => {
   }
 });
 
-router.get("/:id/items", async (req, res) => {
+router.get("/:id/items", async (req: any, res: any) => {
   try {
     const items = await reconciliationsService.getReconciliationItems(
       req.params.id,

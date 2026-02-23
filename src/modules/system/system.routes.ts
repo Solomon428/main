@@ -9,7 +9,7 @@ import * as systemSettingsService from "./system-settings.service";
 const router = Router();
 
 // Settings routes
-router.get("/settings", async (req, res) => {
+router.get("/settings", async (req: any, res: any) => {
   try {
     const settings = await systemSettingsService.listSettings();
     res.json(settings);
@@ -18,7 +18,7 @@ router.get("/settings", async (req, res) => {
   }
 });
 
-router.get("/settings/:key", async (req, res) => {
+router.get("/settings/:key", async (req: any, res: any) => {
   try {
     const setting = await systemSettingsService.getSetting(req.params.key);
     if (!setting) {
@@ -30,7 +30,7 @@ router.get("/settings/:key", async (req, res) => {
   }
 });
 
-router.put("/settings/:key", async (req, res) => {
+router.put("/settings/:key", async (req: any, res: any) => {
   try {
     const setting = await systemSettingsService.updateSetting(
       req.params.key,
@@ -43,7 +43,7 @@ router.put("/settings/:key", async (req, res) => {
 });
 
 // Scheduled tasks routes
-router.get("/tasks", async (req, res) => {
+router.get("/tasks", async (req: any, res: any) => {
   try {
     const tasks = await scheduledTasksService.listScheduledTasks();
     res.json(tasks);
@@ -52,7 +52,7 @@ router.get("/tasks", async (req, res) => {
   }
 });
 
-router.post("/tasks", async (req, res) => {
+router.post("/tasks", async (req: any, res: any) => {
   try {
     const task = await scheduledTasksService.scheduleTask(req.body);
     res.status(201).json(task);
@@ -61,7 +61,7 @@ router.post("/tasks", async (req, res) => {
   }
 });
 
-router.post("/tasks/:id/run", async (req, res) => {
+router.post("/tasks/:id/run", async (req: any, res: any) => {
   try {
     const result = await scheduledTasksService.runTask(req.params.id);
     res.json(result);

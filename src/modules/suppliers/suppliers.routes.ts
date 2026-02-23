@@ -8,7 +8,7 @@ import * as suppliersService from "./suppliers.service";
 const router = Router();
 
 // Supplier routes
-router.get("/", async (req, res) => {
+router.get("/", async (req: any, res: any) => {
   try {
     const suppliers = await suppliersService.listSuppliers();
     res.json(suppliers);
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: any, res: any) => {
   try {
     const supplier = await suppliersService.getSupplier(req.params.id);
     if (!supplier) {
@@ -29,7 +29,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: any, res: any) => {
   try {
     const supplier = await suppliersService.createSupplier(req.body);
     res.status(201).json(supplier);
@@ -38,7 +38,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req: any, res: any) => {
   try {
     const supplier = await suppliersService.updateSupplier(
       req.params.id,
@@ -50,7 +50,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req: any, res: any) => {
   try {
     await suppliersService.deleteSupplier(req.params.id);
     res.status(204).send();

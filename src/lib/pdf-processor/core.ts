@@ -302,8 +302,8 @@ export class PDFProcessor {
           confidence: scoringResults.overallConfidence,
           qualityScore: scoringResults.qualityScore,
           documentType: structuredData.documentType,
-          invoiceNumber: structuredData.structuredData.invoiceNumber,
-          totalAmount: structuredData.structuredData.totalAmount,
+          invoiceNumber: structuredData.structuredData.invoiceNumber ?? null,
+          totalAmount: structuredData.structuredData.totalAmount ?? null,
           processingDurationMs,
         },
       });
@@ -321,7 +321,7 @@ export class PDFProcessor {
           fileName,
           processingId,
           error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+          stack: error instanceof Error ? error.stack ?? null : null,
           processingDurationMs,
         },
       });

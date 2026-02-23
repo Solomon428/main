@@ -7,7 +7,7 @@ import * as paymentsService from "./payments.service";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
+router.get("/", async (req: any, res: any) => {
   try {
     const payments = await paymentsService.listPayments();
     res.json(payments);
@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: any, res: any) => {
   try {
     const payment = await paymentsService.getPayment(req.params.id);
     if (!payment) {
@@ -28,7 +28,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: any, res: any) => {
   try {
     const payment = await paymentsService.createPayment(req.body);
     res.status(201).json(payment);
@@ -37,7 +37,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.post("/batch", async (req, res) => {
+router.post("/batch", async (req: any, res: any) => {
   try {
     const batch = await paymentsService.createPaymentBatch(req.body);
     res.status(201).json(batch);
@@ -46,7 +46,7 @@ router.post("/batch", async (req, res) => {
   }
 });
 
-router.get("/batches/:id", async (req, res) => {
+router.get("/batches/:id", async (req: any, res: any) => {
   try {
     const batch = await paymentsService.getPaymentBatch(req.params.id);
     if (!batch) {

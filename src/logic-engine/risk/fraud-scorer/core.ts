@@ -19,6 +19,14 @@ import type {
   RiskLevel,
 } from "./types";
 import { FraudScoringException } from "./types";
+import {
+  RiskLevel as RiskLevelEnum,
+  FraudSeverityLevel as FraudSeverityLevelEnum,
+  FraudMitigationAction as FraudMitigationActionEnum,
+  FraudAlertPriority as FraudAlertPriorityEnum,
+  FraudEscalationPath as FraudEscalationPathEnum,
+  FraudRiskCategory as FraudRiskCategoryEnum,
+} from "./enums";
 import { MODEL_VERSION } from "./constants";
 import { auditLogger } from "@/lib/utils/audit-logger";
 
@@ -644,19 +652,25 @@ export class FraudScorer {
     startTime: number,
     endTime: number,
   ): void {
-    auditLogger.log("FRAUD_SCORING_COMPLETED", "invoice", scoringId, "INFO", {
-      scoringId,
-      totalAmount: input.totalAmount,
-      supplierName: input.supplierName,
-      overallScore,
-      riskLevel,
-      severityLevel,
-      riskFactorCount: riskFactors.length,
-      confidenceLower: confidenceInterval.lower,
-      confidenceUpper: confidenceInterval.upper,
-      alertPriority,
-      escalationPath: escalationPath.join(" → "),
-      scoringDurationMs: endTime - startTime,
+    auditLogger.log({
+      action: "CREATE" as any,
+      entityType: "invoice" as any,
+      entityId: scoringId,
+      severity: "INFO" as any,
+      metadata: {
+        scoringId,
+        totalAmount: input.totalAmount,
+        supplierName: input.supplierName,
+        overallScore,
+        riskLevel,
+        severityLevel,
+        riskFactorCount: riskFactors.length,
+        confidenceLower: confidenceInterval.lower,
+        confidenceUpper: confidenceInterval.upper,
+        alertPriority,
+        escalationPath: escalationPath.join(" → "),
+        scoringDurationMs: endTime - startTime,
+      }
     });
   }
 
@@ -671,13 +685,19 @@ export class FraudScorer {
     startTime: number,
     endTime: number,
   ): void {
-    auditLogger.log("FRAUD_SCORING_FAILED", "invoice", scoringId, "ERROR", {
-      scoringId,
-      totalAmount: input.totalAmount,
-      supplierName: input.supplierName,
-      errorMessage,
-      errorStack,
-      scoringDurationMs: endTime - startTime,
+    auditLogger.log({
+      action: "CREATE" as any,
+      entityType: "invoice" as any,
+      entityId: scoringId,
+      severity: "ERROR" as any,
+      metadata: {
+        scoringId,
+        totalAmount: input.totalAmount,
+        supplierName: input.supplierName,
+        errorMessage,
+        errorStack,
+        scoringDurationMs: endTime - startTime,
+      }
     });
   }
 
@@ -699,15 +719,15 @@ export class FraudScorer {
       inputHash: this.generateInputHash(input),
       overallScore: 100, // Maximum risk on failure
       normalizedScore: 1.0,
-      riskLevel: "BLACKLISTED",
-      severityLevel: "SEVERE",
+      riskLevel: RiskLevelEnum.BLACKLISTED,
+      severityLevel: FraudSeverityLevelEnum.SEVERE,
       requiresAttention: true,
       riskFactors: [
         {
-          category: "SYSTEM_ERROR",
+          category: FraudRiskCategoryEnum.SYSTEM_ERROR,
           factor: "SCORING_FAILURE",
           description: `Fraud scoring failed: ${errorMessage}`,
-          severity: "SEVERE",
+          severity: FraudSeverityLevelEnum.SEVERE,
           scoreImpact: 100,
           evidence: errorMessage,
           detectionMethod: "SYSTEM" as any,
@@ -716,12 +736,12 @@ export class FraudScorer {
         },
       ],
       mitigationActions: [
-        "IMMEDIATE_ESCALATION",
-        "PAYMENT_HOLD",
-        "MANUAL_REVIEW",
+        FraudMitigationActionEnum.IMMEDIATE_ESCALATION,
+        FraudMitigationActionEnum.PAYMENT_HOLD,
+        FraudMitigationActionEnum.MANUAL_REVIEW,
       ],
       confidenceInterval: { lower: 0.0, upper: 0.1, level: "NONE" },
-      alertPriority: "IMMEDIATE",
+      alertPriority: FraudAlertPriorityEnum.IMMEDIATE,
       escalationPath: [
         "FRAUD_MANAGER",
         "COMPLIANCE_OFFICER",
