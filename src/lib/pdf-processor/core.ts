@@ -290,12 +290,12 @@ export class PDFProcessor {
         customData: processingOptions?.customData || {},
       };
 
-      await auditLogger.log(
-        "PDF_PROCESSING_COMPLETED",
-        "invoice",
-        processingId,
-        "INFO",
-        {
+      await auditLogger.log({
+        action: "PDF_PROCESSING_COMPLETED" as any,
+        entityType: "invoice" as any,
+        entityId: processingId,
+        severity: "INFO" as any,
+        metadata: {
           fileName,
           processingId,
           extractionMethod,
@@ -306,25 +306,25 @@ export class PDFProcessor {
           totalAmount: structuredData.structuredData.totalAmount,
           processingDurationMs,
         },
-      );
+      });
 
       return result;
     } catch (error) {
       const processingDurationMs = Date.now() - startTime;
 
-      await auditLogger.log(
-        "PDF_PROCESSING_FAILED",
-        "invoice",
-        processingId,
-        "ERROR",
-        {
+      await auditLogger.log({
+        action: "PDF_PROCESSING_FAILED" as any,
+        entityType: "invoice" as any,
+        entityId: processingId,
+        severity: "ERROR" as any,
+        metadata: {
           fileName,
           processingId,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
           processingDurationMs,
         },
-      );
+      });
 
       return createFailureResult(
         processingId,

@@ -1,6 +1,6 @@
 import { Decimal } from "decimal.js";
 import { isValid, parse } from "date-fns";
-import { Currency } from "../../../../domain/enums/Currency";
+import { Currency } from "../../../../../domain/enums/Currency";
 import type { ExtractionConfig, ExtractedLineItem } from "../types";
 
 export function parseDateString(
@@ -47,7 +47,7 @@ export function parseAmountString(
     }
 
     const match = numericStr.match(/(\d+[\.,]\d{2})/);
-    if (!match) {
+    if (!match || !match[1]) {
       return { amount: null, currency };
     }
 

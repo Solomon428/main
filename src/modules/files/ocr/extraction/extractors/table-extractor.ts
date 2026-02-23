@@ -9,7 +9,12 @@ import {
   parseAmountString,
   extractSupplierName,
 } from "./field-extractor";
-import type { Logger } from "../../../../observability/logger";
+
+interface Logger {
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 export async function extractWithRegexInternal(
   text: string,

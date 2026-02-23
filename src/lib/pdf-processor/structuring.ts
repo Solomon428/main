@@ -113,16 +113,16 @@ export function structureExtractedData(
       },
     };
   } catch (error) {
-    auditLogger.log(
-      "DATA_STRUCTURING_FAILED",
-      "invoice",
-      processingId,
-      "WARNING",
-      {
+    auditLogger.log({
+      action: "DATA_STRUCTURING_FAILED" as any,
+      entityType: "invoice" as any,
+      entityId: processingId,
+      severity: "WARNING" as any,
+      metadata: {
         processingId,
         error: error instanceof Error ? error.message : String(error),
       },
-    );
+    }).catch(console.error);
 
     return {
       documentType: DocumentType.STANDARD_INVOICE,

@@ -131,16 +131,16 @@ export function generateProcessingInsights(
 
     return { flags, warnings, errors, suggestions };
   } catch (error) {
-    auditLogger.log(
-      "INSIGHT_GENERATION_FAILED",
-      "invoice",
-      processingId,
-      "WARNING",
-      {
+    auditLogger.log({
+      action: "INSIGHT_GENERATION_FAILED" as any,
+      entityType: "invoice" as any,
+      entityId: processingId,
+      severity: "WARNING" as any,
+      metadata: {
         processingId,
         error: error instanceof Error ? error.message : String(error),
       },
-    );
+    }).catch(console.error);
 
     return { flags: [], warnings: [], errors: [], suggestions: [] };
   }

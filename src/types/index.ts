@@ -303,6 +303,7 @@ export type ApprovalRoutingInput = {
 
 export type ApprovalRoutingResult = {
   chainId?: string;
+  routingId?: string;
   stages: ApprovalStage[];
   requiresApproval: boolean;
   reason?: string;
@@ -412,13 +413,18 @@ export type ApprovalCondition = {
 };
 
 export type RoutingRule = {
-  id: string;
-  name: string;
+  id?: string;
+  ruleId?: string;
+  name?: string;
   type: RoutingRuleType;
-  conditions: ApprovalCondition[];
+  ruleType?: string;
+  conditions?: ApprovalCondition[];
   action: RoutingRuleAction;
+  ruleAction?: string;
   priority: number;
   isActive: boolean;
+  ruleOperator?: string;
+  ruleValue?: any;
 };
 
 export type RoutingRuleType = "AMOUNT_THRESHOLD" | "DEPARTMENT_MATCH" | "SUPPLIER_CATEGORY" | "RISK_LEVEL" | "CUSTOM";
@@ -479,31 +485,37 @@ export type RoutingErrorAction = "ESCALATE" | "NOTIFY" | "BLOCK" | "FALLBACK";
 export type SAApprovalLimit = {
   role: string;
   limit: number;
-  escalationLevel: EscalationLevel;
+  escalationLevel?: EscalationLevel;
 };
 
 export type DepartmentApprovalLimit = {
   department: string;
-  limit: number;
-  escalationLevel: EscalationLevel;
+  baseLimit: number;
+  limit?: number;
+  escalationLevel?: EscalationLevel;
+  escalationThreshold?: number;
 };
 
 export type RoleApprovalLimit = {
   role: string;
-  limit: number;
-  escalationLevel: EscalationLevel;
+  baseLimit: number;
+  maxLimit?: number;
+  limit?: number;
+  escalationLevel?: EscalationLevel;
 };
 
 export type SupplierCategoryApprovalLimit = {
-  category: SupplierCategory;
-  limit: number;
-  escalationLevel: EscalationLevel;
+  category: string;
+  limit?: number;
+  multiplier?: number;
+  escalationLevel?: EscalationLevel;
 };
 
 export type RiskLevelApprovalLimit = {
-  riskLevel: RiskLevel;
-  limit: number;
-  escalationLevel: EscalationLevel;
+  riskLevel: string;
+  limit?: number;
+  multiplier?: number;
+  escalationLevel?: EscalationLevel;
 };
 
 export type CustomApprovalLimit = {

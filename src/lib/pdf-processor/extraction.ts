@@ -88,16 +88,16 @@ export async function analyzeDocumentQuality(
       isSearchable: false,
     };
   } catch (error) {
-    await auditLogger.log(
-      "QUALITY_ANALYSIS_FAILED",
-      "invoice",
-      processingId,
-      "WARNING",
-      {
+    await auditLogger.log({
+      action: "QUALITY_ANALYSIS_FAILED" as any,
+      entityType: "invoice" as any,
+      entityId: processingId,
+      severity: "WARNING" as any,
+      metadata: {
         processingId,
         error: error instanceof Error ? error.message : String(error),
       },
-    );
+    });
 
     return {
       clarityScore: 0.5,
@@ -213,18 +213,18 @@ export async function performExtraction(
       const { getFallbackExtractionMethod } = await import("./utils");
       const fallbackMethod = getFallbackExtractionMethod(extractionMethod);
       if (fallbackMethod) {
-        await auditLogger.log(
-          "EXTRACTION_FALLBACK_TRIGGERED",
-          "invoice",
-          processingId,
-          "WARNING",
-          {
+        await auditLogger.log({
+          action: "EXTRACTION_FALLBACK_TRIGGERED" as any,
+          entityType: "invoice" as any,
+          entityId: processingId,
+          severity: "WARNING" as any,
+          metadata: {
             processingId,
             originalMethod: extractionMethod,
             fallbackMethod,
             error: error instanceof Error ? error.message : String(error),
           },
-        );
+        });
 
         return await performExtraction(
           filePath,

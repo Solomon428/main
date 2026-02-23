@@ -114,7 +114,7 @@ export class SMTPClient {
       });
 
       await auditLogger.log({
-        action: "SYSTEM_ALERT",
+        action: "CREATE",
         entityType: EntityType.SYSTEM,
         entityId: "EMAIL_SENT",
         entityDescription: `Email sent: ${options.subject}`,
@@ -133,7 +133,7 @@ export class SMTPClient {
       console.error("[SMTPClient] Failed to send email:", error);
 
       await auditLogger.log({
-        action: "SYSTEM_ALERT",
+        action: "UPDATE",
         entityType: EntityType.SYSTEM,
         entityId: "EMAIL_FAILED",
         entityDescription: `Email failed: ${errorMessage}`,

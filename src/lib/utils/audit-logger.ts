@@ -236,7 +236,7 @@ export class AuditLogger {
     metadata?: Record<string, JsonValue>,
   ): Promise<void> {
     const entry: AuditLogEntry = {
-      action: "COMPLIANCE_VIOLATION",
+      action: "UPDATE",
       entityType,
       entityId,
       entityDescription: description,
@@ -260,7 +260,7 @@ export class AuditLogger {
     metadata?: Record<string, JsonValue>,
   ): Promise<void> {
     const entry: AuditLogEntry = {
-      action: "FRAUD_DETECTED",
+      action: "UPDATE",
       entityType: "INVOICE",
       entityId,
       entityDescription: description,

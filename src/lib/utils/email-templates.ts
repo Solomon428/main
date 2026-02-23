@@ -38,7 +38,7 @@ export class EmailTemplates {
     return `R${amount.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
-  private static formatDate(date: Date): string {
+  private static formatDate(date: Date | string): string {
     return new Date(date).toLocaleDateString("en-ZA", {
       day: "numeric",
       month: "long",

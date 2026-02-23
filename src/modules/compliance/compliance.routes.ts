@@ -7,7 +7,7 @@ import * as complianceChecksService from "./compliance-checks.service";
 
 const router = Router();
 
-router.post("/check", async (req, res) => {
+router.post("/check", async (req: any, res: any) => {
   try {
     const result = await complianceChecksService.runComplianceCheck(req.body);
     res.status(201).json(result);
@@ -16,7 +16,7 @@ router.post("/check", async (req, res) => {
   }
 });
 
-router.get("/status/:invoiceId", async (req, res) => {
+router.get("/status/:invoiceId", async (req: any, res: any) => {
   try {
     const status = await complianceChecksService.getComplianceStatus(
       req.params.invoiceId,
@@ -27,7 +27,7 @@ router.get("/status/:invoiceId", async (req, res) => {
   }
 });
 
-router.post("/override", async (req, res) => {
+router.post("/override", async (req: any, res: any) => {
   try {
     const result = await complianceChecksService.overrideCompliance(req.body);
     res.json(result);
