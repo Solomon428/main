@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch
+content-type: application/json
+set-cookie: auth-token=eyJhbGciOiJIUzI1NiJ9.eyJpZCI6ImNtbHR6aW4wODAwMDJsMXRwNXVyNDBsa2ciLCJlbWFpbCI6ImFkbWluQGNyZWRpdG9yZmxvdy5jb20iLCJyb2xlIjoiU1VQRVJfQURNSU4iLCJkZXBhcnRtZW50IjoiRklOQU5DRSIsIm5hbWUiOiJTb2xvbW9uIE1ha3dlZGluaSIsImlhdCI6MTc3MTc4ODYzOCwiZXhwIjoxNzcxODc1MDM4fQ.jsj67HV7FBMKwJS8IHSe3hIBWNO3dKMoHOIH56EflOM; Path=/; Expires=Mon, 23 Feb 2026 19:30:38 GMT; Max-Age=86400; HttpOnly; SameSite=lax
+Date: Sun, 22 Feb 2026 19:30:38 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
